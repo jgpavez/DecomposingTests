@@ -5,6 +5,7 @@ __author__ = "Pavez J. <juan.pavezs@alumnos.usm.cl>"
 import ROOT
 import numpy as np
 from sklearn import svm, linear_model
+from sklearn.externals import joblib
 
 import sys
 
@@ -93,10 +94,23 @@ def makeData(num_train=500,num_test=100):
 
   
 def trainClassifier():
-  classifiers = []   
+  '''
+    Train classifiers pair-wise on 
+    datasets
+  '''
+
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
+      traintarget = np.loadtxt('traindata_f{0}_f{1}.dat'.format(k,j))
+      traindata = traintarget[:,0]
+      targetdata = traintarget[:,1]
+      
+      print " Training SVM on f{0}/f{1}".format(k,j)
+      clf = svm.NuSVR() #Why use a SVR??
+      clf.fit(traindata.reshape(traindata.shape[0],1)
+          ,targetdata)
+      joblib.dump(clf, 'adaptive_f{0}_f{1}.pkl'.format(k,j))
 
 
-
-makeData(num_train=10) 
+makeData(num_train=250) 
+trainClassifier()
