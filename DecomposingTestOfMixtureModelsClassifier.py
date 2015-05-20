@@ -12,6 +12,8 @@ import sys
 import os.path
 import pdb
 
+
+
 ''' 
  A simple example for the work on the section 
  5.4 of the paper 'Approximating generalized 
@@ -184,16 +186,63 @@ def classifierPdf():
   w.Print()
   w.writeToFile("workspace_adaptive_DecompisingTest.root")
 
+  
+# this is not very efficient
+def scikitlearnFunc(filename,x=0.):
+  clf = joblib.load(filename)
+  traindata = np.array((x))
+  outputs = clf.predict(traindata)
+
+  if outputs[0] > 1:
+    return 1.
+  return outputs[0]
+
+class ScikitLearnCallback:
+  def __init__(self,file):
+    clf = joblib.load(file)
+
+  def get(self,x = 0.):
+    train = np.array((x))
+    outputs = clf.predict(train)
+    
+    if outputs[0] > 1:
+      return 1.
+    return outputs[0]
+
+
 def fitAdaptive():
   '''
     Use the computed score densities to compute 
     the decompose ratio test
   '''
+  ROOT.gSystem.Load('parametrized-learning/SciKitLearnWrapper/libSciKitLearnWrapper')
+  #ROOT.gROOT.ProcessLine('.L CompositeFunctionPdf.cxx+')
+
   f = ROOT.TFile("workspace_adaptive_DecompisingTest.root")
   w = f.Get('w')
+  #x = w.var('x[-5,5]')
+  x = ROOT.RooRealVar('x','x',0.2,-5,5)
+  for k,c in enumerate(c0):
+    for j,c_ in enumerate(c1):
+      nn = ROOT.SciKitLearnWrapper('nn','nn',x)
+      nn.RegisterCallBack(lambda x: scikitlearnFunc('adaptive_f{0}_f{1}.pkl'.format(k,j),x))
+      # I should find the way to use this method
+      #callbck = ScikitLearnCallback('adaptive_f{0}_f{1}.pkl'.format(k,j))
+      #nn.RegisterCallBack(lambda x: callbck.get(x))
+      
+      # Testing
+      #canvas = ROOT.TCanvas('c1')
+      #frame = x.frame()
+      #nn.plotOn(frame)
+      #frame.Draw()
+      #canvas.SaveAs('classifierwrapper_f{0}_f{1}.pdf'.format(k,j))
 
-   
+       
+
+
 
 #makeData(num_rain=250) 
 #trainClassifier()
-classifierPdf()
+#classifierPdf()
+fitAdaptive()
+
