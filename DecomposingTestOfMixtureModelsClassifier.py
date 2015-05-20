@@ -186,8 +186,13 @@ def classifierPdf():
 
 def fitAdaptive():
   '''
-    Use the computed score densities
-  
+    Use the computed score densities to compute 
+    the decompose ratio test
+  '''
+  f = ROOT.TFile("workspace_adaptive_DecompisingTest.root")
+  w = f.Get('w')
+
+   
 
 #makeData(num_rain=250) 
 #trainClassifier()
