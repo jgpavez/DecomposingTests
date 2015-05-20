@@ -216,7 +216,8 @@ def fitAdaptive():
     the decompose ratio test
   '''
   ROOT.gSystem.Load('parametrized-learning/SciKitLearnWrapper/libSciKitLearnWrapper')
-  #ROOT.gROOT.ProcessLine('.L CompositeFunctionPdf.cxx+')
+  ROOT.gROOT.ProcessLine('.L CompositeFunctionPdf.cxx+')
+
 
   f = ROOT.TFile("workspace_adaptive_DecompisingTest.root")
   w = f.Get('w')
@@ -226,6 +227,8 @@ def fitAdaptive():
     for j,c_ in enumerate(c1):
       nn = ROOT.SciKitLearnWrapper('nn','nn',x)
       nn.RegisterCallBack(lambda x: scikitlearnFunc('adaptive_f{0}_f{1}.pkl'.format(k,j),x))
+      getattr(w,'import')(ROOT.RooArgSet(nn),ROOT.RooFit.RecycleConflictNodes()) 
+
       # I should find the way to use this method
       #callbck = ScikitLearnCallback('adaptive_f{0}_f{1}.pkl'.format(k,j))
       #nn.RegisterCallBack(lambda x: callbck.get(x))
@@ -237,7 +240,27 @@ def fitAdaptive():
       #frame.Draw()
       #canvas.SaveAs('classifierwrapper_f{0}_f{1}.pdf'.format(k,j))
 
+      for l,name in enumerate(['sig','bkg']):
+        w.factory('CompositeFunctionPdf::{0}template_{1}_{2}({0}dist_{1}_{2})'.
+            format(name,k,j))
+        w.factory('EDIT::{0}moddist_{1}_{2}({0}template_{1}_{2},score=nn)'.format(name,k,j))
        
+      sigpdf = w.pdf('sigmoddist_{0}_{1}'.format(k,j))
+      bkgpdf = w.pdf('bkgmoddist_{0}_{1}'.format(k,j))
+    
+      #sigpdf.graphVizTree('sigpdfgraph.dot')
+      #bkgpdf.graphVizTree('bkgpdfgraph.dot')
+      print 'signal pdf expected events = ',sigpdf.expectedEvents(ROOT.RooArgSet(nn))
+      
+      canvas = ROOT.TCanvas('c1')
+      frame = x.frame()
+      sigpdf.plotOn(frame)
+      bkgpdf.plotOn(frame)
+      frame.Draw()
+      canvas.SaveAs('scoredensity_f{0}_f{1}.pdf'.format(k,j))
+
+
+  #w.Print()
 
 
 
