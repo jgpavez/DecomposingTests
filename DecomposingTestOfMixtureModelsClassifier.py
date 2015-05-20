@@ -138,10 +138,19 @@ def classifierPdf():
       
       outputs = clf.predict(traindata.reshape(traindata.shape[0],1)) 
       # Should I be using here test data?
-     
+         
       for l,name in enumerate(['sig','bkg']):
+        data = ROOT.RooDataSet('{0}data_{1}_{2}'.format(name,k,j),"data",
+              ROOT.RooArgSet(s))
         hist = ROOT.TH1F('{0}hist_{1}_{2}'.format(name,k,j),'hist',bins,low,high)
-        [ hist.Fill(val) for val in outputs[l*numtrain/2:(l+1)*numtrain/2] ]
+        # Check this use of data.add
+        #[ (hist.Fill(val),data.add(val)) for val 
+        #          in outputs[l*numtrain/2:(l+1)*numtrain/2] ]
+
+        for val in outputs[l*numtrain/2:(l+1)*numtrain/2]:
+          hist.Fill(val)
+          s.setVal(val)
+          data.add(ROOT.RooArgSet(s))
 
         hist.Draw()
         
@@ -153,8 +162,14 @@ def classifierPdf():
               
         histpdf.specialIntegratorConfig(ROOT.kTRUE).method1D().setLabel('RooBinIntegrator')
 
+        getattr(w,'import')(data)
         getattr(w,'import')(datahist) # work around for morph = w.import(morph)
         getattr(w,'import')(histpdf) # work around for morph = w.import(morph)
+
+        w.factory('KeysPdf::{0}dist_{1}_{2}(score,{0}data_{1}_{2})'.format(name,k,j))
+        w.Print()
+
+        printFrame(w,'score',['{0}dist_{1}_{2}'.format(name,k,j)])
 
         canvas.SaveAs('root_adaptive_hist_{0}_{1}_{2}.pdf'.format(name,k,j))     
 
@@ -162,7 +177,7 @@ def classifierPdf():
   w.writeToFile("workspace_adaptive_DecompisingTest.root")
 
 def fitAdaptive():
-
+  return
 
 #makeData(num_rain=250) 
 #trainClassifier()
