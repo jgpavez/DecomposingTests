@@ -62,6 +62,7 @@ def makeData(num_train=500,num_test=100):
   
   # Check Model
   w.Print()
+  w.writeToFile('workspace_DecomposingTestOfMixtureModelsClassifiers.py')
   #printFrame(w,'x',['f0','f1','f2']) 
   #printFrame(w,'x',['F0','F1'])
 
@@ -92,7 +93,16 @@ def makeData(num_train=500,num_test=100):
       np.savetxt('traindata_f{0}_f{1}.dat'.format(k,j),
               np.column_stack((traindata,targetdata)),fmt='%f')
 
+
+
   
+def loadData(filename):
+  traintarget = np.loadtxt(filename)
+  traindata = traintarget[:,0]
+  targetdata = traintarget[:,1]
+  return (traindata, targetdata)
+
+
 def trainClassifier():
   '''
     Train classifiers pair-wise on 
@@ -101,16 +111,59 @@ def trainClassifier():
 
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
-      traintarget = np.loadtxt('traindata_f{0}_f{1}.dat'.format(k,j))
-      traindata = traintarget[:,0]
-      targetdata = traintarget[:,1]
-      
+      traindata,targetdata = loadData('traindata_f{0}_f{1}.dat'.format(k,j)) 
+
       print " Training SVM on f{0}/f{1}".format(k,j)
       clf = svm.NuSVR() #Why use a SVR??
       clf.fit(traindata.reshape(traindata.shape[0],1)
           ,targetdata)
       joblib.dump(clf, 'adaptive_f{0}_f{1}.pkl'.format(k,j))
 
+def classifierPdf():
+  bins = 30
+  low = 0.
+  high = 1.  
 
-makeData(num_train=250) 
-trainClassifier()
+  w = ROOT.RooWorkspace('w')
+  w.factory('score[{0},{1}]'.format(low,high))
+  s = w.var('score')
+  canvas = ROOT.TCanvas('c2','',400,400)
+
+  for k,c in enumerate(c0):
+    for j,c_ in enumerate(c1):
+      traindata, targetdata = loadData('traindata_f{0}_f{1}.dat'.format(k,j))
+      numtrain = traindata.shape[0]       
+
+      clf = joblib.load('adaptive_f{0}_f{1}.pkl'.format(k,j))
+      
+      outputs = clf.predict(traindata.reshape(traindata.shape[0],1)) 
+      # Should I be using here test data?
+     
+      for l,name in enumerate(['sig','bkg']):
+        hist = ROOT.TH1F('{0}hist_{1}_{2}'.format(name,k,j),'hist',bins,low,high)
+        [ hist.Fill(val) for val in outputs[l*numtrain/2:(l+1)*numtrain/2] ]
+
+        hist.Draw()
+        
+        datahist = ROOT.RooDataHist('{0}datahist_{1}_{2}'.format(name,k,j),'hist',
+              ROOT.RooArgList(s),hist)
+        s.setBins(bins)
+        histpdf = ROOT.RooHistPdf('{0}histpdf_{1}_{2}'.format(name,k,j),'hist',
+              ROOT.RooArgSet(s), datahist, 1)
+              
+        histpdf.specialIntegratorConfig(ROOT.kTRUE).method1D().setLabel('RooBinIntegrator')
+
+        getattr(w,'import')(datahist) # work around for morph = w.import(morph)
+        getattr(w,'import')(histpdf) # work around for morph = w.import(morph)
+
+        canvas.SaveAs('root_adaptive_hist_{0}_{1}_{2}.pdf'.format(name,k,j))     
+
+  w.Print()
+  w.writeToFile("workspace_adaptive_DecompisingTest.root")
+
+def fitAdaptive():
+
+
+#makeData(num_rain=250) 
+#trainClassifier()
+classifierPdf()
