@@ -120,6 +120,12 @@ def trainClassifier():
       joblib.dump(clf, 'adaptive_f{0}_f{1}.pkl'.format(k,j))
 
 def classifierPdf():
+  ''' 
+    Create pdfs for the classifier 
+    score to be used later on the ratio 
+    test
+  '''
+
   bins = 30
   low = 0.
   high = 1.  
@@ -166,10 +172,12 @@ def classifierPdf():
         getattr(w,'import')(datahist) # work around for morph = w.import(morph)
         getattr(w,'import')(histpdf) # work around for morph = w.import(morph)
 
+        # Calculate the density of the classifier output using kernel density 
+        # estimation technique
         w.factory('KeysPdf::{0}dist_{1}_{2}(score,{0}data_{1}_{2})'.format(name,k,j))
         w.Print()
 
-        printFrame(w,'score',['{0}dist_{1}_{2}'.format(name,k,j)])
+        #printFrame(w,'score',['{0}dist_{1}_{2}'.format(name,k,j)])
 
         canvas.SaveAs('root_adaptive_hist_{0}_{1}_{2}.pdf'.format(name,k,j))     
 
@@ -177,7 +185,9 @@ def classifierPdf():
   w.writeToFile("workspace_adaptive_DecompisingTest.root")
 
 def fitAdaptive():
-  return
+  '''
+    Use the computed score densities
+  
 
 #makeData(num_rain=250) 
 #trainClassifier()
