@@ -12,6 +12,7 @@ import sys
 import os.path
 import pdb
 
+import matplotlib.pyplot as plt
 
 
 ''' 
@@ -22,7 +23,7 @@ import pdb
 ''' 
 
 # Constants for each different model
-c0 = [.2,.8, 0.]
+c0 = [.1,.2, .7]
 c1 = [.2,.5, .3]
 
 def printFrame(w,obs,pdf):
@@ -47,7 +48,7 @@ def printFrame(w,obs,pdf):
   for i,f in enumerate(funcs):
       f.plotOn(frame,line_colors[i])
   frame.Draw()
-  c1.SaveAs('model{0}.pdf'.format('-'.join(pdf)))
+  c1.SaveAs('plots/model{0}.pdf'.format('-'.join(pdf)))
 
 def makeData(num_train=500,num_test=100):
   '''
@@ -56,15 +57,15 @@ def makeData(num_train=500,num_test=100):
   '''  
   # Statistical model
   w = ROOT.RooWorkspace('w')
-  w.factory("EXPR::f0('exp(x*-1)',x[-5,5])")
-  w.factory("EXPR::f1('cos(x)**2 + 0.1',x)")
+  w.factory("EXPR::f0('exp(x*-1)',x[0,5])")
+  w.factory("EXPR::f1('cos(x)**2 + .01',x)")
   w.factory("EXPR::f2('exp(-(x-2)**2/2)',x)")
   w.factory("SUM::F0(c00[{0}]*f0,c01[{1}]*f1,f2)".format(c0[0],c0[1]))
   w.factory("SUM::F1(c10[{0}]*f0,c11[{1}]*f1,f2)".format(c1[0],c1[1]))
   
   # Check Model
   w.Print()
-  w.writeToFile('workspace_DecomposingTestOfMixtureModelsClassifiers.py')
+  w.writeToFile('workspace_DecomposingTestOfMixtureModelsClassifiers.root')
   #printFrame(w,'x',['f0','f1','f2']) 
   #printFrame(w,'x',['F0','F1'])
 
@@ -92,10 +93,8 @@ def makeData(num_train=500,num_test=100):
           for i in range(num_train)]
       targetdata[num_train:].fill(0)
     
-      np.savetxt('traindata_f{0}_f{1}.dat'.format(k,j),
+      np.savetxt('data/traindata_f{0}_f{1}.dat'.format(k,j),
               np.column_stack((traindata,targetdata)),fmt='%f')
-
-
 
   
 def loadData(filename):
@@ -113,13 +112,13 @@ def trainClassifier():
 
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
-      traindata,targetdata = loadData('traindata_f{0}_f{1}.dat'.format(k,j)) 
+      traindata,targetdata = loadData('data/traindata_f{0}_f{1}.dat'.format(k,j)) 
 
       print " Training SVM on f{0}/f{1}".format(k,j)
       clf = svm.NuSVR() #Why use a SVR??
       clf.fit(traindata.reshape(traindata.shape[0],1)
           ,targetdata)
-      joblib.dump(clf, 'adaptive_f{0}_f{1}.pkl'.format(k,j))
+      joblib.dump(clf, 'model/adaptive_f{0}_f{1}.pkl'.format(k,j))
 
 def classifierPdf():
   ''' 
@@ -132,17 +131,20 @@ def classifierPdf():
   low = 0.
   high = 1.  
 
-  w = ROOT.RooWorkspace('w')
+  f = ROOT.TFile('workspace_DecomposingTestOfMixtureModelsClassifiers.root')
+  w = f.Get('w')
+  f.Close()
+
   w.factory('score[{0},{1}]'.format(low,high))
   s = w.var('score')
   canvas = ROOT.TCanvas('c2','',400,400)
 
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
-      traindata, targetdata = loadData('traindata_f{0}_f{1}.dat'.format(k,j))
+      traindata, targetdata = loadData('data/traindata_f{0}_f{1}.dat'.format(k,j))
       numtrain = traindata.shape[0]       
 
-      clf = joblib.load('adaptive_f{0}_f{1}.pkl'.format(k,j))
+      clf = joblib.load('model/adaptive_f{0}_f{1}.pkl'.format(k,j))
       
       outputs = clf.predict(traindata.reshape(traindata.shape[0],1)) 
       # Should I be using here test data?
@@ -181,10 +183,11 @@ def classifierPdf():
 
         #printFrame(w,'score',['{0}dist_{1}_{2}'.format(name,k,j)])
 
-        canvas.SaveAs('root_adaptive_hist_{0}_{1}_{2}.pdf'.format(name,k,j))     
+        canvas.SaveAs('plots/root_adaptive_hist_{0}_{1}_{2}.pdf'.format(name,k,j))     
 
   w.Print()
-  w.writeToFile("workspace_adaptive_DecompisingTest.root")
+
+  w.writeToFile('workspace_DecomposingTestOfMixtureModelsClassifiers.root')
 
   
 # this is not very efficient
@@ -209,6 +212,23 @@ class ScikitLearnCallback:
       return 1.
     return outputs[0]
 
+def pdfRatio(w,x):
+  sum = 0.
+  w.var('x').setVal(x)
+  for k,c in enumerate(c0):
+    if (c==0):
+      continue
+    innerSum = 0.
+    for j,c_ in enumerate(c1):
+      # Just to avoid zero division, this need further checking
+      if w.pdf('bkgmoddist_{0}_{1}'.format(k,j)).getValV() < 10E-10:
+        continue
+      innerSum += (c_/c *  
+          (w.pdf('sigmoddist_{0}_{1}'.format(k,j)).getValV() /
+               w.pdf('bkgmoddist_{0}_{1}'.format(k,j)).getValV()))
+    sum += 1./innerSum
+  return sum
+  
 
 def fitAdaptive():
   '''
@@ -219,14 +239,17 @@ def fitAdaptive():
   ROOT.gROOT.ProcessLine('.L CompositeFunctionPdf.cxx+')
 
 
-  f = ROOT.TFile("workspace_adaptive_DecompisingTest.root")
+  f = ROOT.TFile('workspace_DecomposingTestOfMixtureModelsClassifiers.root')
   w = f.Get('w')
+  f.Close()
+
   #x = w.var('x[-5,5]')
-  x = ROOT.RooRealVar('x','x',0.2,-5,5)
+  x = ROOT.RooRealVar('x','x',0.2,0,5)
+  getattr(w,'import')(ROOT.RooArgSet(x),ROOT.RooFit.RecycleConflictNodes()) 
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
-      nn = ROOT.SciKitLearnWrapper('nn','nn',x)
-      nn.RegisterCallBack(lambda x: scikitlearnFunc('adaptive_f{0}_f{1}.pkl'.format(k,j),x))
+      nn = ROOT.SciKitLearnWrapper('nn_{0}_{1}'.format(k,j),'nn_{0}_{1}'.format(k,j),x)
+      nn.RegisterCallBack(lambda x: scikitlearnFunc('model/adaptive_f{0}_f{1}.pkl'.format(k,j),x))
       getattr(w,'import')(ROOT.RooArgSet(nn),ROOT.RooFit.RecycleConflictNodes()) 
 
       # I should find the way to use this method
@@ -243,29 +266,40 @@ def fitAdaptive():
       for l,name in enumerate(['sig','bkg']):
         w.factory('CompositeFunctionPdf::{0}template_{1}_{2}({0}dist_{1}_{2})'.
             format(name,k,j))
-        w.factory('EDIT::{0}moddist_{1}_{2}({0}template_{1}_{2},score=nn)'.format(name,k,j))
+        w.factory('EDIT::{0}moddist_{1}_{2}({0}template_{1}_{2},score=nn_{1}_{2})'
+                .format(name,k,j))
        
       sigpdf = w.pdf('sigmoddist_{0}_{1}'.format(k,j))
       bkgpdf = w.pdf('bkgmoddist_{0}_{1}'.format(k,j))
-    
+
+
+      #w.Print()
+
       #sigpdf.graphVizTree('sigpdfgraph.dot')
       #bkgpdf.graphVizTree('bkgpdfgraph.dot')
-      print 'signal pdf expected events = ',sigpdf.expectedEvents(ROOT.RooArgSet(nn))
       
-      canvas = ROOT.TCanvas('c1')
-      frame = x.frame()
-      sigpdf.plotOn(frame)
-      bkgpdf.plotOn(frame)
-      frame.Draw()
-      canvas.SaveAs('scoredensity_f{0}_f{1}.pdf'.format(k,j))
+  xarray = np.linspace(0,5,100)
+  y = [pdfRatio(w,xs) for xs in xarray]
 
+  plt.plot(xarray, y)
+  plt.savefig('plots/ratio_classifier.png')
+
+  def ratio(w,x):
+    w.var('x').setVal(x)
+    if w.pdf('F1').getValV() < 10E-10:
+      return 0.
+    return w.pdf('F0').getValV() / w.pdf('F1').getValV()
+
+  y2 = [ratio(w,xs) for xs in xarray]
+
+  plt.clf()
+  plt.plot(xarray,y2)
+  plt.savefig('plots/ratio.png')
 
   #w.Print()
 
-
-
-#makeData(num_rain=250) 
-#trainClassifier()
-#classifierPdf()
+makeData(num_train=300) 
+trainClassifier()
+classifierPdf()
 fitAdaptive()
 
