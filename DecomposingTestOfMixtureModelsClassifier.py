@@ -115,7 +115,7 @@ def trainClassifier():
       traindata,targetdata = loadData('data/traindata_f{0}_f{1}.dat'.format(k,j)) 
 
       print " Training SVM on f{0}/f{1}".format(k,j)
-      clf = svm.NuSVR() #Why use a SVR??
+      clf = svm.NuSVC(probability=True) #Why use a SVR??
       clf.fit(traindata.reshape(traindata.shape[0],1)
           ,targetdata)
       joblib.dump(clf, 'model/adaptive_f{0}_f{1}.pkl'.format(k,j))
@@ -146,7 +146,7 @@ def classifierPdf():
 
       clf = joblib.load('model/adaptive_f{0}_f{1}.pkl'.format(k,j))
       
-      outputs = clf.predict(traindata.reshape(traindata.shape[0],1)) 
+      outputs = clf.predict_proba(traindata.reshape(traindata.shape[0],1)) 
       # Should I be using here test data?
          
       for l,name in enumerate(['sig','bkg']):
@@ -158,8 +158,8 @@ def classifierPdf():
         #          in outputs[l*numtrain/2:(l+1)*numtrain/2] ]
 
         for val in outputs[l*numtrain/2:(l+1)*numtrain/2]:
-          hist.Fill(val)
-          s.setVal(val)
+          hist.Fill(val[1])
+          s.setVal(val[1])
           data.add(ROOT.RooArgSet(s))
 
         hist.Draw()
@@ -181,7 +181,7 @@ def classifierPdf():
         w.factory('KeysPdf::{0}dist_{1}_{2}(score,{0}data_{1}_{2})'.format(name,k,j))
         w.Print()
 
-        #printFrame(w,'score',['{0}dist_{1}_{2}'.format(name,k,j)])
+        printFrame(w,'score',['{0}dist_{1}_{2}'.format(name,k,j)])
 
         canvas.SaveAs('plots/root_adaptive_hist_{0}_{1}_{2}.pdf'.format(name,k,j))     
 
@@ -194,11 +194,11 @@ def classifierPdf():
 def scikitlearnFunc(filename,x=0.):
   clf = joblib.load(filename)
   traindata = np.array((x))
-  outputs = clf.predict(traindata)
-
-  if outputs[0] > 1:
-    return 1.
-  return outputs[0]
+  outputs = clf.predict_proba(traindata)[0][1]
+  
+  #if outputs[0] > 1:
+  #  return 1.
+  return outputs
 
 class ScikitLearnCallback:
   def __init__(self,file):
@@ -206,7 +206,7 @@ class ScikitLearnCallback:
 
   def get(self,x = 0.):
     train = np.array((x))
-    outputs = clf.predict(train)
+    outputs = clf.predict_proba(train)[1]
     
     if outputs[0] > 1:
       return 1.
@@ -226,7 +226,8 @@ def pdfRatio(w,x):
       innerSum += (c_/c *  
           (w.pdf('sigmoddist_{0}_{1}'.format(k,j)).getValV() /
                w.pdf('bkgmoddist_{0}_{1}'.format(k,j)).getValV()))
-    sum += 1./innerSum
+    if innerSum > 10E-10:
+      sum += 1./innerSum
   return sum
   
 
@@ -246,8 +247,10 @@ def fitAdaptive():
   #x = w.var('x[-5,5]')
   x = ROOT.RooRealVar('x','x',0.2,0,5)
   getattr(w,'import')(ROOT.RooArgSet(x),ROOT.RooFit.RecycleConflictNodes()) 
+
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
+      test = scikitlearnFunc('model/adaptive_f{0}_f{1}.pkl'.format(k,j),2.0)
       nn = ROOT.SciKitLearnWrapper('nn_{0}_{1}'.format(k,j),'nn_{0}_{1}'.format(k,j),x)
       nn.RegisterCallBack(lambda x: scikitlearnFunc('model/adaptive_f{0}_f{1}.pkl'.format(k,j),x))
       getattr(w,'import')(ROOT.RooArgSet(nn),ROOT.RooFit.RecycleConflictNodes()) 
@@ -269,8 +272,16 @@ def fitAdaptive():
         w.factory('EDIT::{0}moddist_{1}_{2}({0}template_{1}_{2},score=nn_{1}_{2})'
                 .format(name,k,j))
        
+
       sigpdf = w.pdf('sigmoddist_{0}_{1}'.format(k,j))
       bkgpdf = w.pdf('bkgmoddist_{0}_{1}'.format(k,j))
+
+      canvas = ROOT.TCanvas('c1')
+      frame = x.frame()
+      bkgpdf.plotOn(frame)
+      sigpdf.plotOn(frame,ROOT.RooFit.LineColor(ROOT.kRed))
+      frame.Draw()
+      canvas.SaveAs('plots/moddist_f{0}_f{1}.pdf'.format(k,j))
 
 
       #w.Print()
@@ -298,8 +309,8 @@ def fitAdaptive():
 
   #w.Print()
 
-makeData(num_train=300) 
-trainClassifier()
-classifierPdf()
+#makeData(num_train=300) 
+#trainClassifier()
+#classifierPdf()
 fitAdaptive()
 
