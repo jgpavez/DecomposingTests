@@ -115,7 +115,8 @@ def trainClassifier():
       traindata,targetdata = loadData('data/traindata_f{0}_f{1}.dat'.format(k,j)) 
 
       print " Training SVM on f{0}/f{1}".format(k,j)
-      clf = svm.NuSVC(probability=True) #Why use a SVR??
+      #clf = svm.NuSVC(probability=True) #Why use a SVR??
+      clf = linear_model.LogisticRegression()
       clf.fit(traindata.reshape(traindata.shape[0],1)
           ,targetdata)
       joblib.dump(clf, 'model/adaptive_f{0}_f{1}.pkl'.format(k,j))
@@ -156,7 +157,6 @@ def classifierPdf():
         # Check this use of data.add
         #[ (hist.Fill(val),data.add(val)) for val 
         #          in outputs[l*numtrain/2:(l+1)*numtrain/2] ]
-
         for val in outputs[l*numtrain/2:(l+1)*numtrain/2]:
           hist.Fill(val[1])
           s.setVal(val[1])
@@ -179,8 +179,8 @@ def classifierPdf():
         # Calculate the density of the classifier output using kernel density 
         # estimation technique
         w.factory('KeysPdf::{0}dist_{1}_{2}(score,{0}data_{1}_{2})'.format(name,k,j))
-        w.Print()
 
+        printFrame(w,'score',['{0}histpdf_{1}_{2}'.format(name,k,j)])
         printFrame(w,'score',['{0}dist_{1}_{2}'.format(name,k,j)])
 
         canvas.SaveAs('plots/root_adaptive_hist_{0}_{1}_{2}.pdf'.format(name,k,j))     
@@ -220,15 +220,27 @@ def pdfRatio(w,x):
       continue
     innerSum = 0.
     for j,c_ in enumerate(c1):
-      # Just to avoid zero division, this need further checking
-      if w.pdf('bkgmoddist_{0}_{1}'.format(k,j)).getValV() < 10E-10:
-        continue
-      innerSum += (c_/c *  
+      # the cases in which both distributions are the same can be problematic
+      # one will expect that the classifier gives same prob to both signal and bkg
+      # but it can behave in weird ways, I will just avoid this for now
+      if j == k:
+        innerSum += c_/c
+      else:
+        # Just to avoid zero division, this need further checking
+        if w.pdf('bkgmoddist_{0}_{1}'.format(k,j)).getValV() < 10E-10:
+          continue
+        innerSum += (c_/c *  
           (w.pdf('sigmoddist_{0}_{1}'.format(k,j)).getValV() /
-               w.pdf('bkgmoddist_{0}_{1}'.format(k,j)).getValV()))
+             w.pdf('bkgmoddist_{0}_{1}'.format(k,j)).getValV()))
     if innerSum > 10E-10:
       sum += 1./innerSum
   return sum
+
+def singlePdfRatio(w,f0,f1,x):
+  w.var('x').setVal(x)
+  if f0.getValV() < 10E-10:
+    return 0.
+  return f1.getValV() / f0.getValV()
   
 
 def fitAdaptive():
@@ -283,13 +295,35 @@ def fitAdaptive():
       frame.Draw()
       canvas.SaveAs('plots/moddist_f{0}_f{1}.pdf'.format(k,j))
 
-
       #w.Print()
 
       #sigpdf.graphVizTree('sigpdfgraph.dot')
       #bkgpdf.graphVizTree('bkgpdfgraph.dot')
       
+  def singleRatio(w,f0,f1,x):
+    w.var('x').setVal(x)
+    return f1.getValV() / f0.getValV()
+
   xarray = np.linspace(0,5,100)
+
+  # pair-wise ratios
+  for k,c in enumerate(c0):
+    for j,c_ in enumerate(c1):
+      f0pdf = w.pdf('bkgmoddist_{0}_{1}'.format(k,j))
+      f1pdf = w.pdf('sigmoddist_{0}_{1}'.format(k,j))
+      f0 = w.pdf('f{0}'.format(k))
+      f1 = w.pdf('f{0}'.format(j))
+      pdfratios = [singlePdfRatio(w,f0pdf,f1pdf,xs) for xs in xarray]
+      ratios = [singleRatio(w,f0,f1,xs) for xs in xarray]
+      plt.plot(xarray,pdfratios)
+      plt.savefig('plots/pdf_ratio_{0}_{1}'.format(k,j))
+      plt.clf()
+      plt.plot(xarray,ratios)
+      plt.savefig('plots/ratio_{0}_{1}'.format(k,j))
+      plt.clf()
+
+  # full ratios
+
   y = [pdfRatio(w,xs) for xs in xarray]
 
   plt.plot(xarray, y)
@@ -309,8 +343,8 @@ def fitAdaptive():
 
   #w.Print()
 
-#makeData(num_train=300) 
-#trainClassifier()
-#classifierPdf()
+makeData(num_train=100) 
+trainClassifier()
+classifierPdf()
 fitAdaptive()
 
