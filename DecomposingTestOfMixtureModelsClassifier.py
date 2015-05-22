@@ -227,11 +227,10 @@ def pdfRatio(w,x):
         innerSum += c_/c
       else:
         # Just to avoid zero division, this need further checking
-        if w.pdf('bkgmoddist_{0}_{1}'.format(k,j)).getValV() < 10E-10:
-          continue
-        innerSum += (c_/c *  
-          (w.pdf('sigmoddist_{0}_{1}'.format(k,j)).getValV() /
-             w.pdf('bkgmoddist_{0}_{1}'.format(k,j)).getValV()))
+        if w.pdf('bkgmoddist_{0}_{1}'.format(k,j)).getValV() > 10E-10:
+          innerSum += (c_/c *  
+            (w.pdf('sigmoddist_{0}_{1}'.format(k,j)).getValV() /
+               w.pdf('bkgmoddist_{0}_{1}'.format(k,j)).getValV()))
     if innerSum > 10E-10:
       sum += 1./innerSum
   return sum
@@ -304,16 +303,22 @@ def fitAdaptive():
     w.var('x').setVal(x)
     return f1.getValV() / f0.getValV()
 
-  xarray = np.linspace(0,5,100)
+  npoints = 100
+  xarray = np.linspace(0,5,npoints)
+  innerRatios = np.zeros(npoints)
+  fullRatios = np.zeros(npoints)
 
   # pair-wise ratios
   for k,c in enumerate(c0):
+    innerRatios = np.zeros(npoints)
     for j,c_ in enumerate(c1):
       f0pdf = w.pdf('bkgmoddist_{0}_{1}'.format(k,j))
       f1pdf = w.pdf('sigmoddist_{0}_{1}'.format(k,j))
       f0 = w.pdf('f{0}'.format(k))
       f1 = w.pdf('f{0}'.format(j))
       pdfratios = [singlePdfRatio(w,f0pdf,f1pdf,xs) for xs in xarray]
+      npratios = np.array(pdfratios) if k <> j else np.ones(npoints)
+      innerRatios += (c_/c) * npratios
       ratios = [singleRatio(w,f0,f1,xs) for xs in xarray]
       plt.plot(xarray,pdfratios)
       plt.savefig('plots/pdf_ratio_{0}_{1}'.format(k,j))
@@ -321,12 +326,13 @@ def fitAdaptive():
       plt.plot(xarray,ratios)
       plt.savefig('plots/ratio_{0}_{1}'.format(k,j))
       plt.clf()
+    fullRatios += 1./innerRatios
 
   # full ratios
 
-  y = [pdfRatio(w,xs) for xs in xarray]
+  #y = [pdfRatio(w,xs) for xs in xarray]
 
-  plt.plot(xarray, y)
+  plt.plot(xarray, fullRatios)
   plt.savefig('plots/ratio_classifier.png')
 
   def ratio(w,x):
@@ -340,6 +346,12 @@ def fitAdaptive():
   plt.clf()
   plt.plot(xarray,y2)
   plt.savefig('plots/ratio.png')
+
+  plt.clf()
+
+  plt.plot(xarray, np.array(y2) - fullRatios)
+  plt.savefig('plots/ratios_diff.png')
+  plt.clf()
 
   #w.Print()
 
