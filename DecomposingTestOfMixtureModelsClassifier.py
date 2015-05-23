@@ -25,6 +25,7 @@ import matplotlib.pyplot as plt
 # Constants for each different model
 c0 = [.1,.2, .7]
 c1 = [.2,.5, .3]
+verbose_printing = True
 
 def printFrame(w,obs,pdf):
   '''
@@ -104,7 +105,7 @@ def loadData(filename):
   return (traindata, targetdata)
 
 
-def trainClassifier():
+def trainClassifier(clf):
   '''
     Train classifiers pair-wise on 
     datasets
@@ -116,7 +117,6 @@ def trainClassifier():
 
       print " Training SVM on f{0}/f{1}".format(k,j)
       #clf = svm.NuSVC(probability=True) #Why use a SVR??
-      clf = linear_model.LogisticRegression()
       clf.fit(traindata.reshape(traindata.shape[0],1)
           ,targetdata)
       joblib.dump(clf, 'model/adaptive_f{0}_f{1}.pkl'.format(k,j))
@@ -138,7 +138,6 @@ def classifierPdf():
 
   w.factory('score[{0},{1}]'.format(low,high))
   s = w.var('score')
-  canvas = ROOT.TCanvas('c2','',400,400)
 
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
@@ -147,22 +146,17 @@ def classifierPdf():
 
       clf = joblib.load('model/adaptive_f{0}_f{1}.pkl'.format(k,j))
       
+      # Should I be using test data here?
       outputs = clf.predict_proba(traindata.reshape(traindata.shape[0],1)) 
-      # Should I be using here test data?
          
       for l,name in enumerate(['sig','bkg']):
         data = ROOT.RooDataSet('{0}data_{1}_{2}'.format(name,k,j),"data",
               ROOT.RooArgSet(s))
         hist = ROOT.TH1F('{0}hist_{1}_{2}'.format(name,k,j),'hist',bins,low,high)
-        # Check this use of data.add
-        #[ (hist.Fill(val),data.add(val)) for val 
-        #          in outputs[l*numtrain/2:(l+1)*numtrain/2] ]
         for val in outputs[l*numtrain/2:(l+1)*numtrain/2]:
           hist.Fill(val[1])
           s.setVal(val[1])
           data.add(ROOT.RooArgSet(s))
-
-        hist.Draw()
         
         datahist = ROOT.RooDataHist('{0}datahist_{1}_{2}'.format(name,k,j),'hist',
               ROOT.RooArgList(s),hist)
@@ -180,10 +174,10 @@ def classifierPdf():
         # estimation technique
         w.factory('KeysPdf::{0}dist_{1}_{2}(score,{0}data_{1}_{2})'.format(name,k,j))
 
-        printFrame(w,'score',['{0}histpdf_{1}_{2}'.format(name,k,j)])
-        printFrame(w,'score',['{0}dist_{1}_{2}'.format(name,k,j)])
-
-        canvas.SaveAs('plots/root_adaptive_hist_{0}_{1}_{2}.pdf'.format(name,k,j))     
+        # Print histograms pdfs and estimated densities
+        if verbose_printing == True:
+          printFrame(w,'score',['{0}histpdf_{1}_{2}'.format(name,k,j)])
+          printFrame(w,'score',['{0}dist_{1}_{2}'.format(name,k,j)])
 
   w.Print()
 
@@ -192,6 +186,9 @@ def classifierPdf():
   
 # this is not very efficient
 def scikitlearnFunc(filename,x=0.):
+  '''
+    Needed for the scikit-learn wrapper
+  '''
   clf = joblib.load(filename)
   traindata = np.array((x))
   outputs = clf.predict_proba(traindata)[0][1]
@@ -212,35 +209,6 @@ class ScikitLearnCallback:
       return 1.
     return outputs[0]
 
-def pdfRatio(w,x):
-  sum = 0.
-  w.var('x').setVal(x)
-  for k,c in enumerate(c0):
-    if (c==0):
-      continue
-    innerSum = 0.
-    for j,c_ in enumerate(c1):
-      # the cases in which both distributions are the same can be problematic
-      # one will expect that the classifier gives same prob to both signal and bkg
-      # but it can behave in weird ways, I will just avoid this for now
-      if j == k:
-        innerSum += c_/c
-      else:
-        # Just to avoid zero division, this need further checking
-        if w.pdf('bkgmoddist_{0}_{1}'.format(k,j)).getValV() > 10E-10:
-          innerSum += (c_/c *  
-            (w.pdf('sigmoddist_{0}_{1}'.format(k,j)).getValV() /
-               w.pdf('bkgmoddist_{0}_{1}'.format(k,j)).getValV()))
-    if innerSum > 10E-10:
-      sum += 1./innerSum
-  return sum
-
-def singlePdfRatio(w,f0,f1,x):
-  w.var('x').setVal(x)
-  if f0.getValV() < 10E-10:
-    return 0.
-  return f1.getValV() / f0.getValV()
-  
 
 def fitAdaptive():
   '''
@@ -269,46 +237,46 @@ def fitAdaptive():
       # I should find the way to use this method
       #callbck = ScikitLearnCallback('adaptive_f{0}_f{1}.pkl'.format(k,j))
       #nn.RegisterCallBack(lambda x: callbck.get(x))
-      
-      # Testing
-      #canvas = ROOT.TCanvas('c1')
-      #frame = x.frame()
-      #nn.plotOn(frame)
-      #frame.Draw()
-      #canvas.SaveAs('classifierwrapper_f{0}_f{1}.pdf'.format(k,j))
 
+      # Inserting the nn output into the pdf graph
       for l,name in enumerate(['sig','bkg']):
         w.factory('CompositeFunctionPdf::{0}template_{1}_{2}({0}dist_{1}_{2})'.
             format(name,k,j))
         w.factory('EDIT::{0}moddist_{1}_{2}({0}template_{1}_{2},score=nn_{1}_{2})'
                 .format(name,k,j))
        
-
-      sigpdf = w.pdf('sigmoddist_{0}_{1}'.format(k,j))
-      bkgpdf = w.pdf('bkgmoddist_{0}_{1}'.format(k,j))
-
-      canvas = ROOT.TCanvas('c1')
-      frame = x.frame()
-      bkgpdf.plotOn(frame)
-      sigpdf.plotOn(frame,ROOT.RooFit.LineColor(ROOT.kRed))
-      frame.Draw()
-      canvas.SaveAs('plots/moddist_f{0}_f{1}.pdf'.format(k,j))
+      if verbose_printing == True:
+        printFrame(w,'x',['sigmoddist_{0}_{1}'.format(k,j),
+                  'bkgmoddist_{0}_{1}'.format(k,j)])
 
       #w.Print()
-
+      # Save graphs
       #sigpdf.graphVizTree('sigpdfgraph.dot')
       #bkgpdf.graphVizTree('bkgpdfgraph.dot')
       
-  def singleRatio(w,f0,f1,x):
-    w.var('x').setVal(x)
+  
+  # To calculate the ratio between single functions
+  def singleRatio(x,f0,f1,val):
+    x.setVal(val)
+    if f0.getValV() < 10E-10:
+      return 0.
     return f1.getValV() / f0.getValV()
 
+  # pair-wise ratios
+  # and decomposition computation
   npoints = 100
   xarray = np.linspace(0,5,npoints)
-  innerRatios = np.zeros(npoints)
   fullRatios = np.zeros(npoints)
+  x = w.var('x')
 
-  # pair-wise ratios
+  def saveFig(x,y,file):
+    plt.plot(x,y)
+    plt.ylabel('ratio')
+    plt.xlabel('x')
+    plt.title(file)
+    plt.savefig('plots/{0}.png'.format(file))
+    plt.clf()
+
   for k,c in enumerate(c0):
     innerRatios = np.zeros(npoints)
     for j,c_ in enumerate(c1):
@@ -316,47 +284,42 @@ def fitAdaptive():
       f1pdf = w.pdf('sigmoddist_{0}_{1}'.format(k,j))
       f0 = w.pdf('f{0}'.format(k))
       f1 = w.pdf('f{0}'.format(j))
-      pdfratios = [singlePdfRatio(w,f0pdf,f1pdf,xs) for xs in xarray]
-      npratios = np.array(pdfratios) if k <> j else np.ones(npoints)
-      innerRatios += (c_/c) * npratios
-      ratios = [singleRatio(w,f0,f1,xs) for xs in xarray]
-      plt.plot(xarray,pdfratios)
-      plt.savefig('plots/pdf_ratio_{0}_{1}'.format(k,j))
-      plt.clf()
-      plt.plot(xarray,ratios)
-      plt.savefig('plots/ratio_{0}_{1}'.format(k,j))
-      plt.clf()
+      pdfratios = [singleRatio(x,f0pdf,f1pdf,xs) for xs in xarray]
+      # the cases in which both distributions are the same can be problematic
+      # one will expect that the classifier gives same prob to both signal and bkg
+      # but it can behave in weird ways, I will just avoid this for now 
+      pdfratios = np.array(pdfratios) if k <> j else np.ones(npoints)
+      innerRatios += (c_/c) * pdfratios
+      ratios = [singleRatio(x,f0,f1,xs) for xs in xarray]
+
+      saveFig(xarray, pdfratios,'pdf_ratio_{0}_{1}'.format(k,j))
+      saveFig(xarray, ratios, 'ratio_{0}_{1}'.format(k,j))
     fullRatios += 1./innerRatios
 
   # full ratios
+  saveFig(xarray, fullRatios, 'ratio_classifier') 
 
-  #y = [pdfRatio(w,xs) for xs in xarray]
+  y2 = [singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in xarray]
 
-  plt.plot(xarray, fullRatios)
-  plt.savefig('plots/ratio_classifier.png')
-
-  def ratio(w,x):
-    w.var('x').setVal(x)
-    if w.pdf('F1').getValV() < 10E-10:
-      return 0.
-    return w.pdf('F0').getValV() / w.pdf('F1').getValV()
-
-  y2 = [ratio(w,xs) for xs in xarray]
-
-  plt.clf()
-  plt.plot(xarray,y2)
-  plt.savefig('plots/ratio.png')
-
-  plt.clf()
-
-  plt.plot(xarray, np.array(y2) - fullRatios)
-  plt.savefig('plots/ratios_diff.png')
-  plt.clf()
+  saveFig(xarray, y2, 'ratios')
+  saveFig(xarray, np.array(y2) - fullRatios, 'ratios_diff')
 
   #w.Print()
 
-makeData(num_train=100) 
-trainClassifier()
-classifierPdf()
-fitAdaptive()
+if __name__ == '__main__':
+  classifiers = {'svc':svm.NuSVC(probability=True),'svr':svm.NuSVR(),
+        'logistic': linear_model.LogisticRegression()}
+
+  if (len(sys.argv) > 1):
+    clf = classifiers.get(sys.argv[1])
+  if clf == None:
+    clf = classifiers['logistic']    
+    print 'Not found classifier, Using logistic instead'
+
+  verbose_printing = False
+
+  makeData(num_train=100) 
+  trainClassifier(clf)
+  classifierPdf()
+  fitAdaptive()
 
