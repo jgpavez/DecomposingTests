@@ -121,6 +121,13 @@ def trainClassifier(clf):
           ,targetdata)
       joblib.dump(clf, 'model/adaptive_f{0}_f{1}.pkl'.format(k,j))
 
+def predict(clf, traindata):
+  if clf.__class__.__name__ == 'NuSVR':
+    output = clf.predict(traindata)
+    return np.clip(output,0.,1.)
+  else:
+    return clf.predict_proba(traindata)[:,1]
+
 def classifierPdf():
   ''' 
     Create pdfs for the classifier 
@@ -147,15 +154,16 @@ def classifierPdf():
       clf = joblib.load('model/adaptive_f{0}_f{1}.pkl'.format(k,j))
       
       # Should I be using test data here?
-      outputs = clf.predict_proba(traindata.reshape(traindata.shape[0],1)) 
+      outputs = predict(clf,traindata.reshape(traindata.shape[0],1))
+      #outputs = clf.predict_proba(traindata.reshape(traindata.shape[0],1)) 
          
       for l,name in enumerate(['sig','bkg']):
         data = ROOT.RooDataSet('{0}data_{1}_{2}'.format(name,k,j),"data",
               ROOT.RooArgSet(s))
         hist = ROOT.TH1F('{0}hist_{1}_{2}'.format(name,k,j),'hist',bins,low,high)
         for val in outputs[l*numtrain/2:(l+1)*numtrain/2]:
-          hist.Fill(val[1])
-          s.setVal(val[1])
+          hist.Fill(val)
+          s.setVal(val)
           data.add(ROOT.RooArgSet(s))
         
         datahist = ROOT.RooDataHist('{0}datahist_{1}_{2}'.format(name,k,j),'hist',
@@ -191,7 +199,7 @@ def scikitlearnFunc(filename,x=0.):
   '''
   clf = joblib.load(filename)
   traindata = np.array((x))
-  outputs = clf.predict_proba(traindata)[0][1]
+  outputs = predict(clf,traindata)[0]
   
   #if outputs[0] > 1:
   #  return 1.
@@ -203,7 +211,7 @@ class ScikitLearnCallback:
 
   def get(self,x = 0.):
     train = np.array((x))
-    outputs = clf.predict_proba(train)[1]
+    outputs = predict(clf,train)[0]
     
     if outputs[0] > 1:
       return 1.
@@ -309,7 +317,7 @@ def fitAdaptive():
 if __name__ == '__main__':
   classifiers = {'svc':svm.NuSVC(probability=True),'svr':svm.NuSVR(),
         'logistic': linear_model.LogisticRegression()}
-
+  clf = None
   if (len(sys.argv) > 1):
     clf = classifiers.get(sys.argv[1])
   if clf == None:
