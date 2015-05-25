@@ -67,8 +67,8 @@ def makeData(num_train=500,num_test=100):
   # Check Model
   w.Print()
   w.writeToFile('workspace_DecomposingTestOfMixtureModelsClassifiers.root')
-  #printFrame(w,'x',['f0','f1','f2']) 
-  #printFrame(w,'x',['F0','F1'])
+  printFrame(w,'x',['f0','f1','f2']) 
+  printFrame(w,'x',['F0','F1'])
 
   # Start generating data
   ''' 
@@ -76,26 +76,37 @@ def makeData(num_train=500,num_test=100):
     so n*n datasets are needed (maybe they can be reused?)
   ''' 
    
+  def makeTrainData(x,bkgpdf,sigpdf):
+    traindata = np.zeros(num_train*2)
+    targetdata = np.zeros(num_train*2)
+    bkgdata = bkgpdf.generate(ROOT.RooArgSet(x),num_train)
+    sigdata = sigpdf.generate(ROOT.RooArgSet(x),num_train)
+    
+    traindata[:num_train] = [sigdata.get(i).getRealValue('x') 
+        for i in range(num_train)]
+    targetdata[:num_train].fill(1)
+
+    traindata[num_train:] = [bkgdata.get(i).getRealValue('x')
+        for i in range(num_train)]
+    targetdata[num_train:].fill(0)
+    
+    return traindata, targetdata  
+ 
+
   x = w.var('x')
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):  
-      traindata = np.zeros(num_train*2)
-      targetdata = np.zeros(num_train*2)
-      bkgpdf = w.pdf('f{0}'.format(k))
-      sigpdf = w.pdf('f{0}'.format(j))
-      bkgdata = bkgpdf.generate(ROOT.RooArgSet(x),num_train)
-      sigdata = sigpdf.generate(ROOT.RooArgSet(x),num_train)
-      
-      traindata[:num_train] = [sigdata.get(i).getRealValue('x') 
-          for i in range(num_train)]
-      targetdata[:num_train].fill(1)
+      traindata, targetdata = makeTrainData(x,w.pdf('f{0}'.format(k)),w.pdf('f{0}'.format(j)))
 
-      traindata[num_train:] = [bkgdata.get(i).getRealValue('x')
-          for i in range(num_train)]
-      targetdata[num_train:].fill(0)
-    
-      np.savetxt('data/traindata_f{0}_f{1}.dat'.format(k,j),
+      np.savetxt('data/traindata_{0}_{1}.dat'.format(k,j),
               np.column_stack((traindata,targetdata)),fmt='%f')
+
+  traindata, targetdata = makeTrainData(x,w.pdf('F0'),w.pdf('F1'))
+
+  np.savetxt('data/traindata_F0_F1.dat',
+          np.column_stack((traindata,targetdata)),fmt='%f')
+
+
 
   
 def loadData(filename):
@@ -113,13 +124,23 @@ def trainClassifier(clf):
 
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
-      traindata,targetdata = loadData('data/traindata_f{0}_f{1}.dat'.format(k,j)) 
+      traindata,targetdata = loadData('data/traindata_{0}_{1}.dat'.format(k,j)) 
 
-      print " Training SVM on f{0}/f{1}".format(k,j)
+      print " Training Classifier on f{0}/f{1}".format(k,j)
       #clf = svm.NuSVC(probability=True) #Why use a SVR??
       clf.fit(traindata.reshape(traindata.shape[0],1)
           ,targetdata)
-      joblib.dump(clf, 'model/adaptive_f{0}_f{1}.pkl'.format(k,j))
+      joblib.dump(clf, 'model/adaptive_{0}_{1}.pkl'.format(k,j))
+
+  
+  traindata,targetdata = loadData('data/traindata_F0_F1.dat') 
+  print " Training Classifier on F0/F1"
+  #clf = svm.NuSVC(probability=True) #Why use a SVR??
+  clf.fit(traindata.reshape(traindata.shape[0],1)
+      ,targetdata)
+  joblib.dump(clf, 'model/adaptive_F0_F1.pkl')
+
+
 
 def predict(clf, traindata):
   if clf.__class__.__name__ == 'NuSVR':
@@ -146,47 +167,63 @@ def classifierPdf():
   w.factory('score[{0},{1}]'.format(low,high))
   s = w.var('score')
 
+  def saveHistos(w,ouputs,pos=None):
+    if pos <> None:
+      k,j = pos
+    else:
+      k,j = ('F0','F1')
+    for l,name in enumerate(['sig','bkg']):
+      data = ROOT.RooDataSet('{0}data_{1}_{2}'.format(name,k,j),"data",
+          ROOT.RooArgSet(s))
+      hist = ROOT.TH1F('{0}hist_{1}_{2}'.format(name,k,j),'hist',bins,low,high)
+      for val in outputs[l*numtrain/2:(l+1)*numtrain/2]:
+        hist.Fill(val)
+        s.setVal(val)
+        data.add(ROOT.RooArgSet(s))
+      
+      datahist = ROOT.RooDataHist('{0}datahist_{1}_{2}'.format(name,k,j),'hist',
+            ROOT.RooArgList(s),hist)
+      s.setBins(bins)
+      histpdf = ROOT.RooHistPdf('{0}histpdf_{1}_{2}'.format(name,k,j),'hist',
+            ROOT.RooArgSet(s), datahist, 1)
+            
+      histpdf.specialIntegratorConfig(ROOT.kTRUE).method1D().setLabel('RooBinIntegrator')
+
+      getattr(w,'import')(data)
+      getattr(w,'import')(datahist) # work around for morph = w.import(morph)
+      getattr(w,'import')(histpdf) # work around for morph = w.import(morph)
+
+      # Calculate the density of the classifier output using kernel density 
+      # estimation technique
+      w.factory('KeysPdf::{0}dist_{1}_{2}(score,{0}data_{1}_{2})'.format(name,k,j))
+
+      # Print histograms pdfs and estimated densities
+      if verbose_printing == True:
+        printFrame(w,'score',['{0}histpdf_{1}_{2}'.format(name,k,j)])
+        printFrame(w,'score',['{0}dist_{1}_{2}'.format(name,k,j)])
+
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
-      traindata, targetdata = loadData('data/traindata_f{0}_f{1}.dat'.format(k,j))
+      traindata, targetdata = loadData('data/traindata_{0}_{1}.dat'.format(k,j))
       numtrain = traindata.shape[0]       
 
-      clf = joblib.load('model/adaptive_f{0}_f{1}.pkl'.format(k,j))
+      clf = joblib.load('model/adaptive_{0}_{1}.pkl'.format(k,j))
       
       # Should I be using test data here?
       outputs = predict(clf,traindata.reshape(traindata.shape[0],1))
       #outputs = clf.predict_proba(traindata.reshape(traindata.shape[0],1)) 
-         
-      for l,name in enumerate(['sig','bkg']):
-        data = ROOT.RooDataSet('{0}data_{1}_{2}'.format(name,k,j),"data",
-              ROOT.RooArgSet(s))
-        hist = ROOT.TH1F('{0}hist_{1}_{2}'.format(name,k,j),'hist',bins,low,high)
-        for val in outputs[l*numtrain/2:(l+1)*numtrain/2]:
-          hist.Fill(val)
-          s.setVal(val)
-          data.add(ROOT.RooArgSet(s))
-        
-        datahist = ROOT.RooDataHist('{0}datahist_{1}_{2}'.format(name,k,j),'hist',
-              ROOT.RooArgList(s),hist)
-        s.setBins(bins)
-        histpdf = ROOT.RooHistPdf('{0}histpdf_{1}_{2}'.format(name,k,j),'hist',
-              ROOT.RooArgSet(s), datahist, 1)
-              
-        histpdf.specialIntegratorConfig(ROOT.kTRUE).method1D().setLabel('RooBinIntegrator')
+      saveHistos(w,outputs,(k,j))
 
-        getattr(w,'import')(data)
-        getattr(w,'import')(datahist) # work around for morph = w.import(morph)
-        getattr(w,'import')(histpdf) # work around for morph = w.import(morph)
+  traindata, targetdata = loadData('data/traindata_F0_F1.dat')
+  numtrain = traindata.shape[0]       
 
-        # Calculate the density of the classifier output using kernel density 
-        # estimation technique
-        w.factory('KeysPdf::{0}dist_{1}_{2}(score,{0}data_{1}_{2})'.format(name,k,j))
-
-        # Print histograms pdfs and estimated densities
-        if verbose_printing == True:
-          printFrame(w,'score',['{0}histpdf_{1}_{2}'.format(name,k,j)])
-          printFrame(w,'score',['{0}dist_{1}_{2}'.format(name,k,j)])
-
+  clf = joblib.load('model/adaptive_F0_F1.pkl')
+  
+  # Should I be using test data here?
+  outputs = predict(clf,traindata.reshape(traindata.shape[0],1))
+  #outputs = clf.predict_proba(traindata.reshape(traindata.shape[0],1)) 
+  saveHistos(w,outputs)
+     
   w.Print()
 
   w.writeToFile('workspace_DecomposingTestOfMixtureModelsClassifiers.root')
@@ -235,33 +272,40 @@ def fitAdaptive():
   x = ROOT.RooRealVar('x','x',0.2,0,5)
   getattr(w,'import')(ROOT.RooArgSet(x),ROOT.RooFit.RecycleConflictNodes()) 
 
+  def constructDensity(w,pos = None):
+    if pos <> None:
+      k,j = pos
+    else:
+      k,j = ('F0','F1')
+    test = scikitlearnFunc('model/adaptive_{0}_{1}.pkl'.format(k,j),2.0)
+    nn = ROOT.SciKitLearnWrapper('nn_{0}_{1}'.format(k,j),'nn_{0}_{1}'.format(k,j),x)
+    nn.RegisterCallBack(lambda x: scikitlearnFunc('model/adaptive_{0}_{1}.pkl'.format(k,j),x))
+    getattr(w,'import')(ROOT.RooArgSet(nn),ROOT.RooFit.RecycleConflictNodes()) 
+
+    # I should find the way to use this method
+    #callbck = ScikitLearnCallback('adaptive_f{0}_f{1}.pkl'.format(k,j))
+    #nn.RegisterCallBack(lambda x: callbck.get(x))
+
+    # Inserting the nn output into the pdf graph
+    for l,name in enumerate(['sig','bkg']):
+      w.factory('CompositeFunctionPdf::{0}template_{1}_{2}({0}dist_{1}_{2})'.
+          format(name,k,j))
+      w.factory('EDIT::{0}moddist_{1}_{2}({0}template_{1}_{2},score=nn_{1}_{2})'
+              .format(name,k,j))
+     
+    if verbose_printing == True:
+      printFrame(w,'x',['sigmoddist_{0}_{1}'.format(k,j),
+                'bkgmoddist_{0}_{1}'.format(k,j)])
+
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
-      test = scikitlearnFunc('model/adaptive_f{0}_f{1}.pkl'.format(k,j),2.0)
-      nn = ROOT.SciKitLearnWrapper('nn_{0}_{1}'.format(k,j),'nn_{0}_{1}'.format(k,j),x)
-      nn.RegisterCallBack(lambda x: scikitlearnFunc('model/adaptive_f{0}_f{1}.pkl'.format(k,j),x))
-      getattr(w,'import')(ROOT.RooArgSet(nn),ROOT.RooFit.RecycleConflictNodes()) 
-
-      # I should find the way to use this method
-      #callbck = ScikitLearnCallback('adaptive_f{0}_f{1}.pkl'.format(k,j))
-      #nn.RegisterCallBack(lambda x: callbck.get(x))
-
-      # Inserting the nn output into the pdf graph
-      for l,name in enumerate(['sig','bkg']):
-        w.factory('CompositeFunctionPdf::{0}template_{1}_{2}({0}dist_{1}_{2})'.
-            format(name,k,j))
-        w.factory('EDIT::{0}moddist_{1}_{2}({0}template_{1}_{2},score=nn_{1}_{2})'
-                .format(name,k,j))
-       
-      if verbose_printing == True:
-        printFrame(w,'x',['sigmoddist_{0}_{1}'.format(k,j),
-                  'bkgmoddist_{0}_{1}'.format(k,j)])
-
+      constructDensity(w,(k,j))
       #w.Print()
       # Save graphs
       #sigpdf.graphVizTree('sigpdfgraph.dot')
       #bkgpdf.graphVizTree('bkgpdfgraph.dot')
       
+  constructDensity(w)
   
   # To calculate the ratio between single functions
   def singleRatio(x,f0,f1,val):
@@ -282,6 +326,7 @@ def fitAdaptive():
     plt.ylabel('ratio')
     plt.xlabel('x')
     plt.title(file)
+    np.savetxt('plots/{0}_full.txt'.format(file),y)
     plt.savefig('plots/{0}.png'.format(file))
     plt.clf()
 
@@ -312,6 +357,14 @@ def fitAdaptive():
   saveFig(xarray, y2, 'ratios')
   saveFig(xarray, np.array(y2) - fullRatios, 'ratios_diff')
 
+  # NN trained on complete model
+  F0pdf = w.pdf('bkgmoddist_F0_F1')
+  F1pdf = w.pdf('sigmoddist_F0_F1')
+  pdfratios = [singleRatio(x,F1pdf,F0pdf,xs) for xs in xarray]
+  pdfratios = np.array(pdfratios)
+  saveFig(xarray, pdfratios, 'pdf_ratio_F0_F1')
+  saveFig(xarray, np.array(y2) - pdfratios, 'full_ratio_diff')
+
   #w.Print()
 
 if __name__ == '__main__':
@@ -324,7 +377,7 @@ if __name__ == '__main__':
     clf = classifiers['logistic']    
     print 'Not found classifier, Using logistic instead'
 
-  verbose_printing = False
+  verbose_printing = True
 
   makeData(num_train=100) 
   trainClassifier(clf)
