@@ -6,6 +6,7 @@ import ROOT
 import numpy as np
 from sklearn import svm, linear_model
 from sklearn.externals import joblib
+from sklearn.metrics import roc_curve, auc
 
 import sys
 
@@ -23,8 +24,8 @@ import matplotlib.pyplot as plt
 ''' 
 
 # Constants for each different model
-c0 = [.1,.2, .7]
-c1 = [.2,.5, .3]
+c0 = [.0,.3, .7]
+c1 = [.1,.5, .4]
 verbose_printing = True
 
 def printFrame(w,obs,pdf):
@@ -67,8 +68,8 @@ def makeData(num_train=500,num_test=100):
   # Check Model
   w.Print()
   w.writeToFile('workspace_DecomposingTestOfMixtureModelsClassifiers.root')
-  printFrame(w,'x',['f0','f1','f2']) 
-  printFrame(w,'x',['F0','F1'])
+  #printFrame(w,'x',['f0','f1','f2']) 
+  #printFrame(w,'x',['F0','F1'])
 
   # Start generating data
   ''' 
@@ -76,19 +77,19 @@ def makeData(num_train=500,num_test=100):
     so n*n datasets are needed (maybe they can be reused?)
   ''' 
    
-  def makeTrainData(x,bkgpdf,sigpdf):
-    traindata = np.zeros(num_train*2)
-    targetdata = np.zeros(num_train*2)
-    bkgdata = bkgpdf.generate(ROOT.RooArgSet(x),num_train)
-    sigdata = sigpdf.generate(ROOT.RooArgSet(x),num_train)
+  def makeDataset(x,bkgpdf,sigpdf,num):
+    traindata = np.zeros(num*2)
+    targetdata = np.zeros(num*2)
+    bkgdata = bkgpdf.generate(ROOT.RooArgSet(x),num)
+    sigdata = sigpdf.generate(ROOT.RooArgSet(x),num)
     
-    traindata[:num_train] = [sigdata.get(i).getRealValue('x') 
-        for i in range(num_train)]
-    targetdata[:num_train].fill(1)
+    traindata[:num] = [sigdata.get(i).getRealValue('x') 
+        for i in range(num)]
+    targetdata[:num].fill(1)
 
-    traindata[num_train:] = [bkgdata.get(i).getRealValue('x')
-        for i in range(num_train)]
-    targetdata[num_train:].fill(0)
+    traindata[num:] = [bkgdata.get(i).getRealValue('x')
+        for i in range(num)]
+    targetdata[num:].fill(0)
     
     return traindata, targetdata  
  
@@ -96,25 +97,65 @@ def makeData(num_train=500,num_test=100):
   x = w.var('x')
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):  
-      traindata, targetdata = makeTrainData(x,w.pdf('f{0}'.format(k)),w.pdf('f{0}'.format(j)))
+      traindata, targetdata = makeDataset(x,w.pdf('f{0}'.format(k)),w.pdf('f{0}'.format(j))
+      ,num_train)
 
       np.savetxt('data/traindata_{0}_{1}.dat'.format(k,j),
               np.column_stack((traindata,targetdata)),fmt='%f')
 
-  traindata, targetdata = makeTrainData(x,w.pdf('F0'),w.pdf('F1'))
+      testdata, testtarget = makeDataset(x,w.pdf('f{0}'.format(k)),w.pdf('f{0}'.format(j))
+      ,num_test)
+
+      np.savetxt('data/testdata_{0}_{1}.dat'.format(k,j),
+              np.column_stack((testdata,testtarget)),fmt='%f')
+
+
+  traindata, targetdata = makeDataset(x,w.pdf('F0'),w.pdf('F1'),num_test)
 
   np.savetxt('data/traindata_F0_F1.dat',
           np.column_stack((traindata,targetdata)),fmt='%f')
 
+  testdata, testtarget = makeDataset(x,w.pdf('F0'.format(k)),w.pdf('F1'.format(j))
+  ,num_test)
+
+  np.savetxt('data/testdata_F0_F1.dat',
+          np.column_stack((testdata,testtarget)),fmt='%f')
 
 
-  
 def loadData(filename):
   traintarget = np.loadtxt(filename)
   traindata = traintarget[:,0]
   targetdata = traintarget[:,1]
   return (traindata, targetdata)
 
+def predict(clf, traindata):
+  if clf.__class__.__name__ == 'NuSVR':
+    output = clf.predict(traindata)
+    return np.clip(output,0.,1.)
+  else:
+    return clf.predict_proba(traindata)[:,1]
+
+def makeROC(clf, data, label):
+  '''
+    make plots for ROC curve of classifier and 
+    test data.
+  '''
+  testdata, testtarget = data
+  outputs = predict(clf,testdata.reshape(testdata.shape[0],1))
+  fpr, tpr, _  = roc_curve(testtarget.ravel(),outputs.ravel())
+  roc_auc = auc(fpr, tpr)
+  plt.figure()
+  plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
+  plt.plot([0, 1], [0, 1], 'k--')
+  plt.xlim([0.0, 1.0])
+  plt.ylim([0.0, 1.05])
+  plt.xlabel('False Positive Rate')
+  plt.ylabel('True Positive Rate')
+  plt.title('ROC {0}'.format(label))
+  plt.legend(loc="lower right")
+  np.savetxt('plots/roc_{0}.txt'.format(label),np.column_stack((fpr,tpr)))
+  plt.savefig('plots/roc_{0}.png'.format(label))
+  plt.clf()
 
 def trainClassifier(clf):
   '''
@@ -132,6 +173,8 @@ def trainClassifier(clf):
           ,targetdata)
       joblib.dump(clf, 'model/adaptive_{0}_{1}.pkl'.format(k,j))
 
+      testdata, testtarget = loadData('data/testdata_{0}_{1}.dat'.format(k,j)) 
+      makeROC(clf, (testdata, testtarget), 'f{0}_f{1}'.format(k,j))
   
   traindata,targetdata = loadData('data/traindata_F0_F1.dat') 
   print " Training Classifier on F0/F1"
@@ -140,14 +183,10 @@ def trainClassifier(clf):
       ,targetdata)
   joblib.dump(clf, 'model/adaptive_F0_F1.pkl')
 
+  testdata, testtarget = loadData('data/testdata_F0_F1.dat') 
+  makeROC(clf, (testdata, testtarget), 'F0_F1')
 
 
-def predict(clf, traindata):
-  if clf.__class__.__name__ == 'NuSVR':
-    output = clf.predict(traindata)
-    return np.clip(output,0.,1.)
-  else:
-    return clf.predict_proba(traindata)[:,1]
 
 def classifierPdf():
   ''' 
@@ -332,6 +371,8 @@ def fitAdaptive():
 
   for k,c in enumerate(c0):
     innerRatios = np.zeros(npoints)
+    if c == 0:
+      continue
     for j,c_ in enumerate(c1):
       f0pdf = w.pdf('bkgmoddist_{0}_{1}'.format(k,j))
       f1pdf = w.pdf('sigmoddist_{0}_{1}'.format(k,j))
@@ -377,9 +418,10 @@ if __name__ == '__main__':
     clf = classifiers['logistic']    
     print 'Not found classifier, Using logistic instead'
 
+  # Set this value to False if only final plots are needed
   verbose_printing = True
 
-  makeData(num_train=100) 
+  makeData(num_train=300) 
   trainClassifier(clf)
   classifierPdf()
   fitAdaptive()
