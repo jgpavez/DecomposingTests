@@ -417,7 +417,10 @@ def fitAdaptive():
   # check if ratios fulfill the requeriments of type
   testdata, testtarget = loadData('data/testdata_F0_F1.dat') 
   decomposedRatio = evaluateDecomposedRatio(w,x,testdata)
-  completeRatio = [singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in testdata]
+  completeRatio = [singleRatio(x,F1pdf,F0pdf,xs) for xs in testdata]
+  realRatio = [singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in testdata]
+
+  makeROC(1.-np.array(realRatio), testtarget, 'real')
   makeROC(1.-np.array(decomposedRatio), testtarget, 'decomposed')
   makeROC(1.-np.array(completeRatio), testtarget, 'full')
 
