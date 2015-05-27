@@ -135,14 +135,12 @@ def predict(clf, traindata):
   else:
     return clf.predict_proba(traindata)[:,1]
 
-def makeROC(clf, data, label):
+def makeROC(outputs, target, label):
   '''
     make plots for ROC curve of classifier and 
     test data.
   '''
-  testdata, testtarget = data
-  outputs = predict(clf,testdata.reshape(testdata.shape[0],1))
-  fpr, tpr, _  = roc_curve(testtarget.ravel(),outputs.ravel())
+  fpr, tpr, _  = roc_curve(target.ravel(),outputs.ravel())
   roc_auc = auc(fpr, tpr)
   plt.figure()
   plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
@@ -174,7 +172,9 @@ def trainClassifier(clf):
       joblib.dump(clf, 'model/adaptive_{0}_{1}.pkl'.format(k,j))
 
       testdata, testtarget = loadData('data/testdata_{0}_{1}.dat'.format(k,j)) 
-      makeROC(clf, (testdata, testtarget), 'f{0}_f{1}'.format(k,j))
+      outputs = predict(clf,testdata.reshape(testdata.shape[0],1))
+
+      makeROC(outputs, testtarget, 'f{0}_f{1}'.format(k,j))
   
   traindata,targetdata = loadData('data/traindata_F0_F1.dat') 
   print " Training Classifier on F0/F1"
@@ -184,8 +184,8 @@ def trainClassifier(clf):
   joblib.dump(clf, 'model/adaptive_F0_F1.pkl')
 
   testdata, testtarget = loadData('data/testdata_F0_F1.dat') 
-  makeROC(clf, (testdata, testtarget), 'F0_F1')
-
+  outputs = predict(clf,testdata.reshape(testdata.shape[0],1))
+  makeROC(outputs, testtarget, 'F0_F1')
 
 
 def classifierPdf():
@@ -357,7 +357,6 @@ def fitAdaptive():
   # and decomposition computation
   npoints = 100
   xarray = np.linspace(0,5,npoints)
-  fullRatios = np.zeros(npoints)
   x = w.var('x')
 
   def saveFig(x,y,file):
@@ -369,28 +368,34 @@ def fitAdaptive():
     plt.savefig('plots/{0}.png'.format(file))
     plt.clf()
 
-  for k,c in enumerate(c0):
-    innerRatios = np.zeros(npoints)
-    if c == 0:
-      continue
-    for j,c_ in enumerate(c1):
-      f0pdf = w.pdf('bkgmoddist_{0}_{1}'.format(k,j))
-      f1pdf = w.pdf('sigmoddist_{0}_{1}'.format(k,j))
-      f0 = w.pdf('f{0}'.format(k))
-      f1 = w.pdf('f{0}'.format(j))
-      pdfratios = [singleRatio(x,f0pdf,f1pdf,xs) for xs in xarray]
-      # the cases in which both distributions are the same can be problematic
-      # one will expect that the classifier gives same prob to both signal and bkg
-      # but it can behave in weird ways, I will just avoid this for now 
-      pdfratios = np.array(pdfratios) if k <> j else np.ones(npoints)
-      innerRatios += (c_/c) * pdfratios
-      ratios = [singleRatio(x,f0,f1,xs) for xs in xarray]
 
-      saveFig(xarray, pdfratios,'pdf_ratio_{0}_{1}'.format(k,j))
-      saveFig(xarray, ratios, 'ratio_{0}_{1}'.format(k,j))
-    fullRatios += 1./innerRatios
+  def evaluateDecomposedRatio(w,x,xarray):
+    npoints = xarray.shape[0]
+    fullRatios = np.zeros(npoints)
+    for k,c in enumerate(c0):
+      innerRatios = np.zeros(npoints)
+      if c == 0:
+        continue
+      for j,c_ in enumerate(c1):
+        f0pdf = w.pdf('bkgmoddist_{0}_{1}'.format(k,j))
+        f1pdf = w.pdf('sigmoddist_{0}_{1}'.format(k,j))
+        f0 = w.pdf('f{0}'.format(k))
+        f1 = w.pdf('f{0}'.format(j))
+        pdfratios = [singleRatio(x,f0pdf,f1pdf,xs) for xs in xarray]
+        # the cases in which both distributions are the same can be problematic
+        # one will expect that the classifier gives same prob to both signal and bkg
+        # but it can behave in weird ways, I will just avoid this for now 
+        pdfratios = np.array(pdfratios) if k <> j else np.ones(npoints)
+        innerRatios += (c_/c) * pdfratios
+        ratios = [singleRatio(x,f0,f1,xs) for xs in xarray]
 
-  # full ratios
+        saveFig(xarray, pdfratios,'pdf_ratio_{0}_{1}'.format(k,j))
+        saveFig(xarray, ratios, 'ratio_{0}_{1}'.format(k,j))
+      fullRatios += 1./innerRatios
+    return fullRatios
+
+  fullRatios = evaluateDecomposedRatio(w,x,xarray)
+
   saveFig(xarray, fullRatios, 'ratio_classifier') 
 
   y2 = [singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in xarray]
@@ -406,6 +411,17 @@ def fitAdaptive():
   saveFig(xarray, pdfratios, 'pdf_ratio_F0_F1')
   saveFig(xarray, np.array(y2) - pdfratios, 'full_ratio_diff')
 
+
+  # ROC for ratios
+  # load test data
+  # check if ratios fulfill the requeriments of type
+  testdata, testtarget = loadData('data/testdata_F0_F1.dat') 
+  decomposedRatio = evaluateDecomposedRatio(w,x,testdata)
+  completeRatio = [singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in testdata]
+  makeROC(1.-np.array(decomposedRatio), testtarget, 'decomposed')
+  makeROC(1.-np.array(completeRatio), testtarget, 'full')
+
+
   #w.Print()
 
 if __name__ == '__main__':
@@ -419,7 +435,7 @@ if __name__ == '__main__':
     print 'Not found classifier, Using logistic instead'
 
   # Set this value to False if only final plots are needed
-  verbose_printing = True
+  verbose_printing = False
 
   makeData(num_train=300) 
   trainClassifier(clf)
