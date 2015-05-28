@@ -44,7 +44,7 @@ def printFrame(w,obs,pdf,name):
   funcs = []
   line_colors = []
   for i,p in enumerate(pdf):
-    funcs.append(w.pdf(p))
+    funcs.append(p)
     line_colors.append(ROOT.RooFit.LineColor(colors[i]))
   
   c1 = ROOT.TCanvas('c1')
@@ -205,7 +205,7 @@ def classifierPdf():
     test
   '''
 
-  bins = 30
+  bins = 50
   low = 0.
   high = 1.  
 
@@ -235,22 +235,24 @@ def classifierPdf():
       s.setBins(bins)
       histpdf = ROOT.RooHistPdf('{0}histpdf_{1}_{2}'.format(name,k,j),'hist',
             ROOT.RooArgSet(s), datahist, 1)
-            
-      histpdf.specialIntegratorConfig(ROOT.kTRUE).method1D().setLabel('RooBinIntegrator')
+    
+      #histpdf.specialIntegratorConfig(ROOT.kTRUE).method1D().setLabel('RooBinIntegrator')
 
+      getattr(w,'import')(hist)
       getattr(w,'import')(data)
       getattr(w,'import')(datahist) # work around for morph = w.import(morph)
       getattr(w,'import')(histpdf) # work around for morph = w.import(morph)
 
+
       # Calculate the density of the classifier output using kernel density 
       # estimation technique
-      w.factory('KeysPdf::{0}dist_{1}_{2}(score,{0}data_{1}_{2})'.format(name,k,j))
+      #w.factory('KeysPdf::{0}dist_{1}_{2}(score,{0}data_{1}_{2})'.format(name,k,j))
 
       # Print histograms pdfs and estimated densities
       if verbose_printing == True and name == 'bkg':
         full = 'full' if pos == None else 'decomposed'
-        printFrame(w,'score',['sighistpdf_{0}_{1}'.format(k,j), 'bkghistpdf_{0}_{1}'.format(k,j)], makePlotName(full,'trained',k,j,type='hist'))
-        printFrame(w,'score',['sigdist_{0}_{1}'.format(k,j),'bkgdist_{0}_{1}'.format(k,j)], makePlotName(full,'trained',k,j,'kernel'))
+        printFrame(w,'score',[w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j))], makePlotName(full,'trained',k,j,type='hist'))
+        #printFrame(w,'score',['sigdist_{0}_{1}'.format(k,j),'bkgdist_{0}_{1}'.format(k,j)], makePlotName(full,'trained',k,j,'kernel'))
 
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
@@ -345,6 +347,7 @@ def fitAdaptive():
     nn = ROOT.SciKitLearnWrapper('nn_{0}_{1}'.format(k,j),'nn_{0}_{1}'.format(k,j),x)
     nn.RegisterCallBack(lambda x: scikitlearnFunc('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j),x))
     getattr(w,'import')(ROOT.RooArgSet(nn),ROOT.RooFit.RecycleConflictNodes()) 
+    
 
     # I should find the way to use this method
     #callbck = ScikitLearnCallback('adaptive_f{0}_f{1}.pkl'.format(k,j))
@@ -352,15 +355,16 @@ def fitAdaptive():
 
     # Inserting the nn output into the pdf graph
     for l,name in enumerate(['sig','bkg']):
-      w.factory('CompositeFunctionPdf::{0}template_{1}_{2}({0}dist_{1}_{2})'.
+      w.factory('CompositeFunctionPdf::{0}template_{1}_{2}({0}histpdf_{1}_{2})'.
           format(name,k,j))
       w.factory('EDIT::{0}moddist_{1}_{2}({0}template_{1}_{2},score=nn_{1}_{2})'
               .format(name,k,j))
      
+
     if verbose_printing == True:
       full = 'full' if pos == None else 'decomposed'
-      printFrame(w,'x',['sigmoddist_{0}_{1}'.format(k,j),
-                'bkgmoddist_{0}_{1}'.format(k,j)],makePlotName(full,'trained',k,j,'dist'))
+      printFrame(w,'x',[w.pdf('sigmoddist_{0}_{1}'.format(k,j)),
+                w.pdf('bkgmoddist_{0}_{1}'.format(k,j))],makePlotName(full,'trained',k,j,'dist'))
 
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
