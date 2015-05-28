@@ -27,8 +27,9 @@ import matplotlib.pyplot as plt
 c0 = [.0,.3, .7]
 c1 = [.1,.5, .4]
 verbose_printing = True
+model = None
 
-def printFrame(w,obs,pdf):
+def printFrame(w,obs,pdf,name):
   '''
     This just print a bunch of pdfs 
     in a Canvas
@@ -50,7 +51,7 @@ def printFrame(w,obs,pdf):
   for i,f in enumerate(funcs):
       f.plotOn(frame,line_colors[i])
   frame.Draw()
-  c1.SaveAs('plots/model{0}.pdf'.format('-'.join(pdf)))
+  c1.SaveAs('plots/{0}.png'.format(name))
 
 def makeData(num_train=500,num_test=100):
   '''
@@ -149,11 +150,18 @@ def makeROC(outputs, target, label):
   plt.ylim([0.0, 1.05])
   plt.xlabel('False Positive Rate')
   plt.ylabel('True Positive Rate')
-  plt.title('ROC {0}'.format(label))
+  plt.title('{0}'.format(label))
   plt.legend(loc="lower right")
-  np.savetxt('plots/roc_{0}.txt'.format(label),np.column_stack((fpr,tpr)))
-  plt.savefig('plots/roc_{0}.png'.format(label))
+  np.savetxt('plots/{0}.txt'.format(label),np.column_stack((fpr,tpr)))
+  plt.savefig('plots/{0}.png'.format(label))
   plt.clf()
+
+
+def makePlotName(full, truth, f0 = None, f1 = None, type=None):
+  if full == 'decomposed':
+    return '{0}_{1}_f{2}_f{3}_{4}_{5}'.format(full, truth, f0, f1, model,type)
+  else:
+    return '{0}_{1}_{2}_{3}'.format(full, truth, model,type)
 
 def trainClassifier(clf):
   '''
@@ -174,7 +182,7 @@ def trainClassifier(clf):
       testdata, testtarget = loadData('data/testdata_{0}_{1}.dat'.format(k,j)) 
       outputs = predict(clf,testdata.reshape(testdata.shape[0],1))
 
-      makeROC(outputs, testtarget, 'f{0}_f{1}'.format(k,j))
+      makeROC(outputs, testtarget, makePlotName('decomposed','trained',k,j,'roc'))
   
   traindata,targetdata = loadData('data/traindata_F0_F1.dat') 
   print " Training Classifier on F0/F1"
@@ -185,7 +193,7 @@ def trainClassifier(clf):
 
   testdata, testtarget = loadData('data/testdata_F0_F1.dat') 
   outputs = predict(clf,testdata.reshape(testdata.shape[0],1))
-  makeROC(outputs, testtarget, 'F0_F1')
+  makeROC(outputs, testtarget, makePlotName('full','trained',type='roc'))
 
 
 def classifierPdf():
@@ -237,9 +245,10 @@ def classifierPdf():
       w.factory('KeysPdf::{0}dist_{1}_{2}(score,{0}data_{1}_{2})'.format(name,k,j))
 
       # Print histograms pdfs and estimated densities
-      if verbose_printing == True:
-        printFrame(w,'score',['{0}histpdf_{1}_{2}'.format(name,k,j)])
-        printFrame(w,'score',['{0}dist_{1}_{2}'.format(name,k,j)])
+      if verbose_printing == True and name == 'bkg':
+        full = 'full' if pos == None else 'decomposed'
+        printFrame(w,'score',['sighistpdf_{0}_{1}'.format(k,j), 'bkghistpdf_{0}_{1}'.format(k,j)], makePlotName(full,'trained',k,j,type='hist'))
+        printFrame(w,'score',['sigdist_{0}_{1}'.format(k,j),'bkgdist_{0}_{1}'.format(k,j)], makePlotName(full,'trained',k,j,'kernel'))
 
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
@@ -333,8 +342,9 @@ def fitAdaptive():
               .format(name,k,j))
      
     if verbose_printing == True:
+      full = 'full' if pos == None else 'decomposed'
       printFrame(w,'x',['sigmoddist_{0}_{1}'.format(k,j),
-                'bkgmoddist_{0}_{1}'.format(k,j)])
+                'bkgmoddist_{0}_{1}'.format(k,j)],makePlotName(full,'trained',k,j,'dist'))
 
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
@@ -364,7 +374,7 @@ def fitAdaptive():
     plt.ylabel('ratio')
     plt.xlabel('x')
     plt.title(file)
-    np.savetxt('plots/{0}_full.txt'.format(file),y)
+    np.savetxt('plots/{0}.txt'.format(file),y)
     plt.savefig('plots/{0}.png'.format(file))
     plt.clf()
 
@@ -389,27 +399,27 @@ def fitAdaptive():
         innerRatios += (c_/c) * pdfratios
         ratios = [singleRatio(x,f0,f1,xs) for xs in xarray]
 
-        saveFig(xarray, pdfratios,'pdf_ratio_{0}_{1}'.format(k,j))
-        saveFig(xarray, ratios, 'ratio_{0}_{1}'.format(k,j))
+        saveFig(xarray, pdfratios, makePlotName('decomposed','trained',k,j,'ratio'))
+        saveFig(xarray, ratios, makePlotName('decomposed','truth',k,j,'ratio'))
       fullRatios += 1./innerRatios
     return fullRatios
 
   fullRatios = evaluateDecomposedRatio(w,x,xarray)
 
-  saveFig(xarray, fullRatios, 'ratio_classifier') 
+  saveFig(xarray, fullRatios,  makePlotName('composite','trained',type='ratio')) 
 
   y2 = [singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in xarray]
 
-  saveFig(xarray, y2, 'ratios')
-  saveFig(xarray, np.array(y2) - fullRatios, 'ratios_diff')
+  saveFig(xarray, y2, makePlotName('full','truth',type='ratio'))
+  saveFig(xarray, np.array(y2) - fullRatios, makePlotName('composite','trained',type='diff'))
 
   # NN trained on complete model
   F0pdf = w.pdf('bkgmoddist_F0_F1')
   F1pdf = w.pdf('sigmoddist_F0_F1')
   pdfratios = [singleRatio(x,F1pdf,F0pdf,xs) for xs in xarray]
   pdfratios = np.array(pdfratios)
-  saveFig(xarray, pdfratios, 'pdf_ratio_F0_F1')
-  saveFig(xarray, np.array(y2) - pdfratios, 'full_ratio_diff')
+  saveFig(xarray, pdfratios, makePlotName('full','trained',type='ratio'))
+  saveFig(xarray, np.array(y2) - pdfratios,makePlotName('full','trained',type='diff'))
 
 
   # ROC for ratios
@@ -420,9 +430,9 @@ def fitAdaptive():
   completeRatio = [singleRatio(x,F1pdf,F0pdf,xs) for xs in testdata]
   realRatio = [singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in testdata]
 
-  makeROC(1.-np.array(realRatio), testtarget, 'real')
-  makeROC(1.-np.array(decomposedRatio), testtarget, 'decomposed')
-  makeROC(1.-np.array(completeRatio), testtarget, 'full')
+  makeROC(1.-np.array(realRatio), testtarget,makePlotName('full','truth',type='roc'))
+  makeROC(1.-np.array(decomposedRatio), testtarget,makePlotName('composite','trained',type='roc'))
+  makeROC(1.-np.array(completeRatio), testtarget,makePlotName('full','trained',type='roc'))
 
 
   #w.Print()
@@ -432,13 +442,15 @@ if __name__ == '__main__':
         'logistic': linear_model.LogisticRegression()}
   clf = None
   if (len(sys.argv) > 1):
+    model = sys.argv[1]
     clf = classifiers.get(sys.argv[1])
   if clf == None:
+    model = 'logistic'
     clf = classifiers['logistic']    
     print 'Not found classifier, Using logistic instead'
 
   # Set this value to False if only final plots are needed
-  verbose_printing = False
+  verbose_printing = True
 
   makeData(num_train=300) 
   trainClassifier(clf)
