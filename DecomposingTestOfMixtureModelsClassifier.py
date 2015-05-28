@@ -205,7 +205,7 @@ def classifierPdf():
     test
   '''
 
-  bins = 50
+  bins = 150
   low = 0.
   high = 1.  
 
@@ -460,7 +460,7 @@ if __name__ == '__main__':
   # Set this value to False if only final plots are needed
   verbose_printing = False
 
-  makeData(num_train=300) 
+  makeData(num_train=10000,num_test=3000) 
   trainClassifier(clf)
   classifierPdf()
   fitAdaptive()
