@@ -14,6 +14,7 @@ import os.path
 import pdb
 
 import matplotlib.pyplot as plt
+import pylab as plt
 
 
 ''' 
@@ -143,7 +144,7 @@ def makeROC(outputs, target, label):
   '''
   fpr, tpr, _  = roc_curve(target.ravel(),outputs.ravel())
   roc_auc = auc(fpr, tpr)
-  plt.figure()
+  fig = plt.figure()
   plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
   plt.plot([0, 1], [0, 1], 'k--')
   plt.xlim([0.0, 1.0])
@@ -154,6 +155,7 @@ def makeROC(outputs, target, label):
   plt.legend(loc="lower right")
   np.savetxt('plots/{0}/{1}.txt'.format(model_g,label),np.column_stack((fpr,tpr)))
   plt.savefig('plots/{0}/{1}.png'.format(model_g,label))
+  plt.close(fig)
   plt.clf()
 
 
@@ -303,6 +305,20 @@ class ScikitLearnCallback:
     return outputs[0]
 
 
+def saveFig(x,y,file):
+  fig,ax = plt.subplots()
+  if len(y) == 1:
+    ax.plot(x,y[0],'b')
+  else:
+    ax.plot(x,y[0],'b',x,y[1],'r')
+  ax.set_ylabel('LR')
+  ax.set_xlabel('x')
+  ax.set_title(file)
+  np.savetxt('plots/{0}/{1}.txt'.format(model_g,file),y[0])
+  fig.savefig('plots/{0}/{1}.png'.format(model_g,file))
+  plt.close(fig)
+  plt.clf()
+
 def fitAdaptive():
   '''
     Use the computed score densities to compute 
@@ -366,20 +382,8 @@ def fitAdaptive():
   # pair-wise ratios
   # and decomposition computation
   npoints = 100
-  xarray = np.linspace(0,5,npoints)
   x = w.var('x')
-
-  def saveFig(x,y,file):
-    plt.plot(x,y)
-    plt.ylabel('ratio')
-    plt.xlabel('x')
-    plt.title(file)
-    np.savetxt('plots/{0}/{1}.txt'.format(model_g,file),y)
-    plt.savefig('plots/{0}/{1}.png'.format(model_g,file))
-    plt.clf()
-
-
-  def evaluateDecomposedRatio(w,x,xarray):
+  def evaluateDecomposedRatio(w,x,xarray,plotting=True):
     npoints = xarray.shape[0]
     fullRatios = np.zeros(npoints)
     for k,c in enumerate(c0):
@@ -398,35 +402,36 @@ def fitAdaptive():
         pdfratios = np.array(pdfratios) if k <> j else np.ones(npoints)
         innerRatios += (c_/c) * pdfratios
         ratios = [singleRatio(x,f0,f1,xs) for xs in xarray]
-
-        saveFig(xarray, pdfratios, makePlotName('decomposed','trained',k,j,'ratio'))
-        saveFig(xarray, ratios, makePlotName('decomposed','truth',k,j,'ratio'))
+        if plotting == True:
+          saveFig(xarray, [pdfratios,ratios], makePlotName('decomposed','trained',k,j,type='ratio'))
+        #saveFig(xarray, ratios, makePlotName('decomposed','truth',k,j,type='ratio'))
       fullRatios += 1./innerRatios
     return fullRatios
 
+  xarray = np.linspace(0,5,npoints)
   fullRatios = evaluateDecomposedRatio(w,x,xarray)
 
-  saveFig(xarray, fullRatios,  makePlotName('composite','trained',type='ratio')) 
+  saveFig(xarray, [fullRatios],  makePlotName('composite','trained',type='ratio')) 
 
   y2 = [singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in xarray]
 
-  saveFig(xarray, y2, makePlotName('full','truth',type='ratio'))
-  saveFig(xarray, np.array(y2) - fullRatios, makePlotName('composite','trained',type='diff'))
+  saveFig(xarray, [y2], makePlotName('full','truth',type='ratio'))
+  saveFig(xarray, [np.array(y2) - fullRatios], makePlotName('composite','trained',type='diff'))
 
   # NN trained on complete model
   F0pdf = w.pdf('bkgmoddist_F0_F1')
   F1pdf = w.pdf('sigmoddist_F0_F1')
   pdfratios = [singleRatio(x,F1pdf,F0pdf,xs) for xs in xarray]
   pdfratios = np.array(pdfratios)
-  saveFig(xarray, pdfratios, makePlotName('full','trained',type='ratio'))
-  saveFig(xarray, np.array(y2) - pdfratios,makePlotName('full','trained',type='diff'))
+  saveFig(xarray, [pdfratios], makePlotName('full','trained',type='ratio'))
+  saveFig(xarray, [np.array(y2) - pdfratios],makePlotName('full','trained',type='diff'))
 
 
   # ROC for ratios
   # load test data
   # check if ratios fulfill the requeriments of type
   testdata, testtarget = loadData('data/{0}/testdata_F0_F1.dat'.format(model_g)) 
-  decomposedRatio = evaluateDecomposedRatio(w,x,testdata)
+  decomposedRatio = evaluateDecomposedRatio(w,x,testdata,plotting=False)
   completeRatio = [singleRatio(x,F1pdf,F0pdf,xs) for xs in testdata]
   realRatio = [singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in testdata]
 
@@ -449,7 +454,7 @@ if __name__ == '__main__':
     print 'Not found classifier, Using logistic instead'
 
   # Set this value to False if only final plots are needed
-  verbose_printing = True
+  verbose_printing = False
 
   makeData(num_train=300) 
   trainClassifier(clf)
