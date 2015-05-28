@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 c0 = [.0,.3, .7]
 c1 = [.1,.5, .4]
 verbose_printing = True
-model = None
+model_g = None
 
 def printFrame(w,obs,pdf,name):
   '''
@@ -51,7 +51,7 @@ def printFrame(w,obs,pdf,name):
   for i,f in enumerate(funcs):
       f.plotOn(frame,line_colors[i])
   frame.Draw()
-  c1.SaveAs('plots/{0}.png'.format(name))
+  c1.SaveAs('plots/{0}/{1}.png'.format(model_g,name))
 
 def makeData(num_train=500,num_test=100):
   '''
@@ -101,25 +101,25 @@ def makeData(num_train=500,num_test=100):
       traindata, targetdata = makeDataset(x,w.pdf('f{0}'.format(k)),w.pdf('f{0}'.format(j))
       ,num_train)
 
-      np.savetxt('data/traindata_{0}_{1}.dat'.format(k,j),
+      np.savetxt('data/{0}/traindata_{1}_{2}.dat'.format(model_g,k,j),
               np.column_stack((traindata,targetdata)),fmt='%f')
 
       testdata, testtarget = makeDataset(x,w.pdf('f{0}'.format(k)),w.pdf('f{0}'.format(j))
       ,num_test)
 
-      np.savetxt('data/testdata_{0}_{1}.dat'.format(k,j),
+      np.savetxt('data/{0}/testdata_{1}_{2}.dat'.format(model_g,k,j),
               np.column_stack((testdata,testtarget)),fmt='%f')
 
 
   traindata, targetdata = makeDataset(x,w.pdf('F0'),w.pdf('F1'),num_test)
 
-  np.savetxt('data/traindata_F0_F1.dat',
+  np.savetxt('data/{0}/traindata_F0_F1.dat'.format(model_g),
           np.column_stack((traindata,targetdata)),fmt='%f')
 
   testdata, testtarget = makeDataset(x,w.pdf('F0'.format(k)),w.pdf('F1'.format(j))
   ,num_test)
 
-  np.savetxt('data/testdata_F0_F1.dat',
+  np.savetxt('data/{0}/testdata_F0_F1.dat'.format(model_g),
           np.column_stack((testdata,testtarget)),fmt='%f')
 
 
@@ -152,16 +152,16 @@ def makeROC(outputs, target, label):
   plt.ylabel('True Positive Rate')
   plt.title('{0}'.format(label))
   plt.legend(loc="lower right")
-  np.savetxt('plots/{0}.txt'.format(label),np.column_stack((fpr,tpr)))
-  plt.savefig('plots/{0}.png'.format(label))
+  np.savetxt('plots/{0}/{1}.txt'.format(model_g,label),np.column_stack((fpr,tpr)))
+  plt.savefig('plots/{0}/{1}.png'.format(model_g,label))
   plt.clf()
 
 
 def makePlotName(full, truth, f0 = None, f1 = None, type=None):
   if full == 'decomposed':
-    return '{0}_{1}_f{2}_f{3}_{4}_{5}'.format(full, truth, f0, f1, model,type)
+    return '{0}_{1}_f{2}_f{3}_{4}_{5}'.format(full, truth, f0, f1, model_g,type)
   else:
-    return '{0}_{1}_{2}_{3}'.format(full, truth, model,type)
+    return '{0}_{1}_{2}_{3}'.format(full, truth, model_g,type)
 
 def trainClassifier(clf):
   '''
@@ -171,27 +171,27 @@ def trainClassifier(clf):
 
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
-      traindata,targetdata = loadData('data/traindata_{0}_{1}.dat'.format(k,j)) 
+      traindata,targetdata = loadData('data/{0}/traindata_{1}_{2}.dat'.format(model_g,k,j)) 
 
       print " Training Classifier on f{0}/f{1}".format(k,j)
       #clf = svm.NuSVC(probability=True) #Why use a SVR??
       clf.fit(traindata.reshape(traindata.shape[0],1)
           ,targetdata)
-      joblib.dump(clf, 'model/adaptive_{0}_{1}.pkl'.format(k,j))
+      joblib.dump(clf, 'model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j))
 
-      testdata, testtarget = loadData('data/testdata_{0}_{1}.dat'.format(k,j)) 
+      testdata, testtarget = loadData('data/{0}/testdata_{1}_{2}.dat'.format(model_g,k,j)) 
       outputs = predict(clf,testdata.reshape(testdata.shape[0],1))
 
       makeROC(outputs, testtarget, makePlotName('decomposed','trained',k,j,'roc'))
   
-  traindata,targetdata = loadData('data/traindata_F0_F1.dat') 
+  traindata,targetdata = loadData('data/{0}/traindata_F0_F1.dat'.format(model_g)) 
   print " Training Classifier on F0/F1"
   #clf = svm.NuSVC(probability=True) #Why use a SVR??
   clf.fit(traindata.reshape(traindata.shape[0],1)
       ,targetdata)
-  joblib.dump(clf, 'model/adaptive_F0_F1.pkl')
+  joblib.dump(clf, 'model/{0}/adaptive_F0_F1.pkl'.format(model_g))
 
-  testdata, testtarget = loadData('data/testdata_F0_F1.dat') 
+  testdata, testtarget = loadData('data/{0}/testdata_F0_F1.dat'.format(model_g)) 
   outputs = predict(clf,testdata.reshape(testdata.shape[0],1))
   makeROC(outputs, testtarget, makePlotName('full','trained',type='roc'))
 
@@ -252,20 +252,20 @@ def classifierPdf():
 
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
-      traindata, targetdata = loadData('data/traindata_{0}_{1}.dat'.format(k,j))
+      traindata, targetdata = loadData('data/{0}/traindata_{1}_{2}.dat'.format(model_g,k,j))
       numtrain = traindata.shape[0]       
 
-      clf = joblib.load('model/adaptive_{0}_{1}.pkl'.format(k,j))
+      clf = joblib.load('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j))
       
       # Should I be using test data here?
       outputs = predict(clf,traindata.reshape(traindata.shape[0],1))
       #outputs = clf.predict_proba(traindata.reshape(traindata.shape[0],1)) 
       saveHistos(w,outputs,(k,j))
 
-  traindata, targetdata = loadData('data/traindata_F0_F1.dat')
+  traindata, targetdata = loadData('data/{0}/traindata_F0_F1.dat'.format(model_g))
   numtrain = traindata.shape[0]       
 
-  clf = joblib.load('model/adaptive_F0_F1.pkl')
+  clf = joblib.load('model/{0}/adaptive_F0_F1.pkl'.format(model_g))
   
   # Should I be using test data here?
   outputs = predict(clf,traindata.reshape(traindata.shape[0],1))
@@ -325,9 +325,9 @@ def fitAdaptive():
       k,j = pos
     else:
       k,j = ('F0','F1')
-    test = scikitlearnFunc('model/adaptive_{0}_{1}.pkl'.format(k,j),2.0)
+    test = scikitlearnFunc('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j),2.0)
     nn = ROOT.SciKitLearnWrapper('nn_{0}_{1}'.format(k,j),'nn_{0}_{1}'.format(k,j),x)
-    nn.RegisterCallBack(lambda x: scikitlearnFunc('model/adaptive_{0}_{1}.pkl'.format(k,j),x))
+    nn.RegisterCallBack(lambda x: scikitlearnFunc('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j),x))
     getattr(w,'import')(ROOT.RooArgSet(nn),ROOT.RooFit.RecycleConflictNodes()) 
 
     # I should find the way to use this method
@@ -374,8 +374,8 @@ def fitAdaptive():
     plt.ylabel('ratio')
     plt.xlabel('x')
     plt.title(file)
-    np.savetxt('plots/{0}.txt'.format(file),y)
-    plt.savefig('plots/{0}.png'.format(file))
+    np.savetxt('plots/{0}/{1}.txt'.format(model_g,file),y)
+    plt.savefig('plots/{0}/{1}.png'.format(model_g,file))
     plt.clf()
 
 
@@ -425,7 +425,7 @@ def fitAdaptive():
   # ROC for ratios
   # load test data
   # check if ratios fulfill the requeriments of type
-  testdata, testtarget = loadData('data/testdata_F0_F1.dat') 
+  testdata, testtarget = loadData('data/{0}/testdata_F0_F1.dat'.format(model_g)) 
   decomposedRatio = evaluateDecomposedRatio(w,x,testdata)
   completeRatio = [singleRatio(x,F1pdf,F0pdf,xs) for xs in testdata]
   realRatio = [singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in testdata]
@@ -434,7 +434,6 @@ def fitAdaptive():
   makeROC(1.-np.array(decomposedRatio), testtarget,makePlotName('composite','trained',type='roc'))
   makeROC(1.-np.array(completeRatio), testtarget,makePlotName('full','trained',type='roc'))
 
-
   #w.Print()
 
 if __name__ == '__main__':
@@ -442,10 +441,10 @@ if __name__ == '__main__':
         'logistic': linear_model.LogisticRegression()}
   clf = None
   if (len(sys.argv) > 1):
-    model = sys.argv[1]
+    model_g = sys.argv[1]
     clf = classifiers.get(sys.argv[1])
   if clf == None:
-    model = 'logistic'
+    model_g = 'logistic'
     clf = classifiers['logistic']    
     print 'Not found classifier, Using logistic instead'
 
