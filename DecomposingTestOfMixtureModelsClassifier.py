@@ -30,7 +30,7 @@ c1 = [.1,.5, .4]
 verbose_printing = True
 model_g = None
 
-def printFrame(w,obs,pdf,name):
+def printFrame(w,obs,pdf,name,legends):
   '''
     This just print a bunch of pdfs 
     in a Canvas
@@ -50,8 +50,18 @@ def printFrame(w,obs,pdf,name):
   c1 = ROOT.TCanvas('c1')
   frame = x.frame()
   for i,f in enumerate(funcs):
-      f.plotOn(frame,line_colors[i])
+      f.plotOn(frame,ROOT.RooFit.Name(legends[i]),line_colors[i])
+  leg = ROOT.TLegend(0.65, 0.73, 0.86, 0.87)
+  #leg.SetFillColor(ROOT.kWhite)
+  #leg.SetLineColor(ROOT.kWhite)
+  for i,l in enumerate(legends):
+    if i == 0:
+      leg.AddEntry(frame.findObject(legends[i]), l, 'l')
+    else:
+      leg.AddEntry(frame.findObject(legends[i]), l, 'l')
+  
   frame.Draw()
+  leg.Draw()
   c1.SaveAs('plots/{0}/{1}.png'.format(model_g,name))
 
 def makeData(num_train=500,num_test=100):
@@ -251,7 +261,7 @@ def classifierPdf():
       # Print histograms pdfs and estimated densities
       if verbose_printing == True and name == 'bkg':
         full = 'full' if pos == None else 'decomposed'
-        printFrame(w,'score',[w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j))], makePlotName(full,'trained',k,j,type='hist'))
+        printFrame(w,'score',[w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j))], makePlotName(full,'trained',k,j,type='hist'),['signal','bkg'])
         #printFrame(w,'score',['sigdist_{0}_{1}'.format(k,j),'bkgdist_{0}_{1}'.format(k,j)], makePlotName(full,'trained',k,j,'kernel'))
 
   for k,c in enumerate(c0):
@@ -307,15 +317,19 @@ class ScikitLearnCallback:
     return outputs[0]
 
 
-def saveFig(x,y,file):
+def saveFig(x,y,file,labels=None):
   fig,ax = plt.subplots()
   if len(y) == 1:
     ax.plot(x,y[0],'b')
   else:
-    ax.plot(x,y[0],'b',x,y[1],'r')
+    #Just supporting two plots for now
+    ax.plot(x,y[0],'b-',label=labels[0]) 
+    ax.plot(x,y[1],'r-',label=labels[1])
   ax.set_ylabel('LR')
   ax.set_xlabel('x')
   ax.set_title(file)
+  if (len(y) > 1):
+    ax.legend()
   np.savetxt('plots/{0}/{1}.txt'.format(model_g,file),y[0])
   fig.savefig('plots/{0}/{1}.png'.format(model_g,file))
   plt.close(fig)
@@ -364,7 +378,7 @@ def fitAdaptive():
     if verbose_printing == True:
       full = 'full' if pos == None else 'decomposed'
       printFrame(w,'x',[w.pdf('sigmoddist_{0}_{1}'.format(k,j)),
-                w.pdf('bkgmoddist_{0}_{1}'.format(k,j))],makePlotName(full,'trained',k,j,'dist'))
+                w.pdf('bkgmoddist_{0}_{1}'.format(k,j))],makePlotName(full,'trained',k,j,'dist'),['signal','bkg'])
 
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
@@ -407,7 +421,8 @@ def fitAdaptive():
         innerRatios += (c_/c) * pdfratios
         ratios = [singleRatio(x,f0,f1,xs) for xs in xarray]
         if plotting == True:
-          saveFig(xarray, [pdfratios,ratios], makePlotName('decomposed','trained',k,j,type='ratio'))
+          saveFig(xarray, [pdfratios,ratios], makePlotName('decomposed','trained',k,j,type='ratio'),
+            ['trained','truth'])
         #saveFig(xarray, ratios, makePlotName('decomposed','truth',k,j,type='ratio'))
       fullRatios += 1./innerRatios
     return fullRatios
@@ -458,7 +473,7 @@ if __name__ == '__main__':
     print 'Not found classifier, Using logistic instead'
 
   # Set this value to False if only final plots are needed
-  verbose_printing = False
+  verbose_printing = True
 
   makeData(num_train=10000,num_test=3000) 
   trainClassifier(clf)
