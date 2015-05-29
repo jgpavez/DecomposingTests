@@ -30,7 +30,7 @@ The difference of the composed ratio and the full trained ratio to the true rati
 
 Next, the roc curves of each one of the ratios (composed, full trained and full truth) is shown.
 
-![All ROC](https://github.com/jgpavez/systematics/blob/master/plots/full_comparison_logistic_ratio.png)
+![All ROC](https://github.com/jgpavez/systematics/blob/master/plots/full_comparison_logistic_roc.png)
 
 
 
