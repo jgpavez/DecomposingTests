@@ -19,6 +19,10 @@ Secondly, we compare each ratio obtained by training pair-wise to the real ratio
 
 ![Decomposed Ratios](https://github.com/jgpavez/systematics/blob/master/plots/decomposed_comparison_logistic_ratio.png)
 
+The ROC curves obtained by varying the threshold on the trained and true ratios of each pair of functions are shown in the next image.
+
+![Decomposed ROC](https://github.com/jgpavez/systematics/blob/master/plots/decomposed_comparison_logistic_roc.png)
+
 In the next image the composed ratio using the formula (24) is compared to the ratio obtained by training the classifier 
 in the full model and to the true ratio.
 
@@ -28,7 +32,7 @@ The difference of the composed ratio and the full trained ratio to the true rati
 
 ![All Ratios Differences](https://github.com/jgpavez/systematics/blob/master/plots/full_comparison_logistic_diff.png)
 
-Next, the roc curves of each one of the ratios (composed, full trained and full truth) is shown.
+Next, the ROC curves of each one of the ratios (composed, full trained and full truth) is shown.
 
 ![All ROC](https://github.com/jgpavez/systematics/blob/master/plots/full_comparison_logistic_roc.png)
 
