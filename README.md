@@ -17,6 +17,8 @@ Given that *Logistic Regression* gives the best results, we will use this classi
 
 Secondly, we compare each ratio obtained by training pair-wise to the real ratio of each pair of functions.
 
+![Decomposed Ratios](https://github.com/jgpavez/systematics/blob/master/plots/decomposed_comparison_logistic_ratio.png)
+
 In the next image the composed ratio using the formula (24) is compared to the ratio obtained by training the classifier 
 in the full model and to the truth ratio.
 
