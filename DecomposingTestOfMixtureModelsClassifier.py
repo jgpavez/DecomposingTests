@@ -122,7 +122,7 @@ def makeData(num_train=500,num_test=100):
               np.column_stack((testdata,testtarget)),fmt='%f')
 
 
-  traindata, targetdata = makeDataset(x,w.pdf('F0'),w.pdf('F1'),num_test)
+  traindata, targetdata = makeDataset(x,w.pdf('F0'),w.pdf('F1'),num_train)
 
   np.savetxt('data/{0}/traindata_F0_F1.dat'.format(model_g),
           np.column_stack((traindata,targetdata)),fmt='%f')
@@ -191,10 +191,8 @@ def trainClassifier(clf):
           ,targetdata)
       joblib.dump(clf, 'model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j))
 
-      testdata, testtarget = loadData('data/{0}/testdata_{1}_{2}.dat'.format(model_g,k,j)) 
-      outputs = predict(clf,testdata.reshape(testdata.shape[0],1))
 
-      makeROC(outputs, testtarget, makePlotName('decomposed','trained',k,j,'roc'))
+      #makeROC(outputs, testtarget, makePlotName('decomposed','trained',k,j,'roc'))
   
   traindata,targetdata = loadData('data/{0}/traindata_F0_F1.dat'.format(model_g)) 
   print " Training Classifier on F0/F1"
@@ -203,9 +201,9 @@ def trainClassifier(clf):
       ,targetdata)
   joblib.dump(clf, 'model/{0}/adaptive_F0_F1.pkl'.format(model_g))
 
-  testdata, testtarget = loadData('data/{0}/testdata_F0_F1.dat'.format(model_g)) 
-  outputs = predict(clf,testdata.reshape(testdata.shape[0],1))
-  makeROC(outputs, testtarget, makePlotName('full','trained',type='roc'))
+  #testdata, testtarget = loadData('data/{0}/testdata_F0_F1.dat'.format(model_g)) 
+  #outputs = predict(clf,testdata.reshape(testdata.shape[0],1))
+  #makeROC(outputs, testtarget, makePlotName('full','trained',type='roc'))
 
 
 def classifierPdf():
@@ -280,7 +278,7 @@ def classifierPdf():
   numtrain = traindata.shape[0]       
 
   clf = joblib.load('model/{0}/adaptive_F0_F1.pkl'.format(model_g))
-  
+
   # Should I be using test data here?
   outputs = predict(clf,traindata.reshape(traindata.shape[0],1))
   #outputs = clf.predict_proba(traindata.reshape(traindata.shape[0],1)) 
@@ -290,7 +288,7 @@ def classifierPdf():
 
   w.writeToFile('workspace_DecomposingTestOfMixtureModelsClassifiers.root')
 
-  
+
 # this is not very efficient
 def scikitlearnFunc(filename,x=0.):
   '''
@@ -299,38 +297,47 @@ def scikitlearnFunc(filename,x=0.):
   clf = joblib.load(filename)
   traindata = np.array((x))
   outputs = predict(clf,traindata)[0]
-  
+
   #if outputs[0] > 1:
   #  return 1.
   return outputs
 
 class ScikitLearnCallback:
   def __init__(self,file):
-    clf = joblib.load(file)
+    clf_ = joblib.load(file)
 
-  def get(self,x = 0.):
+  def __call__(self,x = 0.):
     train = np.array((x))
-    outputs = predict(clf,train)[0]
+    outputs = predict(clf_,train)[0]
     
-    if outputs[0] > 1:
-      return 1.
-    return outputs[0]
+    return outputs
 
 
-def saveFig(x,y,file,labels=None):
+def saveFig(x,y,file,labels=None,scatter=False):
   fig,ax = plt.subplots()
-  if len(y) == 1:
-    ax.plot(x,y[0],'b')
+  if scatter == True:
+    ax.scatter(x,y[0])
+    ax.set_xlabel('score')
+    ax.set_ylabel('regression')
   else:
-    #Just supporting two plots for now
-    ax.plot(x,y[0],'b-',label=labels[0]) 
-    ax.plot(x,y[1],'r-',label=labels[1])
-  ax.set_ylabel('LR')
-  ax.set_xlabel('x')
+    if len(y) == 1:
+      ax.plot(x,y[0],'b')
+    else:
+      #Just supporting two plots for now
+      ax.plot(x,y[0],'b-',label=labels[0]) 
+      ax.plot(x,y[1],'r-',label=labels[1])
+    ax.set_ylabel('LR')
+    ax.set_xlabel('x')
   ax.set_title(file)
   if (len(y) > 1):
     ax.legend()
-  np.savetxt('plots/{0}/{1}.txt'.format(model_g,file),y[0])
+  if (len(y) > 1):
+    # This breaks the naming convention for plots, I will solve
+    # it later
+    np.savetxt('plots/{0}/{1}_{2}.txt'.format(model_g,file,labels[0]),y[0])
+    np.savetxt('plots/{0}/{1}_{2}.txt'.format(model_g,file,labels[1]),y[1])
+  else:
+    np.savetxt('plots/{0}/{1}.txt'.format(model_g,file),y[0])
   fig.savefig('plots/{0}/{1}.png'.format(model_g,file))
   plt.close(fig)
   plt.clf()
@@ -364,8 +371,8 @@ def fitAdaptive():
     
 
     # I should find the way to use this method
-    #callbck = ScikitLearnCallback('adaptive_f{0}_f{1}.pkl'.format(k,j))
-    #nn.RegisterCallBack(lambda x: callbck.get(x))
+    #callbck = ScikitLearnCallback('model/{0}/adaptive_f{0}_f{1}.pkl'.format(model_g,k,j))
+    #nn.RegisterCallBack(callbck)
 
     # Inserting the nn output into the pdf graph
     for l,name in enumerate(['sig','bkg']):
@@ -389,7 +396,7 @@ def fitAdaptive():
       #bkgpdf.graphVizTree('bkgpdfgraph.dot')
       
   constructDensity(w)
-  
+
   # To calculate the ratio between single functions
   def singleRatio(x,f0,f1,val):
     x.setVal(val)
@@ -397,11 +404,21 @@ def fitAdaptive():
       return 0.
     return f1.getValV() / f0.getValV()
 
+
+  # To calculate the ratio between single functions
+  def regFunc(x,f0,f1,val):
+    x.setVal(val)
+    if (f0.getValV() + f1.getValV()) < 10E-10:
+      return 0.
+    return f1.getValV() / (f0.getValV() + f1.getValV())
+
+
+
   # pair-wise ratios
   # and decomposition computation
   npoints = 100
   x = w.var('x')
-  def evaluateDecomposedRatio(w,x,xarray,plotting=True):
+  def evaluateDecomposedRatio(w,x,xarray,plotting=True, roc=False):
     npoints = xarray.shape[0]
     fullRatios = np.zeros(npoints)
     for k,c in enumerate(c0):
@@ -423,11 +440,28 @@ def fitAdaptive():
         if plotting == True:
           saveFig(xarray, [pdfratios,ratios], makePlotName('decomposed','trained',k,j,type='ratio'),
             ['trained','truth'])
+        if roc == True:
+          testdata, testtarget = loadData('data/{0}/testdata_{1}_{2}.dat'.format(model_g,k,j)) 
+          clfRatios = [singleRatio(x,f0pdf,f1pdf,xs) for xs in testdata]
+          trRatios = [singleRatio(x,f0,f1,xs) for xs in testdata]
+          makeROC(np.array(trRatios), testtarget, makePlotName('decomposed','truth',k,j,type='roc'))
+          makeROC(np.array(clfRatios), testtarget,makePlotName('decomposed','trained',k,j,type='roc'))
+          
+          # Scatter plot to compare regression function and classifier score
+          reg = [regFunc(x,f0,f1,xs) for xs in testdata]
+          clf = joblib.load('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j))
+          outputs = predict(clf,testdata.reshape(testdata.shape[0],1))
+          saveFig(outputs,[reg], makePlotName('decomposed','trained',k,j,type='scatter'),scatter=True)
+
         #saveFig(xarray, ratios, makePlotName('decomposed','truth',k,j,type='ratio'))
       fullRatios += 1./innerRatios
     return fullRatios
 
   xarray = np.linspace(0,5,npoints)
+   
+  #testdata, testtarget = loadData('data/{0}/testdata_F0_F1.dat'.format(model_g)) 
+  #xarray = np.sort(testdata)
+ 
   fullRatios = evaluateDecomposedRatio(w,x,xarray)
 
   saveFig(xarray, [fullRatios],  makePlotName('composite','trained',type='ratio')) 
@@ -445,12 +479,11 @@ def fitAdaptive():
   saveFig(xarray, [pdfratios], makePlotName('full','trained',type='ratio'))
   saveFig(xarray, [np.array(y2) - pdfratios],makePlotName('full','trained',type='diff'))
 
-
   # ROC for ratios
   # load test data
   # check if ratios fulfill the requeriments of type
   testdata, testtarget = loadData('data/{0}/testdata_F0_F1.dat'.format(model_g)) 
-  decomposedRatio = evaluateDecomposedRatio(w,x,testdata,plotting=False)
+  decomposedRatio = evaluateDecomposedRatio(w,x,testdata,plotting=False,roc=True)
   completeRatio = [singleRatio(x,F1pdf,F0pdf,xs) for xs in testdata]
   realRatio = [singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in testdata]
 
@@ -473,7 +506,7 @@ if __name__ == '__main__':
     print 'Not found classifier, Using logistic instead'
 
   # Set this value to False if only final plots are needed
-  verbose_printing = True
+  verbose_printing = False
 
   makeData(num_train=10000,num_test=3000) 
   trainClassifier(clf)
