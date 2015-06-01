@@ -243,7 +243,7 @@ def classifierPdf():
             ROOT.RooArgList(s),hist)
       s.setBins(bins)
       histpdf = ROOT.RooHistPdf('{0}histpdf_{1}_{2}'.format(name,k,j),'hist',
-            ROOT.RooArgSet(s), datahist, 1)
+            ROOT.RooArgSet(s), datahist, 0)
     
       #histpdf.specialIntegratorConfig(ROOT.kTRUE).method1D().setLabel('RooBinIntegrator')
 
@@ -261,6 +261,7 @@ def classifierPdf():
       if verbose_printing == True and name == 'bkg':
         full = 'full' if pos == None else 'decomposed'
         printFrame(w,'score',[w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j))], makePlotName(full,'trained',k,j,type='hist'),['signal','bkg'])
+        #printFrame(w,'score',[w.pdf('sigdist_{0}_{1}'.format(k,j)), w.pdf('bkgdist_{0}_{1}'.format(k,j))], makePlotName(full,'trained',k,j,type='density'),['signal','bkg'])
         #printFrame(w,'score',['sigdist_{0}_{1}'.format(k,j),'bkgdist_{0}_{1}'.format(k,j)], makePlotName(full,'trained',k,j,'kernel'))
 
   for k,c in enumerate(c0):
@@ -369,6 +370,8 @@ def fitAdaptive():
     nn = ROOT.SciKitLearnWrapper('nn_{0}_{1}'.format(k,j),'nn_{0}_{1}'.format(k,j),x)
     nn.RegisterCallBack(lambda x: scikitlearnFunc('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j),x))
 
+    #printFrame(w,'x',[nn],makePlotName('decomposed','trained',k,j,'score'),['score'])
+
     # I should find the way to use this method
     #callbck = ScikitLearnCallback('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j))
     #nn.RegisterCallBack(lambda x: callbck(x))
@@ -379,6 +382,8 @@ def fitAdaptive():
     for l,name in enumerate(['sig','bkg']):
       w.factory('CompositeFunctionPdf::{0}template_{1}_{2}({0}histpdf_{1}_{2})'.
           format(name,k,j))
+      #w.factory('CompositeFunctionPdf::{0}template_{1}_{2}({0}dist_{1}_{2})'.
+      #    format(name,k,j))
       w.factory('EDIT::{0}moddist_{1}_{2}({0}template_{1}_{2},score=nn_{1}_{2})'
               .format(name,k,j))
      
@@ -509,7 +514,7 @@ if __name__ == '__main__':
     print 'Not found classifier, Using logistic instead'
 
   # Set this value to False if only final plots are needed
-  verbose_printing = False
+  verbose_printing = True
 
   makeData(num_train=10000,num_test=3000) 
   trainClassifier(clf)
