@@ -7,6 +7,7 @@ import numpy as np
 from sklearn import svm, linear_model
 from sklearn.externals import joblib
 from sklearn.metrics import roc_curve, auc
+from sklearn.ensemble import GradientBoostingClassifier
 
 import sys
 
@@ -364,15 +365,15 @@ def fitAdaptive():
       k,j = pos
     else:
       k,j = ('F0','F1')
-    test = scikitlearnFunc('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j),2.0)
+    #test = scikitlearnFunc('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j),2.0)
     nn = ROOT.SciKitLearnWrapper('nn_{0}_{1}'.format(k,j),'nn_{0}_{1}'.format(k,j),x)
     nn.RegisterCallBack(lambda x: scikitlearnFunc('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j),x))
-    getattr(w,'import')(ROOT.RooArgSet(nn),ROOT.RooFit.RecycleConflictNodes()) 
-    
 
     # I should find the way to use this method
-    #callbck = ScikitLearnCallback('model/{0}/adaptive_f{0}_f{1}.pkl'.format(model_g,k,j))
-    #nn.RegisterCallBack(callbck)
+    #callbck = ScikitLearnCallback('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j))
+    #nn.RegisterCallBack(lambda x: callbck(x))
+
+    getattr(w,'import')(ROOT.RooArgSet(nn),ROOT.RooFit.RecycleConflictNodes()) 
 
     # Inserting the nn output into the pdf graph
     for l,name in enumerate(['sig','bkg']):
@@ -495,7 +496,9 @@ def fitAdaptive():
 
 if __name__ == '__main__':
   classifiers = {'svc':svm.NuSVC(probability=True),'svr':svm.NuSVR(),
-        'logistic': linear_model.LogisticRegression()}
+        'logistic': linear_model.LogisticRegression(), 
+        'bdt':GradientBoostingClassifier(n_estimators=100, learning_rate=1.0,
+        max_depth=1, random_state=0)}
   clf = None
   if (len(sys.argv) > 1):
     model_g = sys.argv[1]
