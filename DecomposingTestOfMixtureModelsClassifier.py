@@ -27,7 +27,8 @@ import pylab as plt
 
 # Constants for each different model
 c0 = [.0,.3, .7]
-c1 = [.1,.5, .4]
+c1 = [.0001,.4, .5999]
+#c1 = [.1,.5, .4]
 verbose_printing = True
 model_g = None
 
@@ -260,7 +261,7 @@ def classifierPdf():
       #w.factory('KeysPdf::{0}dist_{1}_{2}(score,{0}data_{1}_{2})'.format(name,k,j))
 
       # Print histograms pdfs and estimated densities
-      if verbose_printing == True and name == 'bkg':
+      if verbose_printing == True and name == 'bkg' and k <> j:
         full = 'full' if pos == None else 'decomposed'
         printFrame(w,'score',[w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j))], makePlotName(full,'trained',k,j,type='hist'),['signal','bkg'])
         #printFrame(w,'score',[w.pdf('sigdist_{0}_{1}'.format(k,j)), w.pdf('bkgdist_{0}_{1}'.format(k,j))], makePlotName(full,'trained',k,j,type='density'),['signal','bkg'])
@@ -395,7 +396,7 @@ def fitAdaptive():
               .format(name,k,j))
      
 
-    if verbose_printing == True:
+    if verbose_printing == True and k <> j:
       full = 'full' if pos == None else 'decomposed'
       printFrame(w,'x',[w.pdf('sigmoddist_{0}_{1}'.format(k,j)),
                 w.pdf('bkgmoddist_{0}_{1}'.format(k,j))],makePlotName(full,'trained',k,j,'dist'),['signal','bkg'])
@@ -450,10 +451,10 @@ def fitAdaptive():
         pdfratios = np.array(pdfratios) if k <> j else np.ones(npoints)
         innerRatios += (c_/c) * pdfratios
         ratios = [singleRatio(x,f0,f1,xs) for xs in xarray]
-        if plotting == True:
+        if plotting == True and k <> j:
           saveFig(xarray, [pdfratios,ratios], makePlotName('decomposed','trained',k,j,type='ratio'),
             ['trained','truth'])
-        if roc == True:
+        if roc == True and k <> j:
           testdata, testtarget = loadData('data/{0}/testdata_{1}_{2}.dat'.format(model_g,k,j)) 
           clfRatios = [singleRatio(x,f0pdf,f1pdf,xs) for xs in testdata]
           trRatios = [singleRatio(x,f0,f1,xs) for xs in testdata]
@@ -535,7 +536,7 @@ if __name__ == '__main__':
     print 'Not found classifier, Using logistic instead'
 
   # Set this value to False if only final plots are needed
-  verbose_printing = False
+  verbose_printing = True
 
   makeData(num_train=10000,num_test=3000) 
   trainClassifier(clf)
