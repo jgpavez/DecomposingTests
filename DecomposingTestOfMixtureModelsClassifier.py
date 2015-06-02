@@ -73,17 +73,19 @@ def makeData(num_train=500,num_test=100):
   # Statistical model
   w = ROOT.RooWorkspace('w')
   w.factory("EXPR::f0('exp(x*-1)',x[0,5])")
-  w.factory("EXPR::f1('cos(x)**2 + .01',x)")
-  w.factory("EXPR::f2('exp(-(x-2)**2/2)',x)")
+  #w.factory("EXPR::f1('cos(x)**2 + .01',x)")
+  w.factory("EXPR::f1('exp(-(x-5)**2/2)',x)")
+  w.factory("EXPR::f2('exp(-(x-2.5)**2/1.)',x)")
+  #w.factory("EXPR::f2('exp(-(x-2)**2/2)',x)")
   w.factory("SUM::F0(c00[{0}]*f0,c01[{1}]*f1,f2)".format(c0[0],c0[1]))
   w.factory("SUM::F1(c10[{0}]*f0,c11[{1}]*f1,f2)".format(c1[0],c1[1]))
   
   # Check Model
   w.Print()
   w.writeToFile('workspace_DecomposingTestOfMixtureModelsClassifiers.root')
-  #printFrame(w,'x',['f0','f1','f2']) 
-  #printFrame(w,'x',['F0','F1'])
-
+  if verbose_printing == True:
+    printFrame(w,'x',[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']) 
+    printFrame(w,'x',[w.pdf('F0'),w.pdf('F1')],'full_model',['F0','F1'])
   # Start generating data
   ''' 
     Each function will be discriminated pair-wise
@@ -214,7 +216,7 @@ def classifierPdf():
     test
   '''
 
-  bins = 150
+  bins = 100
   low = 0.
   high = 1.  
 
@@ -318,7 +320,12 @@ class ScikitLearnCallback:
 def saveFig(x,y,file,labels=None,scatter=False):
   fig,ax = plt.subplots()
   if scatter == True:
-    ax.scatter(x,y[0])
+    if len(y) == 1: 
+      ax.scatter(x,y[0],s=2)
+    else:
+      sc1 = ax.scatter(x,y[0],color='black')
+      sc2 = ax.scatter(x,y[1],color='red')
+      ax.legend((sc1,sc2),(labels[0],labels[1]))
     ax.set_xlabel('score')
     ax.set_ylabel('regression')
   else:
@@ -328,16 +335,15 @@ def saveFig(x,y,file,labels=None,scatter=False):
       #Just supporting two plots for now
       ax.plot(x,y[0],'b-',label=labels[0]) 
       ax.plot(x,y[1],'r-',label=labels[1])
+      ax.legend()
     ax.set_ylabel('LR')
     ax.set_xlabel('x')
   ax.set_title(file)
   if (len(y) > 1):
-    ax.legend()
-  if (len(y) > 1):
     # This breaks the naming convention for plots, I will solve
     # it later
-    np.savetxt('plots/{0}/{1}_{2}.txt'.format(model_g,file,labels[0]),y[0])
-    np.savetxt('plots/{0}/{1}_{2}.txt'.format(model_g,file,labels[1]),y[1])
+    for i,l in enumerate(labels):
+      np.savetxt('plots/{0}/{1}_{2}.txt'.format(model_g,file,l),y[i])
   else:
     np.savetxt('plots/{0}/{1}.txt'.format(model_g,file),y[0])
   fig.savefig('plots/{0}/{1}.png'.format(model_g,file))
@@ -368,7 +374,8 @@ def fitAdaptive():
       k,j = ('F0','F1')
     #test = scikitlearnFunc('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j),2.0)
     nn = ROOT.SciKitLearnWrapper('nn_{0}_{1}'.format(k,j),'nn_{0}_{1}'.format(k,j),x)
-    nn.RegisterCallBack(lambda x: scikitlearnFunc('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j),x))
+    nn.RegisterCallBack(lambda x: scikitlearnFunc('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g
+    ,k,j),x))
 
     #printFrame(w,'x',[nn],makePlotName('decomposed','trained',k,j,'score'),['score'])
 
@@ -380,11 +387,11 @@ def fitAdaptive():
 
     # Inserting the nn output into the pdf graph
     for l,name in enumerate(['sig','bkg']):
-      w.factory('CompositeFunctionPdf::{0}template_{1}_{2}({0}histpdf_{1}_{2})'.
-          format(name,k,j))
+      #w.factory('CompositeFunctionPdf::{0}template_{1}_{2}({0}histpdf_{1}_{2})'.
+      #    format(name,k,j))
       #w.factory('CompositeFunctionPdf::{0}template_{1}_{2}({0}dist_{1}_{2})'.
       #    format(name,k,j))
-      w.factory('EDIT::{0}moddist_{1}_{2}({0}template_{1}_{2},score=nn_{1}_{2})'
+      w.factory('EDIT::{0}moddist_{1}_{2}({0}histpdf_{1}_{2},score=nn_{1}_{2})'
               .format(name,k,j))
      
 
@@ -406,17 +413,17 @@ def fitAdaptive():
   # To calculate the ratio between single functions
   def singleRatio(x,f0,f1,val):
     x.setVal(val)
-    if f0.getValV() < 10E-10:
+    if f0.getVal(ROOT.RooArgSet(x)) < 10E-10:
       return 0.
-    return f1.getValV() / f0.getValV()
+    return f1.getVal(ROOT.RooArgSet(x)) / f0.getVal(ROOT.RooArgSet(x))
 
 
   # To calculate the ratio between single functions
   def regFunc(x,f0,f1,val):
     x.setVal(val)
-    if (f0.getValV() + f1.getValV()) < 10E-10:
+    if (f0.getVal(ROOT.RooArgSet(x)) + f1.getVal(ROOT.RooArgSet(x))) < 10E-10:
       return 0.
-    return f1.getValV() / (f0.getValV() + f1.getValV())
+    return f1.getVal(ROOT.RooArgSet(x)) / (f0.getVal(ROOT.RooArgSet(x)) + f1.getVal(ROOT.RooArgSet(x)))
 
 
 
@@ -454,10 +461,14 @@ def fitAdaptive():
           makeROC(np.array(clfRatios), testtarget,makePlotName('decomposed','trained',k,j,type='roc'))
           
           # Scatter plot to compare regression function and classifier score
-          reg = [regFunc(x,f0,f1,xs) for xs in testdata]
+          reg = np.array([regFunc(x,f0,f1,xs) for xs in testdata])
+          #reg = reg/np.max(reg)
           clf = joblib.load('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j))
           outputs = predict(clf,testdata.reshape(testdata.shape[0],1))
+          #pdb.set_trace()
           saveFig(outputs,[reg], makePlotName('decomposed','trained',k,j,type='scatter'),scatter=True)
+          saveFig(testdata, [reg, outputs],  makePlotName('decomposed','trained',k,j,type='multi_scatter'),scatter=True,labels=['regression', 'score'])
+
 
         #saveFig(xarray, ratios, makePlotName('decomposed','truth',k,j,type='ratio'))
       fullRatios += 1./innerRatios
@@ -497,6 +508,16 @@ def fitAdaptive():
   makeROC(1.-np.array(decomposedRatio), testtarget,makePlotName('composite','trained',type='roc'))
   makeROC(1.-np.array(completeRatio), testtarget,makePlotName('full','trained',type='roc'))
 
+  # Scatter plot to compare regression function and classifier score
+  reg = np.array([regFunc(x,w.pdf('F0'),w.pdf('F1'),xs) for xs in testdata])
+  #reg = reg/np.max(reg)
+  clf = joblib.load('model/{0}/adaptive_F0_F1.pkl'.format(model_g))
+  outputs = predict(clf,testdata.reshape(testdata.shape[0],1))
+  #pdb.set_trace()
+  saveFig(outputs,[reg], makePlotName('full','trained',k,j,type='scatter'),scatter=True)
+  saveFig(testdata, [reg, outputs],  makePlotName('full','trained',k,j,type='multi_scatter'),scatter=True,labels=['regression', 'score'])
+
+
   #w.Print()
 
 if __name__ == '__main__':
@@ -514,7 +535,7 @@ if __name__ == '__main__':
     print 'Not found classifier, Using logistic instead'
 
   # Set this value to False if only final plots are needed
-  verbose_printing = True
+  verbose_printing = False
 
   makeData(num_train=10000,num_test=3000) 
   trainClassifier(clf)
