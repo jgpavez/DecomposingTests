@@ -27,7 +27,7 @@ import pylab as plt
 
 # Constants for each different model
 c0 = [.0,.3, .7]
-c1 = [.0001,.4, .5999]
+c1 = [.00001,.549995, .449995]
 #c1 = [.1,.5, .4]
 verbose_printing = True
 model_g = None
@@ -84,9 +84,9 @@ def makeData(num_train=500,num_test=100):
   # Check Model
   w.Print()
   w.writeToFile('workspace_DecomposingTestOfMixtureModelsClassifiers.root')
-  if verbose_printing == True:
-    printFrame(w,'x',[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']) 
-    printFrame(w,'x',[w.pdf('F0'),w.pdf('F1')],'full_model',['F0','F1'])
+  #if verbose_printing == True:
+  printFrame(w,'x',[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']) 
+  printFrame(w,'x',[w.pdf('F0'),w.pdf('F1')],'full_model',['F0','F1'])
   # Start generating data
   ''' 
     Each function will be discriminated pair-wise
@@ -136,7 +136,7 @@ def makeData(num_train=500,num_test=100):
 
   np.savetxt('data/{0}/testdata_F0_F1.dat'.format(model_g),
           np.column_stack((testdata,testtarget)),fmt='%f')
-
+  pdb.set_trace()
 
 def loadData(filename):
   traintarget = np.loadtxt(filename)
@@ -536,7 +536,7 @@ if __name__ == '__main__':
     print 'Not found classifier, Using logistic instead'
 
   # Set this value to False if only final plots are needed
-  verbose_printing = True
+  verbose_printing = False
 
   makeData(num_train=10000,num_test=3000) 
   trainClassifier(clf)
