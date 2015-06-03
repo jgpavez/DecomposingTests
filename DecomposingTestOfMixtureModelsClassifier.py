@@ -135,7 +135,7 @@ def makeData(num_train=500,num_test=100):
 
   np.savetxt('data/{0}/testdata_F0_F1.dat'.format(model_g),
           np.column_stack((testdata,testtarget)),fmt='%f')
-
+  pdb.set_trace()
 
 def loadData(filename):
   traintarget = np.loadtxt(filename)
@@ -521,10 +521,12 @@ def fitAdaptive():
   #w.Print()
 
 if __name__ == '__main__':
+  # I will obtain the mlp when training for now 
   classifiers = {'svc':svm.NuSVC(probability=True),'svr':svm.NuSVR(),
         'logistic': linear_model.LogisticRegression(), 
         'bdt':GradientBoostingClassifier(n_estimators=100, learning_rate=1.0,
-        max_depth=1, random_state=0)}
+        max_depth=1, random_state=0),
+        'mlp':''}
   clf = None
   if (len(sys.argv) > 1):
     model_g = sys.argv[1]
