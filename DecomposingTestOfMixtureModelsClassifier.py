@@ -26,8 +26,10 @@ import pylab as plt
 ''' 
 
 # Constants for each different model
-c0 = [.0,.3, .7]
-c1 = [.00001,.549995, .449995]
+c0 = np.array([.0,.3, .7])
+c1 = np.array([.01,.3, .7])
+c1 = c1 / c1.sum()
+
 #c1 = [.1,.5, .4]
 verbose_printing = True
 model_g = None
@@ -52,7 +54,10 @@ def printFrame(w,obs,pdf,name,legends):
   c1 = ROOT.TCanvas('c1')
   frame = x.frame()
   for i,f in enumerate(funcs):
-      f.plotOn(frame,ROOT.RooFit.Name(legends[i]),line_colors[i])
+      if isinstance(f,str):
+        funcs[0].plotOn(frame, ROOT.RooFit.Components(f),ROOT.RooFit.Name(legends[i]), line_colors[i])
+      else:
+        f.plotOn(frame,ROOT.RooFit.Name(legends[i]),line_colors[i])
   leg = ROOT.TLegend(0.65, 0.73, 0.86, 0.87)
   #leg.SetFillColor(ROOT.kWhite)
   #leg.SetLineColor(ROOT.kWhite)
@@ -73,9 +78,9 @@ def makeData(num_train=500,num_test=100):
   '''  
   # Statistical model
   w = ROOT.RooWorkspace('w')
-  w.factory("EXPR::f0('exp(x*-1)',x[0,5])")
   #w.factory("EXPR::f1('cos(x)**2 + .01',x)")
-  w.factory("EXPR::f1('exp(-(x-5)**2/2)',x)")
+  w.factory("EXPR::f0('exp(-(x-5)**2/2)',x[0,5])")
+  w.factory("EXPR::f1('exp(x*-1)',x)")
   w.factory("EXPR::f2('exp(-(x-2.5)**2/1.)',x)")
   #w.factory("EXPR::f2('exp(-(x-2)**2/2)',x)")
   w.factory("SUM::F0(c00[{0}]*f0,c01[{1}]*f1,f2)".format(c0[0],c0[1]))
@@ -87,6 +92,7 @@ def makeData(num_train=500,num_test=100):
   #if verbose_printing == True:
   printFrame(w,'x',[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']) 
   printFrame(w,'x',[w.pdf('F0'),w.pdf('F1')],'full_model',['F0','F1'])
+  printFrame(w,'x',[w.pdf('F1'),'f0'],'full_signal', ['F1','f0'])
   # Start generating data
   ''' 
     Each function will be discriminated pair-wise
@@ -136,7 +142,12 @@ def makeData(num_train=500,num_test=100):
 
   np.savetxt('data/{0}/testdata_F0_F1.dat'.format(model_g),
           np.column_stack((testdata,testtarget)),fmt='%f')
-  pdb.set_trace()
+
+  testdata, testtarget = makeDataset(x,w.pdf('F0'),w.pdf('f0'),num_test)
+
+  np.savetxt('data/{0}/testdata_F0_f0.dat'.format(model_g),
+          np.column_stack((testdata,testtarget)),fmt='%f')
+
 
 def loadData(filename):
   traintarget = np.loadtxt(filename)
@@ -172,6 +183,27 @@ def makeROC(outputs, target, label):
   plt.close(fig)
   plt.clf()
 
+
+def makeSigBkg(outputs, target, label):
+  '''
+    make plots for ROC curve of classifier and 
+    test data.
+  '''
+  fpr, tpr, _  = roc_curve(target.ravel(),outputs.ravel())
+  tnr = 1. - fpr
+  roc_auc = auc(tpr,tnr)
+  fig = plt.figure()
+  plt.plot(tpr, tnr, label='Signal Eff Bkg Rej (area = %0.2f)' % roc_auc)
+  plt.xlim([0.0, 1.0])
+  plt.ylim([0.0, 1.05])
+  plt.xlabel('Signal Efficiency')
+  plt.ylabel('Background Rejection')
+  plt.title('{0}'.format(label))
+  plt.legend(loc="lower right")
+  np.savetxt('plots/{0}/{1}.txt'.format(model_g,label),np.column_stack((fpr,tpr)))
+  plt.savefig('plots/{0}/{1}.png'.format(model_g,label))
+  plt.close(fig)
+  plt.clf()
 
 def makePlotName(full, truth, f0 = None, f1 = None, type=None):
   if full == 'decomposed':
@@ -217,7 +249,7 @@ def classifierPdf():
     test
   '''
 
-  bins = 100
+  bins = 60
   low = 0.
   high = 1.  
 
@@ -500,15 +532,17 @@ def fitAdaptive():
   # ROC for ratios
   # load test data
   # check if ratios fulfill the requeriments of type
-  testdata, testtarget = loadData('data/{0}/testdata_F0_F1.dat'.format(model_g)) 
+  testdata, testtarget = loadData('data/{0}/testdata_F0_f0.dat'.format(model_g)) 
   decomposedRatio = evaluateDecomposedRatio(w,x,testdata,plotting=False,roc=True)
   completeRatio = [singleRatio(x,F1pdf,F0pdf,xs) for xs in testdata]
   realRatio = [singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in testdata]
 
-  makeROC(1.-np.array(realRatio), testtarget,makePlotName('full','truth',type='roc'))
-  makeROC(1.-np.array(decomposedRatio), testtarget,makePlotName('composite','trained',type='roc'))
-  makeROC(1.-np.array(completeRatio), testtarget,makePlotName('full','trained',type='roc'))
+  makeSigBkg(1.-np.array(realRatio), testtarget,makePlotName('full','truth',type='sigbkg'))
+  makeSigBkg(1.-np.array(decomposedRatio), testtarget,makePlotName('composite','trained',type='sigbkg'))
+  makeSigBkg(1.-np.array(completeRatio), testtarget,makePlotName('full','trained',type='sigbkg'))
 
+
+  testdata, testtarget = loadData('data/{0}/testdata_F0_F1.dat'.format(model_g)) 
   # Scatter plot to compare regression function and classifier score
   reg = np.array([regFunc(x,w.pdf('F0'),w.pdf('F1'),xs) for xs in testdata])
   #reg = reg/np.max(reg)
