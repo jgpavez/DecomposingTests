@@ -440,6 +440,9 @@ def fitAdaptive():
       printFrame(w,'x',[w.pdf('sigmoddist_{0}_{1}'.format(k,j)),
                 w.pdf('bkgmoddist_{0}_{1}'.format(k,j))],makePlotName(full,'trained',k,j,'dist'),['signal','bkg'])
 
+  # Avoiding the composition since make MLP prediction very slow, 
+  # still is usefull to print density distributions
+
   #for k,c in enumerate(c0):
   #  for j,c_ in enumerate(c1):
 
