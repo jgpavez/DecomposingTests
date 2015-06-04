@@ -237,8 +237,8 @@ def shared_dataset(data_xy, borrow=True):
 
 
 
-def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.000, n_epochs=10,
-              batch_size=20, n_hidden=3,in_size=1,out_size=2,
+def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100,
+              batch_size=20, n_hidden=10,in_size=1,out_size=2,
               model_file='model/mlp/adaptive_0_1.pkl'):
 
     test_set_x = dataset
@@ -274,8 +274,8 @@ def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.000, n_e
 
     return probs
 
-def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.000, n_epochs=10,
-             dataset='data/mlp/traindata_0_1.dat', batch_size=20, n_hidden=3,in_size=1,out_size=2,
+def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100,
+             dataset='data/mlp/traindata_0_1.dat', batch_size=20, n_hidden=10,in_size=1,out_size=2,
               save_file='model/mlp/adaptive_0_1.pkl'):
     """
     Demonstrate stochastic gradient descent optimization for a multilayer
