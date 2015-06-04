@@ -17,6 +17,7 @@ import pdb
 import matplotlib.pyplot as plt
 import pylab as plt
 
+from mlp import make_predictions, train_mlp
 
 ''' 
  A simple example for the work on the section 
@@ -26,8 +27,11 @@ import pylab as plt
 ''' 
 
 # Constants for each different model
-c0 = [.0,.3, .7]
-c1 = [.1,.5, .4]
+c0 = np.array([.0,.3, .7])
+c1 = np.array([.1,.3, .7])
+c1 = c1 / c1.sum()
+
+#c1 = [.1,.5, .4]
 verbose_printing = True
 model_g = None
 
@@ -51,7 +55,10 @@ def printFrame(w,obs,pdf,name,legends):
   c1 = ROOT.TCanvas('c1')
   frame = x.frame()
   for i,f in enumerate(funcs):
-      f.plotOn(frame,ROOT.RooFit.Name(legends[i]),line_colors[i])
+      if isinstance(f,str):
+        funcs[0].plotOn(frame, ROOT.RooFit.Components(f),ROOT.RooFit.Name(legends[i]), line_colors[i])
+      else:
+        f.plotOn(frame,ROOT.RooFit.Name(legends[i]),line_colors[i])
   leg = ROOT.TLegend(0.65, 0.73, 0.86, 0.87)
   #leg.SetFillColor(ROOT.kWhite)
   #leg.SetLineColor(ROOT.kWhite)
@@ -72,9 +79,9 @@ def makeData(num_train=500,num_test=100):
   '''  
   # Statistical model
   w = ROOT.RooWorkspace('w')
-  w.factory("EXPR::f0('exp(x*-1)',x[0,5])")
   #w.factory("EXPR::f1('cos(x)**2 + .01',x)")
-  w.factory("EXPR::f1('exp(-(x-5)**2/2)',x)")
+  w.factory("EXPR::f0('exp(-(x-5)**2/2)',x[0,5])")
+  w.factory("EXPR::f1('exp(x*-1)',x)")
   w.factory("EXPR::f2('exp(-(x-2.5)**2/1.)',x)")
   #w.factory("EXPR::f2('exp(-(x-2)**2/2)',x)")
   w.factory("SUM::F0(c00[{0}]*f0,c01[{1}]*f1,f2)".format(c0[0],c0[1]))
@@ -83,9 +90,10 @@ def makeData(num_train=500,num_test=100):
   # Check Model
   w.Print()
   w.writeToFile('workspace_DecomposingTestOfMixtureModelsClassifiers.root')
-  if verbose_printing == True:
-    printFrame(w,'x',[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']) 
-    printFrame(w,'x',[w.pdf('F0'),w.pdf('F1')],'full_model',['F0','F1'])
+  #if verbose_printing == True:
+  printFrame(w,'x',[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']) 
+  printFrame(w,'x',[w.pdf('F0'),w.pdf('F1')],'full_model',['F0','F1'])
+  printFrame(w,'x',[w.pdf('F1'),'f0'],'full_signal', ['F1','f0'])
   # Start generating data
   ''' 
     Each function will be discriminated pair-wise
@@ -135,7 +143,12 @@ def makeData(num_train=500,num_test=100):
 
   np.savetxt('data/{0}/testdata_F0_F1.dat'.format(model_g),
           np.column_stack((testdata,testtarget)),fmt='%f')
-  pdb.set_trace()
+
+  testdata, testtarget = makeDataset(x,w.pdf('F0'),w.pdf('f0'),num_test)
+
+  np.savetxt('data/{0}/testdata_F0_f0.dat'.format(model_g),
+          np.column_stack((testdata,testtarget)),fmt='%f')
+
 
 def loadData(filename):
   traintarget = np.loadtxt(filename)
@@ -143,12 +156,16 @@ def loadData(filename):
   targetdata = traintarget[:,1]
   return (traindata, targetdata)
 
-def predict(clf, traindata):
-  if clf.__class__.__name__ == 'NuSVR':
-    output = clf.predict(traindata)
-    return np.clip(output,0.,1.)
+def predict(filename, traindata):
+  if model_g == 'mlp':
+    return make_predictions(dataset=traindata, model_file=filename)[:,1]
   else:
-    return clf.predict_proba(traindata)[:,1]
+    clf = joblib.load(filename)
+    if clf.__class__.__name__ == 'NuSVR':
+      output = clf.predict(traindata)
+      return np.clip(output,0.,1.)
+    else:
+      return clf.predict_proba(traindata)[:,1]
 
 def makeROC(outputs, target, label):
   '''
@@ -172,6 +189,27 @@ def makeROC(outputs, target, label):
   plt.clf()
 
 
+def makeSigBkg(outputs, target, label):
+  '''
+    make plots for ROC curve of classifier and 
+    test data.
+  '''
+  fpr, tpr, _  = roc_curve(target.ravel(),outputs.ravel())
+  tnr = 1. - fpr
+  roc_auc = auc(tpr,tnr)
+  fig = plt.figure()
+  plt.plot(tpr, tnr, label='Signal Eff Bkg Rej (area = %0.2f)' % roc_auc)
+  plt.xlim([0.0, 1.0])
+  plt.ylim([0.0, 1.05])
+  plt.xlabel('Signal Efficiency')
+  plt.ylabel('Background Rejection')
+  plt.title('{0}'.format(label))
+  plt.legend(loc="lower right")
+  np.savetxt('plots/{0}/{1}.txt'.format(model_g,label),np.column_stack((fpr,tpr)))
+  plt.savefig('plots/{0}/{1}.png'.format(model_g,label))
+  plt.close(fig)
+  plt.clf()
+
 def makePlotName(full, truth, f0 = None, f1 = None, type=None):
   if full == 'decomposed':
     return '{0}_{1}_f{2}_f{3}_{4}_{5}'.format(full, truth, f0, f1, model_g,type)
@@ -186,23 +224,31 @@ def trainClassifier(clf):
 
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
-      traindata,targetdata = loadData('data/{0}/traindata_{1}_{2}.dat'.format(model_g,k,j)) 
 
       print " Training Classifier on f{0}/f{1}".format(k,j)
       #clf = svm.NuSVC(probability=True) #Why use a SVR??
-      clf.fit(traindata.reshape(traindata.shape[0],1)
-          ,targetdata)
-      joblib.dump(clf, 'model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j))
+      if model_g == 'mlp':
+        train_mlp(dataset='data/{0}/traindata_{1}_{2}.dat'.format(model_g,k,j),
+          save_file='model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j))
+      else:
+        traindata,targetdata = loadData('data/{0}/traindata_{1}_{2}.dat'.format(model_g,k,j)) 
+        clf.fit(traindata.reshape(traindata.shape[0],1)
+            ,targetdata)
+        joblib.dump(clf, 'model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j))
 
 
       #makeROC(outputs, testtarget, makePlotName('decomposed','trained',k,j,'roc'))
   
-  traindata,targetdata = loadData('data/{0}/traindata_F0_F1.dat'.format(model_g)) 
   print " Training Classifier on F0/F1"
-  #clf = svm.NuSVC(probability=True) #Why use a SVR??
-  clf.fit(traindata.reshape(traindata.shape[0],1)
-      ,targetdata)
-  joblib.dump(clf, 'model/{0}/adaptive_F0_F1.pkl'.format(model_g))
+  if model_g == 'mlp':
+    train_mlp(dataset='data/{0}/traindata_F0_F1.dat'.format(model_g), 
+        save_file='model/{0}/adaptive_F0_F1.pkl'.format(model_g))
+  else:
+    traindata,targetdata = loadData('data/{0}/traindata_F0_F1.dat'.format(model_g)) 
+    #clf = svm.NuSVC(probability=True) #Why use a SVR??
+    clf.fit(traindata.reshape(traindata.shape[0],1)
+        ,targetdata)
+    joblib.dump(clf, 'model/{0}/adaptive_F0_F1.pkl'.format(model_g))
 
   #testdata, testtarget = loadData('data/{0}/testdata_F0_F1.dat'.format(model_g)) 
   #outputs = predict(clf,testdata.reshape(testdata.shape[0],1))
@@ -216,7 +262,7 @@ def classifierPdf():
     test
   '''
 
-  bins = 100
+  bins = 60
   low = 0.
   high = 1.  
 
@@ -260,7 +306,7 @@ def classifierPdf():
       #w.factory('KeysPdf::{0}dist_{1}_{2}(score,{0}data_{1}_{2})'.format(name,k,j))
 
       # Print histograms pdfs and estimated densities
-      if verbose_printing == True and name == 'bkg':
+      if verbose_printing == True and name == 'bkg' and k <> j:
         full = 'full' if pos == None else 'decomposed'
         printFrame(w,'score',[w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j))], makePlotName(full,'trained',k,j,type='hist'),['signal','bkg'])
         #printFrame(w,'score',[w.pdf('sigdist_{0}_{1}'.format(k,j)), w.pdf('bkgdist_{0}_{1}'.format(k,j))], makePlotName(full,'trained',k,j,type='density'),['signal','bkg'])
@@ -271,20 +317,16 @@ def classifierPdf():
       traindata, targetdata = loadData('data/{0}/traindata_{1}_{2}.dat'.format(model_g,k,j))
       numtrain = traindata.shape[0]       
 
-      clf = joblib.load('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j))
-      
       # Should I be using test data here?
-      outputs = predict(clf,traindata.reshape(traindata.shape[0],1))
+      outputs = predict('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j),traindata.reshape(traindata.shape[0],1))
       #outputs = clf.predict_proba(traindata.reshape(traindata.shape[0],1)) 
       saveHistos(w,outputs,(k,j))
 
   traindata, targetdata = loadData('data/{0}/traindata_F0_F1.dat'.format(model_g))
   numtrain = traindata.shape[0]       
 
-  clf = joblib.load('model/{0}/adaptive_F0_F1.pkl'.format(model_g))
-
   # Should I be using test data here?
-  outputs = predict(clf,traindata.reshape(traindata.shape[0],1))
+  outputs = predict('model/{0}/adaptive_F0_F1.pkl'.format(model_g),traindata.reshape(traindata.shape[0],1))
   #outputs = clf.predict_proba(traindata.reshape(traindata.shape[0],1)) 
   saveHistos(w,outputs)
      
@@ -298,9 +340,8 @@ def scikitlearnFunc(filename,x=0.):
   '''
     Needed for the scikit-learn wrapper
   '''
-  clf = joblib.load(filename)
-  traindata = np.array((x))
-  outputs = predict(clf,traindata)[0]
+  traindata = np.array(([x])) if model_g == 'mlp' else np.array((x))
+  outputs = predict(filename,traindata)[0]
 
   #if outputs[0] > 1:
   #  return 1.
@@ -308,11 +349,11 @@ def scikitlearnFunc(filename,x=0.):
 
 class ScikitLearnCallback:
   def __init__(self,file):
-    clf_ = joblib.load(file)
+    filename = file
 
   def __call__(self,x = 0.):
     train = np.array((x))
-    outputs = predict(clf_,train)[0]
+    outputs = predict(filename,train)[0]
     
     return outputs
 
@@ -393,22 +434,22 @@ def fitAdaptive():
       #    format(name,k,j))
       w.factory('EDIT::{0}moddist_{1}_{2}({0}histpdf_{1}_{2},score=nn_{1}_{2})'
               .format(name,k,j))
-     
 
-    if verbose_printing == True:
+    if verbose_printing == True and k <> j:
       full = 'full' if pos == None else 'decomposed'
       printFrame(w,'x',[w.pdf('sigmoddist_{0}_{1}'.format(k,j)),
                 w.pdf('bkgmoddist_{0}_{1}'.format(k,j))],makePlotName(full,'trained',k,j,'dist'),['signal','bkg'])
 
-  for k,c in enumerate(c0):
-    for j,c_ in enumerate(c1):
-      constructDensity(w,(k,j))
+  #for k,c in enumerate(c0):
+  #  for j,c_ in enumerate(c1):
+
+      #constructDensity(w,(k,j))
       #w.Print()
       # Save graphs
       #sigpdf.graphVizTree('sigpdfgraph.dot')
       #bkgpdf.graphVizTree('bkgpdfgraph.dot')
       
-  constructDensity(w)
+  #constructDensity(w)
 
   # To calculate the ratio between single functions
   def singleRatio(x,f0,f1,val):
@@ -425,13 +466,12 @@ def fitAdaptive():
       return 0.
     return f1.getVal(ROOT.RooArgSet(x)) / (f0.getVal(ROOT.RooArgSet(x)) + f1.getVal(ROOT.RooArgSet(x)))
 
-
-
   # pair-wise ratios
   # and decomposition computation
   npoints = 100
   x = w.var('x')
   def evaluateDecomposedRatio(w,x,xarray,plotting=True, roc=False):
+    score = w.var('score')
     npoints = xarray.shape[0]
     fullRatios = np.zeros(npoints)
     for k,c in enumerate(c0):
@@ -439,32 +479,34 @@ def fitAdaptive():
       if c == 0:
         continue
       for j,c_ in enumerate(c1):
-        f0pdf = w.pdf('bkgmoddist_{0}_{1}'.format(k,j))
-        f1pdf = w.pdf('sigmoddist_{0}_{1}'.format(k,j))
+
+        f0pdf = w.pdf('bkghistpdf_{0}_{1}'.format(k,j))
+        f1pdf = w.pdf('sighistpdf_{0}_{1}'.format(k,j))
         f0 = w.pdf('f{0}'.format(k))
         f1 = w.pdf('f{0}'.format(j))
-        pdfratios = [singleRatio(x,f0pdf,f1pdf,xs) for xs in xarray]
+        outputs = predict('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j),
+                  xarray.reshape(xarray.shape[0],1))
+        pdfratios = [singleRatio(score,f0pdf,f1pdf,xs) for xs in outputs]
         # the cases in which both distributions are the same can be problematic
         # one will expect that the classifier gives same prob to both signal and bkg
         # but it can behave in weird ways, I will just avoid this for now 
         pdfratios = np.array(pdfratios) if k <> j else np.ones(npoints)
         innerRatios += (c_/c) * pdfratios
         ratios = [singleRatio(x,f0,f1,xs) for xs in xarray]
-        if plotting == True:
+        if plotting == True and k <> j:
           saveFig(xarray, [pdfratios,ratios], makePlotName('decomposed','trained',k,j,type='ratio'),
             ['trained','truth'])
-        if roc == True:
+        if roc == True and k <> j:
           testdata, testtarget = loadData('data/{0}/testdata_{1}_{2}.dat'.format(model_g,k,j)) 
-          clfRatios = [singleRatio(x,f0pdf,f1pdf,xs) for xs in testdata]
+          outputs = predict('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j),
+                    testdata.reshape(testdata.shape[0],1))
+          clfRatios = [singleRatio(score,f0pdf,f1pdf,xs) for xs in outputs]
           trRatios = [singleRatio(x,f0,f1,xs) for xs in testdata]
           makeROC(np.array(trRatios), testtarget, makePlotName('decomposed','truth',k,j,type='roc'))
           makeROC(np.array(clfRatios), testtarget,makePlotName('decomposed','trained',k,j,type='roc'))
-          
           # Scatter plot to compare regression function and classifier score
           reg = np.array([regFunc(x,f0,f1,xs) for xs in testdata])
           #reg = reg/np.max(reg)
-          clf = joblib.load('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j))
-          outputs = predict(clf,testdata.reshape(testdata.shape[0],1))
           #pdb.set_trace()
           saveFig(outputs,[reg], makePlotName('decomposed','trained',k,j,type='scatter'),scatter=True)
           saveFig(testdata, [reg, outputs],  makePlotName('decomposed','trained',k,j,type='multi_scatter'),scatter=True,labels=['regression', 'score'])
@@ -474,6 +516,7 @@ def fitAdaptive():
       fullRatios += 1./innerRatios
     return fullRatios
 
+  score = w.var('score')
   xarray = np.linspace(0,5,npoints)
    
   #testdata, testtarget = loadData('data/{0}/testdata_F0_F1.dat'.format(model_g)) 
@@ -489,9 +532,11 @@ def fitAdaptive():
   saveFig(xarray, [np.array(y2) - fullRatios], makePlotName('composite','trained',type='diff'))
 
   # NN trained on complete model
-  F0pdf = w.pdf('bkgmoddist_F0_F1')
-  F1pdf = w.pdf('sigmoddist_F0_F1')
-  pdfratios = [singleRatio(x,F1pdf,F0pdf,xs) for xs in xarray]
+  F0pdf = w.pdf('bkghistpdf_F0_F1')
+  F1pdf = w.pdf('sighistpdf_F0_F1')
+  outputs = predict('model/{0}/adaptive_F0_F1.pkl'.format(model_g),xarray.reshape(xarray.shape[0],1))
+ 
+  pdfratios = [singleRatio(score,F1pdf,F0pdf,xs) for xs in outputs]
   pdfratios = np.array(pdfratios)
   saveFig(xarray, [pdfratios], makePlotName('full','trained',type='ratio'))
   saveFig(xarray, [np.array(y2) - pdfratios],makePlotName('full','trained',type='diff'))
@@ -499,29 +544,30 @@ def fitAdaptive():
   # ROC for ratios
   # load test data
   # check if ratios fulfill the requeriments of type
-  testdata, testtarget = loadData('data/{0}/testdata_F0_F1.dat'.format(model_g)) 
+  testdata, testtarget = loadData('data/{0}/testdata_F0_f0.dat'.format(model_g)) 
   decomposedRatio = evaluateDecomposedRatio(w,x,testdata,plotting=False,roc=True)
-  completeRatio = [singleRatio(x,F1pdf,F0pdf,xs) for xs in testdata]
+  outputs = predict('model/{0}/adaptive_F0_F1.pkl'.format(model_g),testdata.reshape(testdata.shape[0],1))
+  completeRatio = [singleRatio(score,F1pdf,F0pdf,xs) for xs in outputs]
   realRatio = [singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in testdata]
 
-  makeROC(1.-np.array(realRatio), testtarget,makePlotName('full','truth',type='roc'))
-  makeROC(1.-np.array(decomposedRatio), testtarget,makePlotName('composite','trained',type='roc'))
-  makeROC(1.-np.array(completeRatio), testtarget,makePlotName('full','trained',type='roc'))
+  makeSigBkg(1.-np.array(realRatio), testtarget,makePlotName('full','truth',type='sigbkg'))
+  makeSigBkg(1.-np.array(decomposedRatio), testtarget,makePlotName('composite','trained',type='sigbkg'))
+  makeSigBkg(1.-np.array(completeRatio), testtarget,makePlotName('full','trained',type='sigbkg'))
 
+
+  testdata, testtarget = loadData('data/{0}/testdata_F0_F1.dat'.format(model_g)) 
   # Scatter plot to compare regression function and classifier score
   reg = np.array([regFunc(x,w.pdf('F0'),w.pdf('F1'),xs) for xs in testdata])
   #reg = reg/np.max(reg)
-  clf = joblib.load('model/{0}/adaptive_F0_F1.pkl'.format(model_g))
-  outputs = predict(clf,testdata.reshape(testdata.shape[0],1))
+  outputs = predict('model/{0}/adaptive_F0_F1.pkl'.format(model_g),testdata.reshape(testdata.shape[0],1))
   #pdb.set_trace()
-  saveFig(outputs,[reg], makePlotName('full','trained',k,j,type='scatter'),scatter=True)
-  saveFig(testdata, [reg, outputs],  makePlotName('full','trained',k,j,type='multi_scatter'),scatter=True,labels=['regression', 'score'])
+  saveFig(outputs,[reg], makePlotName('full','trained',type='scatter'),scatter=True)
+  saveFig(testdata, [reg, outputs],  makePlotName('full','trained',type='multi_scatter'),scatter=True,labels=['regression', 'score'])
 
 
   #w.Print()
 
 if __name__ == '__main__':
-  # I will obtain the mlp when training for now 
   classifiers = {'svc':svm.NuSVC(probability=True),'svr':svm.NuSVR(),
         'logistic': linear_model.LogisticRegression(), 
         'bdt':GradientBoostingClassifier(n_estimators=100, learning_rate=1.0,

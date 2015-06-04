@@ -36,7 +36,13 @@ import copy
 
 
 from logistic_sgd import LogisticRegression
-from DecomposingTestOfMixtureModelsClassifier import loadData
+
+# This function is repeated in Decomposing... I should facorize this
+def loadData(filename):
+  traintarget = numpy.loadtxt(filename)
+  traindata = traintarget[:,0]
+  targetdata = traintarget[:,1]
+  return (traindata, targetdata)
 
 
 class HiddenLayer(object):
@@ -171,6 +177,9 @@ class MLP(object):
         # same holds for the function computing the number of errors
         self.errors = self.logRegressionLayer.errors
 
+        self.y_out = self.logRegressionLayer.p_y_given_x
+        self.predictions = self.logRegressionLayer.y_pred
+
         # the parameters of the model are the parameters of the two layer it is
         # made out of
         self.params = self.hiddenLayer.params + self.logRegressionLayer.params
@@ -186,10 +195,87 @@ class MLP(object):
         cPickle.dump(best_params, save_file, protocol=cPickle.HIGHEST_PROTOCOL)
         save_file.close()
 
+    def load_model(self, filename="params.pkl"):
+        ''' Save parameters of the model '''
+
+        #print '...loading model'
+
+        save_file = open(filename, 'r')
+        params = cPickle.load(save_file)
+        save_file.close()
+            
+        self.hiddenLayer.W.set_value(params[0].get_value(), borrow=True)
+        self.hiddenLayer.b.set_value(params[1].get_value(), borrow=True)
+        self.logRegressionLayer.W.set_value(params[2].get_value(), borrow=True)
+        self.logRegressionLayer.b.set_value(params[3].get_value(), borrow=True)
+
+def shared_dataset(data_xy, borrow=True):
+    """ Function that loads the dataset into shared variables
+
+    The reason we store our dataset in shared variables is to allow
+    Theano to copy it into the GPU memory (when code is run on GPU).
+    Since copying data into the GPU is slow, copying a minibatch everytime
+    is needed (the default behaviour if the data is not in a shared
+    variable) would lead to a large decrease in performance.
+    """
+    data_x, data_y = data_xy
+    shared_x = theano.shared(numpy.asmatrix(data_x,
+                                           dtype=theano.config.floatX),
+                             borrow=borrow)
+    shared_y = theano.shared(numpy.asarray(data_y,
+                                           dtype=theano.config.floatX),
+                             borrow=borrow)
+    # When storing data on the GPU it has to be stored as floats
+    # therefore we will store the labels as ``floatX`` as well
+    # (``shared_y`` does exactly that). But during our computations
+    # we need them as ints (we use labels as index, and if they are
+    # floats it doesn't make sense) therefore instead of returning
+    # ``shared_y`` we will have to cast it to int. This little hack
+    # lets ous get around this issue
+    return shared_x, T.cast(shared_y, 'int32')
 
 
-def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=10,
-             dataset='data/mlp/traindata_0_1.dat', batch_size=20, n_hidden=10,in_size=1,out_size=2,
+
+
+def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.000, n_epochs=10,
+              batch_size=20, n_hidden=3,in_size=1,out_size=2,
+              model_file='model/mlp/adaptive_0_1.pkl'):
+
+    test_set_x = dataset
+    # quick fix to avoid more change of code, have to change it
+    test_set_y = numpy.ones(test_set_x.shape[0])
+    test_set_x, test_set_y = shared_dataset((test_set_x, test_set_y))
+
+
+    ######################
+    # BUILD ACTUAL MODEL #
+    ######################
+
+    #print '... building the model'
+
+    # allocate symbolic variables for the data
+    x = T.matrix('x')  # the data is presented as rasterized images
+    y = T.ivector('y')  # the labels are presented as 1D vector of
+                        # [int] labels
+
+    rng = numpy.random.RandomState(1234)
+
+    # construct the MLP class
+    classifier = MLP(rng=rng, input=x, n_in=in_size,
+                     n_hidden=n_hidden, n_out=out_size)
+
+
+    test_model = theano.function([], [classifier.predictions,classifier.y_out],
+                            givens={x: test_set_x})
+
+    classifier.load_model(filename=model_file)
+
+    predictions, probs = test_model()
+
+    return probs
+
+def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.000, n_epochs=10,
+             dataset='data/mlp/traindata_0_1.dat', batch_size=20, n_hidden=3,in_size=1,out_size=2,
               save_file='model/mlp/adaptive_0_1.pkl'):
     """
     Demonstrate stochastic gradient descent optimization for a multilayer
@@ -220,32 +306,10 @@ def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=10,
    """
     datasets = loadData(dataset)
     train_set_x, train_set_y = datasets
-    def shared_dataset(data_xy, borrow=True):
-        """ Function that loads the dataset into shared variables
-
-        The reason we store our dataset in shared variables is to allow
-        Theano to copy it into the GPU memory (when code is run on GPU).
-        Since copying data into the GPU is slow, copying a minibatch everytime
-        is needed (the default behaviour if the data is not in a shared
-        variable) would lead to a large decrease in performance.
-        """
-        data_x, data_y = data_xy
-        data_x = numpy.asarray([ [x] for x in data_x])
-        shared_x = theano.shared(numpy.asmatrix(data_x,
-                                               dtype=theano.config.floatX),
-                                 borrow=borrow)
-        shared_y = theano.shared(numpy.asarray(data_y,
-                                               dtype=theano.config.floatX),
-                                 borrow=borrow)
-        # When storing data on the GPU it has to be stored as floats
-        # therefore we will store the labels as ``floatX`` as well
-        # (``shared_y`` does exactly that). But during our computations
-        # we need them as ints (we use labels as index, and if they are
-        # floats it doesn't make sense) therefore instead of returning
-        # ``shared_y`` we will have to cast it to int. This little hack
-        # lets ous get around this issue
-        return shared_x, T.cast(shared_y, 'int32')
-
+    indices = numpy.random.permutation(train_set_x.shape[0])
+    train_set_x = train_set_x[indices]
+    train_set_y = train_set_y[indices]
+    train_set_x = train_set_x.reshape(train_set_x.shape[0],1)
     train_set_x , train_set_y = shared_dataset((train_set_x, train_set_y))
 
     # compute number of minibatches for training, validation and testing
@@ -329,4 +393,5 @@ def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=10,
     classifier.save_model(best_params, save_file)
 
 if __name__ == '__main__':
-    train_mlp()
+    #train_mlp()
+    make_predictions() 
