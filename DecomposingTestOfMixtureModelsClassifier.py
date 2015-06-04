@@ -28,8 +28,8 @@ from mlp import make_predictions, train_mlp
 
 # Constants for each different model
 c0 = np.array([.0,.3, .7])
-c1 = np.array([.001,.3, .7])
-c1 = c1 / c1.sum()
+c1 = np.array([.1,.3, .7])
+#c1 = c1 / c1.sum()
 
 #c1 = [.1,.5, .4]
 verbose_printing = True
@@ -585,6 +585,11 @@ if __name__ == '__main__':
     clf = classifiers['logistic']    
     print 'Not found classifier, Using logistic instead'
 
+  c1[0] = sys.argv[2]
+  c1 = c1 / c1.sum()
+  print c0
+  print c1
+  
   # Set this value to False if only final plots are needed
   verbose_printing = False
 
