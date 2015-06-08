@@ -81,7 +81,7 @@ def makeData(num_train=500,num_test=100):
   w = ROOT.RooWorkspace('w')
   #w.factory("EXPR::f1('cos(x)**2 + .01',x)")
   w.factory("EXPR::f2('exp(x*-1)',x[0,5])")
-  w.factory("EXPR::f1('exp(-(x-5)**2/2)',x)")
+  w.factory("EXPR::f1('0.3 + exp(-(x-5)**2/5.)',x)")
   w.factory("EXPR::f0('exp(-(x-2.5)**2/1.)',x)")
   #w.factory("EXPR::f2('exp(-(x-2)**2/2)',x)")
   w.factory("SUM::F0(c00[{0}]*f0,c01[{1}]*f1,f2)".format(c0[0],c0[1]))
@@ -90,10 +90,10 @@ def makeData(num_train=500,num_test=100):
   # Check Model
   w.Print()
   w.writeToFile('workspace_DecomposingTestOfMixtureModelsClassifiers.root')
-  #if verbose_printing == True:
-  printFrame(w,'x',[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']) 
-  printFrame(w,'x',[w.pdf('F0'),w.pdf('F1')],'full_model',['F0','F1'])
-  printFrame(w,'x',[w.pdf('F1'),'f0'],'full_signal', ['F1','f0'])
+  if verbose_printing == True:
+    printFrame(w,'x',[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']) 
+    printFrame(w,'x',[w.pdf('F0'),w.pdf('F1')],'full_model',['F0','F1'])
+    printFrame(w,'x',[w.pdf('F1'),'f0'],'full_signal', ['F1','f0'])
   # Start generating data
   ''' 
     Each function will be discriminated pair-wise
@@ -122,7 +122,10 @@ def makeData(num_train=500,num_test=100):
     for j,c_ in enumerate(c1):  
       traindata, targetdata = makeDataset(x,w.pdf('f{0}'.format(k)),w.pdf('f{0}'.format(j))
       ,num_train)
-
+      #plt.hist(traindata[:10000],bins=100,color='red')
+      #plt.hist(traindata[10000:],bins=100,color='blue')
+      #plt.title('traindata_{1}_{2}'.format(model_g, k, j))
+      #plt.show()
       np.savetxt('data/{0}/traindata_{1}_{2}.dat'.format(model_g,k,j),
               np.column_stack((traindata,targetdata)),fmt='%f')
 
@@ -262,7 +265,7 @@ def classifierPdf():
     test
   '''
 
-  bins = 60
+  bins = 250
   low = 0.
   high = 1.  
 
@@ -358,17 +361,19 @@ class ScikitLearnCallback:
     return outputs
 
 
-def saveFig(x,y,file,labels=None,scatter=False):
+def saveFig(x,y,file,labels=None,scatter=False,axis=None):
   fig,ax = plt.subplots()
   if scatter == True:
     if len(y) == 1: 
       ax.scatter(x,y[0],s=2)
+      ax.set_xlabel(axis[0])
+      ax.set_ylabel(axis[1])
     else:
       sc1 = ax.scatter(x,y[0],color='black')
       sc2 = ax.scatter(x,y[1],color='red')
       ax.legend((sc1,sc2),(labels[0],labels[1]))
-    ax.set_xlabel('score')
-    ax.set_ylabel('regression')
+      ax.set_xlabel('x')
+      ax.set_ylabel('regression(score)')
   else:
     if len(y) == 1:
       ax.plot(x,y[0],'b')
@@ -405,7 +410,7 @@ def fitAdaptive():
   f.Close()
 
   #x = w.var('x[-5,5]')
-  x = ROOT.RooRealVar('x','x',0.2,0,5)
+  x = ROOT.RooRealVar('x','x',0.2,0.,5.)
   getattr(w,'import')(ROOT.RooArgSet(x),ROOT.RooFit.RecycleConflictNodes()) 
 
   def constructDensity(w,pos = None):
@@ -435,7 +440,7 @@ def fitAdaptive():
       w.factory('EDIT::{0}moddist_{1}_{2}({0}histpdf_{1}_{2},score=nn_{1}_{2})'
               .format(name,k,j))
 
-    if verbose_printing == True and k <> j:
+    if verbose_printing == False and k <> j:
       full = 'full' if pos == None else 'decomposed'
       printFrame(w,'x',[w.pdf('sigmoddist_{0}_{1}'.format(k,j)),
                 w.pdf('bkgmoddist_{0}_{1}'.format(k,j))],makePlotName(full,'trained',k,j,'dist'),['signal','bkg'])
@@ -460,6 +465,7 @@ def fitAdaptive():
     if f0.getVal(ROOT.RooArgSet(x)) < 10E-10:
       return 0.
     return f1.getVal(ROOT.RooArgSet(x)) / f0.getVal(ROOT.RooArgSet(x))
+    #return f0.getVal(ROOT.RooArgSet(x))
 
 
   # To calculate the ratio between single functions
@@ -482,6 +488,9 @@ def fitAdaptive():
       if c == 0:
         continue
       for j,c_ in enumerate(c1):
+        #testdata, testtarget = loadData('data/{0}/testdata_{1}_{2}.dat'.format(model_g, k, j)) 
+        #xarray = np.sort(testdata)
+        #xarray = np.sort(testdata)
 
         f0pdf = w.pdf('bkghistpdf_{0}_{1}'.format(k,j))
         f1pdf = w.pdf('sighistpdf_{0}_{1}'.format(k,j))
@@ -496,6 +505,8 @@ def fitAdaptive():
         pdfratios = np.array(pdfratios) if k <> j else np.ones(npoints)
         innerRatios += (c_/c) * pdfratios
         ratios = [singleRatio(x,f0,f1,xs) for xs in xarray]
+        #if k == 1 and  j == 2:
+          #pdb.set_trace()
         if plotting == True and k <> j:
           saveFig(xarray, [pdfratios,ratios], makePlotName('decomposed','trained',k,j,type='ratio'),
             ['trained','truth'])
@@ -511,7 +522,7 @@ def fitAdaptive():
           reg = np.array([regFunc(x,f0,f1,xs) for xs in testdata])
           #reg = reg/np.max(reg)
           #pdb.set_trace()
-          saveFig(outputs,[reg], makePlotName('decomposed','trained',k,j,type='scatter'),scatter=True)
+          saveFig(outputs,[reg], makePlotName('decomposed','trained',k,j,type='scatter'),scatter=True, axis=['score','regression'])
           saveFig(testdata, [reg, outputs],  makePlotName('decomposed','trained',k,j,type='multi_scatter'),scatter=True,labels=['regression', 'score'])
 
 
@@ -521,9 +532,6 @@ def fitAdaptive():
 
   score = w.var('score')
   xarray = np.linspace(0,5,npoints)
-   
-  #testdata, testtarget = loadData('data/{0}/testdata_F0_F1.dat'.format(model_g)) 
-  #xarray = np.sort(testdata)
  
   fullRatios = evaluateDecomposedRatio(w,x,xarray)
 
@@ -553,6 +561,9 @@ def fitAdaptive():
   completeRatio = [singleRatio(score,F1pdf,F0pdf,xs) for xs in outputs]
   realRatio = [singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in testdata]
 
+  saveFig(completeRatio,[realRatio], makePlotName('full','trained',type='scatter'),scatter=True,axis=['full trained ratio','true ratio'])
+  saveFig(decomposedRatio,[realRatio], makePlotName('composite','trained',type='scatter'),scatter=True, axis=['composed trained ratio','true ratio'])
+
   makeSigBkg(1.-np.array(realRatio), testtarget,makePlotName('full','truth',type='sigbkg'))
   makeSigBkg(1.-np.array(decomposedRatio), testtarget,makePlotName('composite','trained',type='sigbkg'))
   makeSigBkg(1.-np.array(completeRatio), testtarget,makePlotName('full','trained',type='sigbkg'))
@@ -564,7 +575,7 @@ def fitAdaptive():
   #reg = reg/np.max(reg)
   outputs = predict('model/{0}/adaptive_F0_F1.pkl'.format(model_g),testdata.reshape(testdata.shape[0],1))
   #pdb.set_trace()
-  saveFig(outputs,[reg], makePlotName('full','trained',type='scatter'),scatter=True)
+  saveFig(outputs,[reg], makePlotName('full','trained',type='scatter'),scatter=True,axis=['score','regression'])
   saveFig(testdata, [reg, outputs],  makePlotName('full','trained',type='multi_scatter'),scatter=True,labels=['regression', 'score'])
 
 
@@ -593,7 +604,7 @@ if __name__ == '__main__':
   # Set this value to False if only final plots are needed
   verbose_printing = False
 
-  makeData(num_train=10000,num_test=3000) 
+  makeData(num_train=30000,num_test=10000) 
   trainClassifier(clf)
   classifierPdf()
   fitAdaptive()
