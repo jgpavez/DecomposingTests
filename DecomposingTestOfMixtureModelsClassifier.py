@@ -162,6 +162,7 @@ def loadData(filename):
 def predict(filename, traindata):
   if model_g == 'mlp':
     return make_predictions(dataset=traindata, model_file=filename)[:,1]
+    #return make_predictions(dataset=traindata, model_file=filename)
   else:
     clf = joblib.load(filename)
     if clf.__class__.__name__ == 'NuSVR':
@@ -265,7 +266,7 @@ def classifierPdf():
     test
   '''
 
-  bins = 250
+  bins = 150
   low = 0.
   high = 1.  
 
@@ -322,6 +323,7 @@ def classifierPdf():
 
       # Should I be using test data here?
       outputs = predict('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j),traindata.reshape(traindata.shape[0],1))
+      pdb.set_trace()
       #outputs = clf.predict_proba(traindata.reshape(traindata.shape[0],1)) 
       saveHistos(w,outputs,(k,j))
 
@@ -604,7 +606,7 @@ if __name__ == '__main__':
   # Set this value to False if only final plots are needed
   verbose_printing = False
 
-  makeData(num_train=30000,num_test=10000) 
+  makeData(num_train=10000,num_test=3000) 
   trainClassifier(clf)
   classifierPdf()
   fitAdaptive()
