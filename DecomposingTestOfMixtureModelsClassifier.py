@@ -90,10 +90,10 @@ def makeData(num_train=500,num_test=100):
   # Check Model
   w.Print()
   w.writeToFile('workspace_DecomposingTestOfMixtureModelsClassifiers.root')
-  if verbose_printing == True:
-    printFrame(w,'x',[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']) 
-    printFrame(w,'x',[w.pdf('F0'),w.pdf('F1')],'full_model',['F0','F1'])
-    printFrame(w,'x',[w.pdf('F1'),'f0'],'full_signal', ['F1','f0'])
+  #if verbose_printing == True:
+  printFrame(w,'x',[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']) 
+  printFrame(w,'x',[w.pdf('F0'),w.pdf('F1')],'full_model',['F0','F1'])
+  printFrame(w,'x',[w.pdf('F1'),'f0'],'full_signal', ['F1','f0'])
   # Start generating data
   ''' 
     Each function will be discriminated pair-wise
@@ -475,10 +475,43 @@ def fitAdaptive():
       return 0.
     return f1.getVal(ROOT.RooArgSet(x)) / (f0.getVal(ROOT.RooArgSet(x)) + f1.getVal(ROOT.RooArgSet(x)))
 
+  def computeKi(x, f0, f1, c0, c1, val):
+    x.setVal(val)
+    k_ij = np.log(c1*f1.getValV()) - np.log(c0*f0.getValV())
+    return k_ij
+  # ki is a vector
+  def computeAi(k0, ki):
+    ai = -np.log(k0) - np.log(1 + np.sum(np.exp(np.log(k0) - np.log(ki)))
+    return ai
+
+
   # pair-wise ratios
   # and decomposition computation
   npoints = 100
   x = w.var('x')
+
+  def evaluateLogDecomposedRatio(w, x, xarray, plotting = True, roc = False):
+    score = w.var('score')
+    npoints = xarray.shape[0]
+    fullRatios = np.zeros(npoints)
+    ksTrained = np.zeros((c0.shape[0], c1.shape[0],npoints))
+    ks = np.zeros((c0.shape[0], c1.shape[0],npoints))
+    k0Trained = np.zeros((c0.shape[0],npoints))
+    k0 = np.zeros((c0.shape[0],npoints))
+    # I can do this with list comprehension
+    for k, c in enumerate(c0):
+      for j, c_ in enumerate(c1):
+        f0pdf = w.pdf('bkghistpdf_{0}_{1}'.format(k,j))
+        f1pdf = w.pdf('sighistpdf_{0}_{1}'.format(k,j))
+        f0 = w.pdf('f{0}'.format(k))
+        f1 = w.pdf('f{0}'.format(j))
+        outputs = predict('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j),
+                  xarray.reshape(xarray.shape[0],1))
+        ksTrained[k][j] = np.array([computeKi(score,f0pdf,f1pdf,c0,c1,xs) for xs in outputs]
+        ks[k][j] = np.array([computeKi(score,f0,f1,c0,c1,xs) for xs in outputs]
+      k0Trained = np.max(  
+
+
   def evaluateDecomposedRatio(w,x,xarray,plotting=True, roc=False):
     score = w.var('score')
     npoints = xarray.shape[0]
@@ -602,7 +635,7 @@ if __name__ == '__main__':
   print c1
   
   # Set this value to False if only final plots are needed
-  verbose_printing = False
+  verbose_printing = True
 
   makeData(num_train=30000,num_test=10000) 
   trainClassifier(clf)
