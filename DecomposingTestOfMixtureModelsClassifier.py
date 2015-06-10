@@ -265,7 +265,7 @@ def classifierPdf():
     test
   '''
 
-  bins = 250
+  bins = 100
   low = 0.
   high = 1.  
 
@@ -467,6 +467,10 @@ def fitAdaptive():
     return f1.getVal(ROOT.RooArgSet(x)) / f0.getVal(ROOT.RooArgSet(x))
     #return f0.getVal(ROOT.RooArgSet(x))
 
+  def singleLogRatio(x, f0, f1, val):
+    x.setVal(val)
+    rat = np.log(f1.getValV()) - np.log(f0.getValV())
+    return rat
 
   # To calculate the ratio between single functions
   def regFunc(x,f0,f1,val):
@@ -475,15 +479,14 @@ def fitAdaptive():
       return 0.
     return f1.getVal(ROOT.RooArgSet(x)) / (f0.getVal(ROOT.RooArgSet(x)) + f1.getVal(ROOT.RooArgSet(x)))
 
-  def computeKi(x, f0, f1, c0, c1, val):
+  def computeLogKi(x, f0, f1, c0, c1, val):
     x.setVal(val)
     k_ij = np.log(c1*f1.getValV()) - np.log(c0*f0.getValV())
     return k_ij
   # ki is a vector
   def computeAi(k0, ki):
-    ai = -np.log(k0) - np.log(1 + np.sum(np.exp(np.log(k0) - np.log(ki)))
+    ai = -k0 - np.log(1. + np.sum(np.exp(ki - k0),0))
     return ai
-
 
   # pair-wise ratios
   # and decomposition computation
@@ -494,12 +497,16 @@ def fitAdaptive():
     score = w.var('score')
     npoints = xarray.shape[0]
     fullRatios = np.zeros(npoints)
-    ksTrained = np.zeros((c0.shape[0], c1.shape[0],npoints))
-    ks = np.zeros((c0.shape[0], c1.shape[0],npoints))
-    k0Trained = np.zeros((c0.shape[0],npoints))
-    k0 = np.zeros((c0.shape[0],npoints))
+    ksTrained = np.zeros((c0.shape[0]-1, c1.shape[0],npoints))
+    ks = np.zeros((c0.shape[0]-1, c1.shape[0],npoints))
+    k0Trained = np.zeros(npoints)
+    k0 = np.zeros(npoints)
+    ai = np.zeros((c0.shape[0]-1,npoints))
+    aiTrained = np.zeros((c0.shape[0]-1,npoints))
     # I can do this with list comprehension
     for k, c in enumerate(c0):
+      if c == 0:
+        continue
       for j, c_ in enumerate(c1):
         f0pdf = w.pdf('bkghistpdf_{0}_{1}'.format(k,j))
         f1pdf = w.pdf('sighistpdf_{0}_{1}'.format(k,j))
@@ -507,10 +514,38 @@ def fitAdaptive():
         f1 = w.pdf('f{0}'.format(j))
         outputs = predict('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j),
                   xarray.reshape(xarray.shape[0],1))
-        ksTrained[k][j] = np.array([computeKi(score,f0pdf,f1pdf,c0,c1,xs) for xs in outputs]
-        ks[k][j] = np.array([computeKi(score,f0,f1,c0,c1,xs) for xs in outputs]
-      k0Trained = np.max(  
-
+        ks[k-1][j] = np.array([computeLogKi(x,f0,f1,c,c_,xs) for xs in xarray])
+        if k == j:
+          ksTrained[k-1][j] = ks[k-1][j]
+        else:
+          ksTrained[k-1][j] = np.array([computeLogKi(score,f0pdf,f1pdf,c,c_,xs) for xs in outputs])
+        if plotting == True and k <> j:
+          saveFig(xarray, [ks[k-1][j],ksTrained[k-1][j]], makePlotName('decomposed','trained',k,j,type='ratio_log'),
+            ['trained','truth'])
+        if roc == True and k <> j:
+          testdata, testtarget = loadData('data/{0}/testdata_{1}_{2}.dat'.format(model_g,k,j)) 
+          outputs = predict('model/{0}/adaptive_{1}_{2}.pkl'.format(model_g,k,j),
+                    testdata.reshape(testdata.shape[0],1))
+          clfRatios = [singleRatio(score,f0pdf,f1pdf,xs) for xs in outputs]
+          trRatios = [singleRatio(x,f0,f1,xs) for xs in testdata]
+          makeROC(np.array(trRatios), testtarget, makePlotName('decomposed','truth',k,j,type='roc'))
+          makeROC(np.array(clfRatios), testtarget,makePlotName('decomposed','trained',k,j,type='roc'))
+          # Scatter plot to compare regression function and classifier score
+          reg = np.array([regFunc(x,f0,f1,xs) for xs in testdata])
+          #reg = reg/np.max(reg)
+          #pdb.set_trace()
+          saveFig(outputs,[reg], makePlotName('decomposed','trained',k,j,type='scatter'),scatter=True, axis=['score','regression'])
+          saveFig(testdata, [reg, outputs],  makePlotName('decomposed','trained',k,j,type='multi_scatter'),scatter=True,labels=['regression', 'score'])
+      #check this
+      kSortedTrained = np.sort(ksTrained[k-1],0)
+      kSorted = np.sort(ks[k-1],0)
+      ai[k-1] = computeAi(kSorted[0],kSorted[1:])
+      aiTrained[k-1] = computeAi(kSortedTrained[0],kSortedTrained[1:])
+    aSorted = np.sort(ai,0) 
+    aSortedTrained = np.sort(aiTrained,0)
+    ratios = aSorted[0] + np.log(1. + np.sum(np.exp(aSorted[1:] - aSorted[0]),0))
+    pdfratios = aSortedTrained[0] + np.log(1. + np.sum(np.exp(aSortedTrained[1:] - aSortedTrained[0]),0))
+    return pdfratios      
 
   def evaluateDecomposedRatio(w,x,xarray,plotting=True, roc=False):
     score = w.var('score')
@@ -566,36 +601,36 @@ def fitAdaptive():
   score = w.var('score')
   xarray = np.linspace(0,5,npoints)
  
-  fullRatios = evaluateDecomposedRatio(w,x,xarray)
+  fullRatios = evaluateLogDecomposedRatio(w,x,xarray)
 
-  saveFig(xarray, [fullRatios],  makePlotName('composite','trained',type='ratio')) 
+  saveFig(xarray, [fullRatios],  makePlotName('composite','trained',type='ratio_log')) 
 
-  y2 = [singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in xarray]
+  y2 = [singleLogRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in xarray]
 
-  saveFig(xarray, [y2], makePlotName('full','truth',type='ratio'))
-  saveFig(xarray, [np.array(y2) - fullRatios], makePlotName('composite','trained',type='diff'))
+  saveFig(xarray, [y2], makePlotName('full','truth',type='ratio_log'))
+  saveFig(xarray, [np.array(y2) - fullRatios], makePlotName('composite','trained',type='diff_log'))
 
   # NN trained on complete model
   F0pdf = w.pdf('bkghistpdf_F0_F1')
   F1pdf = w.pdf('sighistpdf_F0_F1')
   outputs = predict('model/{0}/adaptive_F0_F1.pkl'.format(model_g),xarray.reshape(xarray.shape[0],1))
  
-  pdfratios = [singleRatio(score,F1pdf,F0pdf,xs) for xs in outputs]
+  pdfratios = [singleLogRatio(score,F1pdf,F0pdf,xs) for xs in outputs]
   pdfratios = np.array(pdfratios)
-  saveFig(xarray, [pdfratios], makePlotName('full','trained',type='ratio'))
-  saveFig(xarray, [np.array(y2) - pdfratios],makePlotName('full','trained',type='diff'))
+  saveFig(xarray, [pdfratios], makePlotName('full','trained',type='ratio_log'))
+  saveFig(xarray, [np.array(y2) - pdfratios],makePlotName('full','trained',type='diff_log'))
 
   # ROC for ratios
   # load test data
   # check if ratios fulfill the requeriments of type
   testdata, testtarget = loadData('data/{0}/testdata_F0_f0.dat'.format(model_g)) 
-  decomposedRatio = evaluateDecomposedRatio(w,x,testdata,plotting=False,roc=True)
+  decomposedRatio = evaluateLogDecomposedRatio(w,x,testdata,plotting=False,roc=True)
   outputs = predict('model/{0}/adaptive_F0_F1.pkl'.format(model_g),testdata.reshape(testdata.shape[0],1))
-  completeRatio = [singleRatio(score,F1pdf,F0pdf,xs) for xs in outputs]
-  realRatio = [singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in testdata]
+  completeRatio = [singleLogRatio(score,F1pdf,F0pdf,xs) for xs in outputs]
+  realRatio = [singleLogRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in testdata]
 
-  saveFig(completeRatio,[realRatio], makePlotName('full','trained',type='scatter'),scatter=True,axis=['full trained ratio','true ratio'])
-  saveFig(decomposedRatio,[realRatio], makePlotName('composite','trained',type='scatter'),scatter=True, axis=['composed trained ratio','true ratio'])
+  saveFig(completeRatio,[realRatio], makePlotName('full','trained',type='scatter_log'),scatter=True,axis=['full trained ratio','true ratio'])
+  saveFig(decomposedRatio,[realRatio], makePlotName('composite','trained',type='scatter_log'),scatter=True, axis=['composed trained ratio','true ratio'])
 
   makeSigBkg(1.-np.array(realRatio), testtarget,makePlotName('full','truth',type='sigbkg'))
   makeSigBkg(1.-np.array(decomposedRatio), testtarget,makePlotName('composite','trained',type='sigbkg'))
@@ -608,8 +643,8 @@ def fitAdaptive():
   #reg = reg/np.max(reg)
   outputs = predict('model/{0}/adaptive_F0_F1.pkl'.format(model_g),testdata.reshape(testdata.shape[0],1))
   #pdb.set_trace()
-  saveFig(outputs,[reg], makePlotName('full','trained',type='scatter'),scatter=True,axis=['score','regression'])
-  saveFig(testdata, [reg, outputs],  makePlotName('full','trained',type='multi_scatter'),scatter=True,labels=['regression', 'score'])
+  saveFig(outputs,[reg], makePlotName('full','trained',type='scatter_log'),scatter=True,axis=['score','regression'])
+  saveFig(testdata, [reg, outputs],  makePlotName('full','trained',type='multi_scatter_log'),scatter=True,labels=['regression', 'score'])
 
 
   #w.Print()
@@ -635,7 +670,7 @@ if __name__ == '__main__':
   print c1
   
   # Set this value to False if only final plots are needed
-  verbose_printing = True
+  verbose_printing = False
 
   makeData(num_train=30000,num_test=10000) 
   trainClassifier(clf)
