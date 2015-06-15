@@ -15,6 +15,7 @@ import os.path
 import pdb
 
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import pylab as plt
 
 from mlp import make_predictions, train_mlp
@@ -36,6 +37,8 @@ verbose_printing = True
 model_g = None
 dir = '/afs/cern.ch/user/j/jpavezse/systematics'
 
+vars_g = ['x','y']
+
 def printFrame(w,obs,pdf,name,legends):
   '''
     This just print a bunch of pdfs 
@@ -45,33 +48,40 @@ def printFrame(w,obs,pdf,name,legends):
   # Hope I don't need more colors ...
   colors = [ROOT.kBlack,ROOT.kRed,ROOT.kGreen,ROOT.kBlue,
     ROOT.kYellow]
-
-  x = w.var(obs)
+  x = []
+  for var in obs:
+    x.append(w.var(var))
   funcs = []
   line_colors = []
   for i,p in enumerate(pdf):
     funcs.append(p)
     line_colors.append(ROOT.RooFit.LineColor(colors[i]))
   
-  c1 = ROOT.TCanvas('c1')
-  frame = x.frame()
-  for i,f in enumerate(funcs):
-      if isinstance(f,str):
-        funcs[0].plotOn(frame, ROOT.RooFit.Components(f),ROOT.RooFit.Name(legends[i]), line_colors[i])
+  can = ROOT.TCanvas('c1')
+  can.Divide(1,len(obs))
+  frame = []
+  for var in x:
+    frame.append(var.frame())
+
+  for j,fra in enumerate(frame):    
+    can.cd(j+1)
+    for i,f in enumerate(funcs):
+        if isinstance(f,str):
+          funcs[0].plotOn(fra, ROOT.RooFit.Components(f),ROOT.RooFit.Name(legends[i]), line_colors[i])
+        else:
+          f.plotOn(fra,ROOT.RooFit.Name(legends[i]),line_colors[i])
+    leg = ROOT.TLegend(0.65, 0.73, 0.86, 0.87)
+    #leg.SetFillColor(ROOT.kWhite)
+    #leg.SetLineColor(ROOT.kWhite)
+    for i,l in enumerate(legends):
+      if i == 0:
+        leg.AddEntry(fra.findObject(legends[i]), l, 'l')
       else:
-        f.plotOn(frame,ROOT.RooFit.Name(legends[i]),line_colors[i])
-  leg = ROOT.TLegend(0.65, 0.73, 0.86, 0.87)
-  #leg.SetFillColor(ROOT.kWhite)
-  #leg.SetLineColor(ROOT.kWhite)
-  for i,l in enumerate(legends):
-    if i == 0:
-      leg.AddEntry(frame.findObject(legends[i]), l, 'l')
-    else:
-      leg.AddEntry(frame.findObject(legends[i]), l, 'l')
-  
-  frame.Draw()
-  leg.Draw()
-  c1.SaveAs('{0}/plots/{1}/{2}.png'.format(dir,model_g,name))
+        leg.AddEntry(fra.findObject(legends[i]), l, 'l')
+    
+    fra.Draw()
+    leg.Draw()
+  can.SaveAs('{0}/plots/{1}/{2}.png'.format(dir,model_g,name))
 
 def makeData(num_train=500,num_test=100):
   '''
@@ -81,9 +91,12 @@ def makeData(num_train=500,num_test=100):
   # Statistical model
   w = ROOT.RooWorkspace('w')
   #w.factory("EXPR::f1('cos(x)**2 + .01',x)")
-  w.factory("EXPR::f2('exp(x*-1)',x[0,5])")
-  w.factory("EXPR::f1('0.3 + exp(-(x-5)**2/5.)',x)")
-  w.factory("EXPR::f0('exp(-(x-2.5)**2/1.)',x)")
+  w.factory("EXPR::f2('exp(-x-y)',x[0,5],y[0,5])")
+  w.factory("EXPR::f1('0.3 + exp(-(x-5)**2/5.)+exp(-(y-3)**2/5.)',x,y)")
+  w.factory("EXPR::f0('exp(-(x-2.5)**2/1.)+exp(-(y-2)**2/1.5)',x,y)")
+  #w.factory("EXPR::f2('exp(x*-1)',x[0,5])")
+  #w.factory("EXPR::f1('0.3 + exp(-(x-5)**2/5.)',x)")
+  #w.factory("EXPR::f0('exp(-(x-2.5)**2/1.)',x)")
   #w.factory("EXPR::f2('exp(-(x-2)**2/2)',x)")
   w.factory("SUM::F0(c00[{0}]*f0,c01[{1}]*f1,f2)".format(c0[0],c0[1]))
   w.factory("SUM::F1(c10[{0}]*f0,c11[{1}]*f1,f2)".format(c1[0],c1[1]))
@@ -92,9 +105,9 @@ def makeData(num_train=500,num_test=100):
   w.Print()
   w.writeToFile('{0}/workspace_DecomposingTestOfMixtureModelsClassifiers.root'.format(dir))
   if verbose_printing == True:
-    printFrame(w,'x',[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']) 
-    printFrame(w,'x',[w.pdf('F0'),w.pdf('F1')],'full_model',['F0','F1'])
-    printFrame(w,'x',[w.pdf('F1'),'f0'],'full_signal', ['F1','f0'])
+    printFrame(w,['x','y'],[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']) 
+    printFrame(w,['x','y'],[w.pdf('F0'),w.pdf('F1')],'full_model',['F0','F1'])
+    printFrame(w,['x','y'],[w.pdf('F1'),'f0'],'full_signal', ['F1','f0'])
   # Start generating data
   ''' 
     Each function will be discriminated pair-wise
@@ -102,23 +115,25 @@ def makeData(num_train=500,num_test=100):
   ''' 
    
   def makeDataset(x,bkgpdf,sigpdf,num):
-    traindata = np.zeros(num*2)
+    traindata = np.zeros((num*2,len(vars_g)))
     targetdata = np.zeros(num*2)
-    bkgdata = bkgpdf.generate(ROOT.RooArgSet(x),num)
-    sigdata = sigpdf.generate(ROOT.RooArgSet(x),num)
+    bkgdata = bkgpdf.generate(x,num)
+    sigdata = sigpdf.generate(x,num)
     
-    traindata[:num] = [sigdata.get(i).getRealValue('x') 
+    traindata[:num] = [[sigdata.get(i).getRealValue(var) for var in vars_g]
         for i in range(num)]
     targetdata[:num].fill(1)
 
-    traindata[num:] = [bkgdata.get(i).getRealValue('x')
+    traindata[num:] = [[bkgdata.get(i).getRealValue(var) for var in vars_g]
         for i in range(num)]
     targetdata[num:].fill(0)
     
     return traindata, targetdata  
- 
 
-  x = w.var('x')
+  vars = ROOT.TList()
+  for var in vars_g:
+    vars.Add(w.var(var))
+  x = ROOT.RooArgSet(vars)
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):  
       traindata, targetdata = makeDataset(x,w.pdf('f{0}'.format(k)),w.pdf('f{0}'.format(j))
@@ -157,8 +172,8 @@ def makeData(num_train=500,num_test=100):
 
 def loadData(filename):
   traintarget = np.loadtxt(filename)
-  traindata = traintarget[:,0]
-  targetdata = traintarget[:,1]
+  traindata = traintarget[:,:traintarget.shape[1]-1]
+  targetdata = traintarget[:,traintarget.shape[1]-1]
   return (traindata, targetdata)
 
 #def logit(p):
@@ -242,10 +257,9 @@ def trainClassifier(clf):
           save_file='{0}/model/{1}/adaptive_{2}_{3}.pkl'.format(dir,model_g,k,j))
       else:
         traindata,targetdata = loadData('{0}/data/{1}/traindata_{2}_{3}.dat'.format(dir,model_g,k,j)) 
-        clf.fit(traindata.reshape(traindata.shape[0],1)
+        clf.fit(traindata.reshape(traindata.shape[0],len(vars_g))
             ,targetdata)
         joblib.dump(clf, '{0}/model/{1}/adaptive_{2}_{3}.pkl'.format(dir,model_g,k,j))
-
 
       #makeROC(outputs, testtarget, makePlotName('decomposed','trained',k,j,'roc'))
   
@@ -318,7 +332,7 @@ def classifierPdf():
       # Print histograms pdfs and estimated densities
       if verbose_printing == True and name == 'bkg' and k <> j:
         full = 'full' if pos == None else 'decomposed'
-        printFrame(w,'score',[w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j))], makePlotName(full,'trained',k,j,type='hist'),['signal','bkg'])
+        printFrame(w,['score'],[w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j))], makePlotName(full,'trained',k,j,type='hist'),['signal','bkg'])
         #printFrame(w,'score',[w.pdf('sigdist_{0}_{1}'.format(k,j)), w.pdf('bkgdist_{0}_{1}'.format(k,j))], makePlotName(full,'trained',k,j,type='density'),['signal','bkg'])
         #printFrame(w,'score',['sigdist_{0}_{1}'.format(k,j),'bkgdist_{0}_{1}'.format(k,j)], makePlotName(full,'trained',k,j,'kernel'))
 
@@ -328,7 +342,7 @@ def classifierPdf():
       numtrain = traindata.shape[0]       
 
       # Should I be using test data here?
-      outputs = predict('{0}/model/{1}/adaptive_{2}_{3}.pkl'.format(dir,model_g,k,j),traindata.reshape(traindata.shape[0],1))
+      outputs = predict('{0}/model/{1}/adaptive_{2}_{3}.pkl'.format(dir,model_g,k,j),traindata.reshape(traindata.shape[0],traindata.shape[1]))
       #outputs = clf.predict_proba(traindata.reshape(traindata.shape[0],1)) 
       saveHistos(w,outputs,(k,j))
 
@@ -336,14 +350,13 @@ def classifierPdf():
   numtrain = traindata.shape[0]       
 
   # Should I be using test data here?
-  outputs = predict('{0}/model/{1}/adaptive_F0_F1.pkl'.format(dir,model_g),traindata.reshape(traindata.shape[0],1))
+  outputs = predict('{0}/model/{1}/adaptive_F0_F1.pkl'.format(dir,model_g),traindata.reshape(traindata.shape[0],traindata.shape[1]))
   #outputs = clf.predict_proba(traindata.reshape(traindata.shape[0],1)) 
   saveHistos(w,outputs)
      
   w.Print()
 
   w.writeToFile('{0}/workspace_DecomposingTestOfMixtureModelsClassifiers.root'.format(dir))
-
 
 # this is not very efficient
 def scikitlearnFunc(filename,x=0.):
@@ -402,6 +415,47 @@ def saveFig(x,y,file,labels=None,scatter=False,axis=None):
   fig.savefig('{0}/plots/{1}/{2}.png'.format(dir,model_g,file))
   plt.close(fig)
   plt.clf()
+
+
+def saveFig3D(x,y,z,file,labels=None,scatter=False,axis=None):
+  fig = plt.figure()
+  ax = fig.add_subplot(111, projection='3d')
+  if scatter == True:
+    if len(z) == 1: 
+      ax.scatter(x,y,z[0],s=2)
+      ax.set_xlabel(axis[0])
+      ax.set_ylabel(axis[1])
+      ax.set_zlabel(axis[2])
+    else:
+      sc1 = ax.scatter(x,y,z[0],color='black')
+      sc2 = ax.scatter(x,y,z[1],color='red')
+      ax.legend((sc1,sc2),(labels[0],labels[1]))
+      ax.set_xlabel('x')
+      ax.set_ylabel('y')
+      ax.set_zlabel('regression(score)')
+  else:
+    if len(z) == 1:
+      ax.plot_wireframe(x,y,z[0],color='black')
+    else:
+      #Just supporting two plots for now
+      ax.plot_wireframe(x,y,z[0],color='black',label=labels[0]) 
+      ax.plot_wireframe(x,y,z[1],color='red',label=labels[1])
+      ax.legend()
+    ax.set_zlabel('LR')
+    ax.set_ylabel('y')
+    ax.set_xlabel('x')
+  ax.set_title(file)
+  if (len(z) > 1):
+    # This breaks the naming convention for plots, I will solve
+    # it later
+    for i,l in enumerate(labels):
+      np.savetxt('{0}/plots/{1}/{2}_{3}.txt'.format(dir,model_g,file,l),z[i])
+  else:
+    np.savetxt('{0}/plots/{1}/{2}.txt'.format(dir,model_g,file),z[0])
+  fig.savefig('{0}/plots/{1}/{2}.png'.format(dir,model_g,file))
+  plt.close(fig)
+  plt.clf()
+
 
 def fitAdaptive():
   '''
@@ -468,27 +522,31 @@ def fitAdaptive():
 
   # To calculate the ratio between single functions
   def singleRatio(x,f0,f1,val):
-    x.setVal(val)
-    if f0.getVal(ROOT.RooArgSet(x)) < 10E-10:
+    for i,xs in enumerate(x): 
+      xs.setVal(val[i])
+    if f0.getValV() < 10E-10:
       return 0.
-    return f1.getVal(ROOT.RooArgSet(x)) / f0.getVal(ROOT.RooArgSet(x))
+    return f1.getValV() / f0.getValV()
     #return f0.getVal(ROOT.RooArgSet(x))
 
 
   # To calculate the ratio between single functions
   def regFunc(x,f0,f1,val):
-    x.setVal(val)
-    if (f0.getVal(ROOT.RooArgSet(x)) + f1.getVal(ROOT.RooArgSet(x))) < 10E-10:
+    for i,xs in enumerate(x): 
+      xs.setVal(val[i])
+    if (f0.getValV() + f1.getValV()) < 10E-10:
       return 0.
-    return f1.getVal(ROOT.RooArgSet(x)) / (f0.getVal(ROOT.RooArgSet(x)) + f1.getVal(ROOT.RooArgSet(x)))
+    return f1.getValV() / (f0.getValV() + f1.getValV())
 
   # pair-wise ratios
   # and decomposition computation
-  npoints = 100
-  x = w.var('x')
-  def evaluateDecomposedRatio(w,x,xarray,plotting=True, roc=False):
+  npoints = 50
+  x = []
+  for var in vars_g:
+    x.append(w.var(var))
+  def evaluateDecomposedRatio(w,x,evalData,plotting=True, roc=False,gridsize=None):
     score = w.var('score')
-    npoints = xarray.shape[0]
+    npoints = evalData.shape[0]
     fullRatios = np.zeros(npoints)
     for k,c in enumerate(c0):
       innerRatios = np.zeros(npoints)
@@ -504,33 +562,34 @@ def fitAdaptive():
         f0 = w.pdf('f{0}'.format(k))
         f1 = w.pdf('f{0}'.format(j))
         outputs = predict('{0}/model/{1}/adaptive_{2}_{3}.pkl'.format(dir,model_g,k,j),
-                  xarray.reshape(xarray.shape[0],1))
-        pdfratios = [singleRatio(score,f0pdf,f1pdf,xs) for xs in outputs]
+                  evalData)
+        pdfratios = [singleRatio([score],f0pdf,f1pdf,[xs]) for xs in outputs]
         # the cases in which both distributions are the same can be problematic
         # one will expect that the classifier gives same prob to both signal and bkg
         # but it can behave in weird ways, I will just avoid this for now 
         pdfratios = np.array(pdfratios) if k <> j else np.ones(npoints)
         innerRatios += (c_/c) * pdfratios
-        ratios = [singleRatio(x,f0,f1,xs) for xs in xarray]
-        #if k == 1 and  j == 2:
-          #pdb.set_trace()
+        ratios = np.array([singleRatio(x,f0,f1,xs) for xs in evalData])
         if plotting == True and k <> j:
-          saveFig(xarray, [pdfratios,ratios], makePlotName('decomposed','trained',k,j,type='ratio'),
+          points = gridsize if gridsize <> None else npoints
+          X = evalData[:,0].reshape((gridsize, gridsize)) 
+          Y = evalData[:,1].reshape((gridsize, gridsize))
+          Z = [pdfratios.reshape((gridsize, gridsize)), ratios.reshape((gridsize, gridsize))]
+          saveFig3D(X,Y,Z, makePlotName('decomposed','trained',k,j,type='ratio'),
             ['trained','truth'])
         if roc == True and k <> j:
           testdata, testtarget = loadData('{0}/data/{1}/testdata_{2}_{3}.dat'.format(dir,model_g,k,j)) 
           outputs = predict('{0}/model/{1}/adaptive_{2}_{3}.pkl'.format(dir,model_g,k,j),
-                    testdata.reshape(testdata.shape[0],1))
-          clfRatios = [singleRatio(score,f0pdf,f1pdf,xs) for xs in outputs]
+                    testdata.reshape(testdata.shape[0],testdata.shape[1]))
+          clfRatios = [singleRatio([score],f0pdf,f1pdf,[xs]) for xs in outputs]
           trRatios = [singleRatio(x,f0,f1,xs) for xs in testdata]
           makeROC(np.array(trRatios), testtarget, makePlotName('decomposed','truth',k,j,type='roc'))
           makeROC(np.array(clfRatios), testtarget,makePlotName('decomposed','trained',k,j,type='roc'))
           # Scatter plot to compare regression function and classifier score
           reg = np.array([regFunc(x,f0,f1,xs) for xs in testdata])
           #reg = reg/np.max(reg)
-          #pdb.set_trace()
           saveFig(outputs,[reg], makePlotName('decomposed','trained',k,j,type='scatter'),scatter=True, axis=['score','regression'])
-          saveFig(testdata, [reg, outputs],  makePlotName('decomposed','trained',k,j,type='multi_scatter'),scatter=True,labels=['regression', 'score'])
+          #saveFig(testdata, [reg, outputs],  makePlotName('decomposed','trained',k,j,type='multi_scatter'),scatter=True,labels=['regression', 'score'])
 
 
         #saveFig(xarray, ratios, makePlotName('decomposed','truth',k,j,type='ratio'))
@@ -539,35 +598,40 @@ def fitAdaptive():
 
   score = w.var('score')
   xarray = np.linspace(0,5,npoints)
- 
-  fullRatios = evaluateDecomposedRatio(w,x,xarray)
+  yarray = np.linspace(0,5,npoints)
+  xarray, yarray = np.meshgrid(xarray, yarray)
+  evalData = np.c_[xarray.ravel(), yarray.ravel()] 
+  fullRatios = evaluateDecomposedRatio(w,x,evalData,gridsize=npoints)
+  
+  fullRatios = fullRatios.reshape((npoints, npoints))
+  saveFig3D(xarray,yarray, [fullRatios],  makePlotName('composite','trained',type='ratio')) 
 
-  saveFig(xarray, [fullRatios],  makePlotName('composite','trained',type='ratio')) 
+  y2 = np.array([singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in evalData])
+  Y2 = y2.reshape((npoints, npoints))
 
-  y2 = [singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in xarray]
-
-  saveFig(xarray, [y2], makePlotName('full','truth',type='ratio'))
-  saveFig(xarray, [np.array(y2) - fullRatios], makePlotName('composite','trained',type='diff'))
+  saveFig3D(xarray, yarray, [Y2], makePlotName('full','truth',type='ratio'))
+  saveFig3D(xarray, yarray,[Y2 - fullRatios], makePlotName('composite','trained',type='diff'))
 
   # NN trained on complete model
   F0pdf = w.pdf('bkghistpdf_F0_F1')
   F1pdf = w.pdf('sighistpdf_F0_F1')
-  outputs = predict('{0}/model/{1}/adaptive_F0_F1.pkl'.format(dir,model_g),xarray.reshape(xarray.shape[0],1))
+  outputs = predict('{0}/model/{1}/adaptive_F0_F1.pkl'.format(dir,model_g),evalData)
  
-  pdfratios = [singleRatio(score,F1pdf,F0pdf,xs) for xs in outputs]
+  pdfratios = [singleRatio([score],F1pdf,F0pdf,[xs]) for xs in outputs]
   pdfratios = np.array(pdfratios)
-  saveFig(xarray, [pdfratios], makePlotName('full','trained',type='ratio'))
-  saveFig(xarray, [np.array(y2) - pdfratios],makePlotName('full','trained',type='diff'))
+  pdfratios = pdfratios.reshape((npoints, npoints))
+  saveFig3D(xarray,yarray, [pdfratios], makePlotName('full','trained',type='ratio'))
+  saveFig3D(xarray,yarray, [ Y2 - pdfratios],makePlotName('full','trained',type='diff'))
 
   # ROC for ratios
   # load test data
   # check if ratios fulfill the requeriments of type
   testdata, testtarget = loadData('{0}/data/{1}/testdata_F0_f0.dat'.format(dir,model_g)) 
   decomposedRatio = evaluateDecomposedRatio(w,x,testdata,plotting=False,roc=True)
-  outputs = predict('{0}/model/{1}/adaptive_F0_F1.pkl'.format(dir,model_g),testdata.reshape(testdata.shape[0],1))
-  completeRatio = [singleRatio(score,F1pdf,F0pdf,xs) for xs in outputs]
-  realRatio = [singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in testdata]
-
+  outputs = predict('{0}/model/{1}/adaptive_F0_F1.pkl'.format(dir,model_g),testdata.reshape(testdata.shape[0],testdata.shape[1]))
+  completeRatio = np.array([singleRatio([score],F1pdf,F0pdf,[xs]) for xs in outputs])
+  realRatio = np.array([singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in testdata])
+  
   saveFig(completeRatio,[realRatio], makePlotName('full','trained',type='scatter'),scatter=True,axis=['full trained ratio','true ratio'])
   saveFig(decomposedRatio,[realRatio], makePlotName('composite','trained',type='scatter'),scatter=True, axis=['composed trained ratio','true ratio'])
 
@@ -580,10 +644,9 @@ def fitAdaptive():
   # Scatter plot to compare regression function and classifier score
   reg = np.array([regFunc(x,w.pdf('F0'),w.pdf('F1'),xs) for xs in testdata])
   #reg = reg/np.max(reg)
-  outputs = predict('{0}/model/{1}/adaptive_F0_F1.pkl'.format(dir,model_g),testdata.reshape(testdata.shape[0],1))
-  #pdb.set_trace()
+  outputs = predict('{0}/model/{1}/adaptive_F0_F1.pkl'.format(dir,model_g),testdata.reshape(testdata.shape[0],testdata.shape[1]))
   saveFig(outputs,[reg], makePlotName('full','trained',type='scatter'),scatter=True,axis=['score','regression'])
-  saveFig(testdata, [reg, outputs],  makePlotName('full','trained',type='multi_scatter'),scatter=True,labels=['regression', 'score'])
+  #saveFig(testdata, [reg, outputs],  makePlotName('full','trained',type='multi_scatter'),scatter=True,labels=['regression', 'score'])
 
 
   #w.Print()
@@ -611,8 +674,8 @@ if __name__ == '__main__':
   # Set this value to False if only final plots are needed
   verbose_printing = False
 
-  makeData(num_train=10000,num_test=5000) 
-  trainClassifier(clf)
-  classifierPdf()
+  #makeData(num_train=10000,num_test=5000) 
+  #trainClassifier(clf)
+  #classifierPdf()
   fitAdaptive()
 
