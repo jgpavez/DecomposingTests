@@ -91,9 +91,9 @@ def makeData(num_train=500,num_test=100):
   # Statistical model
   w = ROOT.RooWorkspace('w')
   #w.factory("EXPR::f1('cos(x)**2 + .01',x)")
-  w.factory("EXPR::f2('exp(-x-y)',x[0,5],y[0,5])")
-  w.factory("EXPR::f1('0.3 + exp(-(x-5)**2/5.)+exp(-(y-3)**2/5.)',x,y)")
-  w.factory("EXPR::f0('exp(-(x-2.5)**2/1.)+exp(-(y-2)**2/1.5)',x,y)")
+  w.factory("EXPR::f2('exp(-0.4*(x+y))',x[0,5],y[0,5])")
+  w.factory("EXPR::f1('0.3 + exp(-(x-5)**2/3.)+exp(-(y-3)**2/2.)',x,y)")
+  w.factory("EXPR::f0('exp(-(x-2.5)**2/0.5)+exp(-(y-2)**2/1.5)',x,y)")
   #w.factory("EXPR::f2('exp(x*-1)',x[0,5])")
   #w.factory("EXPR::f1('0.3 + exp(-(x-5)**2/5.)',x)")
   #w.factory("EXPR::f0('exp(-(x-2.5)**2/1.)',x)")
@@ -257,7 +257,7 @@ def trainClassifier(clf):
           save_file='{0}/model/{1}/adaptive_{2}_{3}.pkl'.format(dir,model_g,k,j))
       else:
         traindata,targetdata = loadData('{0}/data/{1}/traindata_{2}_{3}.dat'.format(dir,model_g,k,j)) 
-        clf.fit(traindata.reshape(traindata.shape[0],len(vars_g))
+        clf.fit(traindata.reshape(traindata.shape[0],traindata.shape[1])
             ,targetdata)
         joblib.dump(clf, '{0}/model/{1}/adaptive_{2}_{3}.pkl'.format(dir,model_g,k,j))
 
@@ -270,7 +270,7 @@ def trainClassifier(clf):
   else:
     traindata,targetdata = loadData('{0}/data/{1}/traindata_F0_F1.dat'.format(dir,model_g)) 
     #clf = svm.NuSVC(probability=True) #Why use a SVR??
-    clf.fit(traindata.reshape(traindata.shape[0],1)
+    clf.fit(traindata.reshape(traindata.shape[0],traindata.shape[1])
         ,targetdata)
     joblib.dump(clf, '{0}/model/{1}/adaptive_F0_F1.pkl'.format(dir,model_g))
 
@@ -340,7 +340,6 @@ def classifierPdf():
     for j,c_ in enumerate(c1):
       traindata, targetdata = loadData('{0}/data/{1}/traindata_{2}_{3}.dat'.format(dir,model_g,k,j))
       numtrain = traindata.shape[0]       
-
       # Should I be using test data here?
       outputs = predict('{0}/model/{1}/adaptive_{2}_{3}.pkl'.format(dir,model_g,k,j),traindata.reshape(traindata.shape[0],traindata.shape[1]))
       #outputs = clf.predict_proba(traindata.reshape(traindata.shape[0],1)) 
@@ -435,11 +434,11 @@ def saveFig3D(x,y,z,file,labels=None,scatter=False,axis=None):
       ax.set_zlabel('regression(score)')
   else:
     if len(z) == 1:
-      ax.plot_wireframe(x,y,z[0],color='black')
+      ax.plot_wireframe(x,y,z[0],color='red')
     else:
       #Just supporting two plots for now
-      ax.plot_wireframe(x,y,z[0],color='black',label=labels[0]) 
-      ax.plot_wireframe(x,y,z[1],color='red',label=labels[1])
+      ax.plot_wireframe(x,y,z[0],color='red',label=labels[0]) 
+      ax.plot_wireframe(x,y,z[1],color='blue',label=labels[1])
       ax.legend()
     ax.set_zlabel('LR')
     ax.set_ylabel('y')
@@ -471,8 +470,8 @@ def fitAdaptive():
   f.Close()
 
   #x = w.var('x[-5,5]')
-  x = ROOT.RooRealVar('x','x',0.2,0.,5.)
-  getattr(w,'import')(ROOT.RooArgSet(x),ROOT.RooFit.RecycleConflictNodes()) 
+  #x = ROOT.RooRealVar('x','x',0.2,0.,5.)
+  #getattr(w,'import')(ROOT.RooArgSet(x),ROOT.RooFit.RecycleConflictNodes()) 
 
   def constructDensity(w,pos = None):
     if pos <> None:
@@ -635,9 +634,9 @@ def fitAdaptive():
   saveFig(completeRatio,[realRatio], makePlotName('full','trained',type='scatter'),scatter=True,axis=['full trained ratio','true ratio'])
   saveFig(decomposedRatio,[realRatio], makePlotName('composite','trained',type='scatter'),scatter=True, axis=['composed trained ratio','true ratio'])
 
-  makeSigBkg(1.-np.array(realRatio), testtarget,makePlotName('full','truth',type='sigbkg'))
-  makeSigBkg(1.-np.array(decomposedRatio), testtarget,makePlotName('composite','trained',type='sigbkg'))
-  makeSigBkg(1.-np.array(completeRatio), testtarget,makePlotName('full','trained',type='sigbkg'))
+  makeSigBkg(1./np.array(realRatio), testtarget,makePlotName('full','truth',type='sigbkg'))
+  makeSigBkg(1./np.array(decomposedRatio), testtarget,makePlotName('composite','trained',type='sigbkg'))
+  makeSigBkg(1./np.array(completeRatio), testtarget,makePlotName('full','trained',type='sigbkg'))
 
 
   testdata, testtarget = loadData('{0}/data/{1}/testdata_F0_F1.dat'.format(dir,model_g)) 
@@ -672,10 +671,10 @@ if __name__ == '__main__':
   print c1
   
   # Set this value to False if only final plots are needed
-  verbose_printing = False
+  verbose_printing = True
 
-  #makeData(num_train=10000,num_test=5000) 
-  #trainClassifier(clf)
-  #classifierPdf()
+  makeData(num_train=5000,num_test=3000) 
+  trainClassifier(clf)
+  classifierPdf()
   fitAdaptive()
 
