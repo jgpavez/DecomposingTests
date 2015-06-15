@@ -161,14 +161,14 @@ def loadData(filename):
   targetdata = traintarget[:,1]
   return (traindata, targetdata)
 
-#def logit(p):
-#  return np.log(p) - np.log(1-p)
+def logit(p):
+  return np.log(p) - np.log(1.-p)
 
 def predict(filename, traindata):
   if model_g == 'mlp':
-    #result = logit(make_predictions(dataset=traindata, model_file=filename)[:,1])
-    return make_predictions(dataset=traindata, model_file=filename)[:,1]
-    #return result
+    result = logit(make_predictions(dataset=traindata, model_file=filename)[:,1])
+    #return make_predictions(dataset=traindata, model_file=filename)[:,1]
+    return result
   else:
     clf = joblib.load(filename)
     if clf.__class__.__name__ == 'NuSVR':
@@ -272,9 +272,9 @@ def classifierPdf():
     test
   '''
 
-  bins = 150
-  low = 0.
-  high = 1.  
+  bins = 50
+  low = -5.
+  high = 5.  
 
   f = ROOT.TFile('{0}/workspace_DecomposingTestOfMixtureModelsClassifiers.root'.format(dir))
   w = f.Get('w')
@@ -609,7 +609,7 @@ if __name__ == '__main__':
   print c1
   
   # Set this value to False if only final plots are needed
-  verbose_printing = False
+  verbose_printing = True
 
   makeData(num_train=10000,num_test=5000) 
   trainClassifier(clf)
