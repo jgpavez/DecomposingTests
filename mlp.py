@@ -386,8 +386,8 @@ def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100,
             minibatch_avg_cost = train_model(minibatch_index)
             # iteration number
             iter = (epoch - 1) * n_train_batches + minibatch_index
-            print 'Epoch: {0}, batch: {1}, cost: {2}'.format(
-             epoch, minibatch_index, minibatch_avg_cost)  
+            #print 'Epoch: {0}, batch: {1}, cost: {2}'.format(
+            # epoch, minibatch_index, minibatch_avg_cost)  
 
     best_params = copy.deepcopy(classifier.params)
     classifier.save_model(best_params, save_file)
