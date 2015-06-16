@@ -543,7 +543,7 @@ def fitAdaptive(use_log = False):
         else:
           ksTrained[k-1][j] = np.array([computeLogKi(score,f0pdf,f1pdf,c,c_,xs) for xs in outputs])
         if plotting == True and k <> j:
-          saveFig(xarray, [ks[k-1][j],ksTrained[k-1][j]], makePlotName('decomposed','trained',k,j,type='ratio_log'),
+          saveFig(xarray, [ksTrained[k-1][j],ks[k-1][j]], makePlotName('decomposed','trained',k,j,type='ratiolog'),
             ['trained','truth'])
         if roc == True and k <> j:
           testdata, testtarget = loadData('data/{0}/testdata_{1}_{2}.dat'.format(model_g,k,j)) 
@@ -624,8 +624,10 @@ def fitAdaptive(use_log = False):
 
   if use_log == True:
     evaluateRatio = evaluateLogDecomposedRatio
+    post = 'log'
   else:
     evaluateRatio = evaluateDecomposedRatio
+    post = ''
 
   score = w.var('score')
   scoref = w.var('scoref')
@@ -633,7 +635,7 @@ def fitAdaptive(use_log = False):
  
   fullRatios = evaluateRatio(w,x,xarray)
 
-  saveFig(xarray, [fullRatios],  makePlotName('composite','trained',type='ratio')) 
+  saveFig(xarray, [fullRatios],  makePlotName('composite','trained',type='ratio'+post)) 
 
   if use_log == True:
     getRatio = singleLogRatio
@@ -642,8 +644,8 @@ def fitAdaptive(use_log = False):
     
   y2 = [getRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in xarray]
 
-  saveFig(xarray, [y2], makePlotName('full','truth',type='ratio'))
-  saveFig(xarray, [np.array(y2) - fullRatios], makePlotName('composite','trained',type='diff'))
+  saveFig(xarray, [y2], makePlotName('full','truth',type='ratio'+post))
+  saveFig(xarray, [np.array(y2) - fullRatios], makePlotName('composite','trained',type='diff'+post))
 
   # NN trained on complete model
   F0pdf = w.pdf('bkghistpdf_F0_F1')
@@ -652,8 +654,8 @@ def fitAdaptive(use_log = False):
  
   pdfratios = [getRatio(scoref,F1pdf,F0pdf,xs) for xs in outputs]
   pdfratios = np.array(pdfratios)
-  saveFig(xarray, [pdfratios], makePlotName('full','trained',type='ratio'))
-  saveFig(xarray, [np.array(y2) - pdfratios],makePlotName('full','trained',type='diff'))
+  saveFig(xarray, [pdfratios], makePlotName('full','trained',type='ratio'+post))
+  saveFig(xarray, [np.array(y2) - pdfratios],makePlotName('full','trained',type='diff'+post))
 
   # ROC for ratios
   # load test data
@@ -686,16 +688,16 @@ def fitAdaptive(use_log = False):
     getattr(w,'import')(datahist) # work around for morph = w.import(morph)
     getattr(w,'import')(histpdf) # work around for morph = w.import(morph)
 
-    if verbose_printing == True and name == 'bkg':
-      printFrame(w,'ratio',[w.pdf('sighistpdf_F0_f0'), w.pdf('bkghistpdf_F0_f0')], makePlotName('composite','trained',type='hist'),['signal','bkg'])
+    if name == 'bkg':
+      printFrame(w,'ratio',[w.pdf('sighistpdf_F0_f0'), w.pdf('bkghistpdf_F0_f0')], makePlotName('composite','trained',type='hist'+post),['signal','bkg'])
 
 
-  saveFig(completeRatio,[realRatio], makePlotName('full','trained',type='scatter'),scatter=True,axis=['full trained ratio','true ratio'])
-  saveFig(decomposedRatio,[realRatio], makePlotName('composite','trained',type='scatter'),scatter=True, axis=['composed trained ratio','true ratio'])
+  saveFig(completeRatio,[realRatio], makePlotName('full','trained',type='scatter'+post),scatter=True,axis=['full trained ratio','true ratio'])
+  saveFig(decomposedRatio,[realRatio], makePlotName('composite','trained',type='scatter'+post),scatter=True, axis=['composed trained ratio','true ratio'])
 
-  makeSigBkg(1.-np.array(realRatio), testtarget,makePlotName('full','truth',type='sigbkg'))
-  makeSigBkg(1.-np.array(decomposedRatio), testtarget,makePlotName('composite','trained',type='sigbkg'))
-  makeSigBkg(1.-np.array(completeRatio), testtarget,makePlotName('full','trained',type='sigbkg'))
+  makeSigBkg(1.-np.array(realRatio), testtarget,makePlotName('full','truth',type='sigbkg'+post))
+  makeSigBkg(1.-np.array(decomposedRatio), testtarget,makePlotName('composite','trained',type='sigbkg'+post))
+  makeSigBkg(1.-np.array(completeRatio), testtarget,makePlotName('full','trained',type='sigbkg'+post))
 
 
   testdata, testtarget = loadData('{0}/data/{1}/testdata_F0_F1.dat'.format(dir,model_g)) 
@@ -725,20 +727,23 @@ if __name__ == '__main__':
     clf = classifiers['logistic']    
     print 'Not found classifier, Using logistic instead'
   
-  use_log = False
-  if (len(sys.argv) > 2):
-    use_log = True
-
   c1[0] = sys.argv[2]
   c1 = c1 / c1.sum()
   print c0
   print c1
-  
-  # Set this value to False if only final plots are needed
-  verbose_printing = True
+ 
+  use_log = False
+  if (len(sys.argv) > 3):
+    if sys.argv[3] == 'log':
+      use_log = True
+  print use_log
 
-  makeData(num_train=100000,num_test=50000) 
+ 
+  # Set this value to False if only final plots are needed
+  verbose_printing = False
+
+  makeData(num_train=50000,num_test=30000) 
   trainClassifier(clf)
   classifierPdf()
-  fitAdaptive()
+  fitAdaptive(use_log)
 
