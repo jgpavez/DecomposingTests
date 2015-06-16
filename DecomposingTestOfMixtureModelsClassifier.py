@@ -272,9 +272,9 @@ def classifierPdf():
     test
   '''
 
-  bins = 50
-  low = -5.
-  high = 5.  
+  bins = 70
+  low = -7.
+  high = 7.  
 
   f = ROOT.TFile('{0}/workspace_DecomposingTestOfMixtureModelsClassifiers.root'.format(dir))
   w = f.Get('w')
@@ -282,8 +282,16 @@ def classifierPdf():
 
   w.factory('score[{0},{1}]'.format(low,high))
   s = w.var('score')
+  
+  #This is because most of the data of the full model concentrate around 0 
+  bins_full = 40
+  low_full = -2.
+  high_full = 2.
+  w.factory('scoref[{0},{1}]'.format(low_full, high_full))
+  s_full = w.var('scoref')
 
-  def saveHistos(w,ouputs,pos=None):
+  def saveHistos(w,ouputs,s,bins,low,high,pos=None):
+    numtrain = outputs.shape[0]
     if pos <> None:
       k,j = pos
     else:
@@ -291,6 +299,8 @@ def classifierPdf():
     for l,name in enumerate(['sig','bkg']):
       data = ROOT.RooDataSet('{0}data_{1}_{2}'.format(name,k,j),"data",
           ROOT.RooArgSet(s))
+      #low = outputs.min()
+      #high = outputs.max() 
       hist = ROOT.TH1F('{0}hist_{1}_{2}'.format(name,k,j),'hist',bins,low,high)
       for val in outputs[l*numtrain/2:(l+1)*numtrain/2]:
         hist.Fill(val)
@@ -318,7 +328,8 @@ def classifierPdf():
       # Print histograms pdfs and estimated densities
       if verbose_printing == True and name == 'bkg' and k <> j:
         full = 'full' if pos == None else 'decomposed'
-        printFrame(w,'score',[w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j))], makePlotName(full,'trained',k,j,type='hist'),['signal','bkg'])
+        score_str = 'scoref' if pos == None else 'score'
+        printFrame(w,score_str,[w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j))], makePlotName(full,'trained',k,j,type='hist'),['signal','bkg'])
         #printFrame(w,'score',[w.pdf('sigdist_{0}_{1}'.format(k,j)), w.pdf('bkgdist_{0}_{1}'.format(k,j))], makePlotName(full,'trained',k,j,type='density'),['signal','bkg'])
         #printFrame(w,'score',['sigdist_{0}_{1}'.format(k,j),'bkgdist_{0}_{1}'.format(k,j)], makePlotName(full,'trained',k,j,'kernel'))
 
@@ -330,7 +341,7 @@ def classifierPdf():
       # Should I be using test data here?
       outputs = predict('{0}/model/{1}/adaptive_{2}_{3}.pkl'.format(dir,model_g,k,j),traindata.reshape(traindata.shape[0],1))
       #outputs = clf.predict_proba(traindata.reshape(traindata.shape[0],1)) 
-      saveHistos(w,outputs,(k,j))
+      saveHistos(w,outputs,s,bins,low,high,(k,j))
 
   traindata, targetdata = loadData('{0}/data/{1}/traindata_F0_F1.dat'.format(dir,model_g))
   numtrain = traindata.shape[0]       
@@ -338,7 +349,7 @@ def classifierPdf():
   # Should I be using test data here?
   outputs = predict('{0}/model/{1}/adaptive_F0_F1.pkl'.format(dir,model_g),traindata.reshape(traindata.shape[0],1))
   #outputs = clf.predict_proba(traindata.reshape(traindata.shape[0],1)) 
-  saveHistos(w,outputs)
+  saveHistos(w,outputs,s_full, bins_full, low_full, high_full)
      
   w.Print()
 
@@ -538,6 +549,7 @@ def fitAdaptive():
     return fullRatios
 
   score = w.var('score')
+  scoref = w.var('scoref')
   xarray = np.linspace(0,5,npoints)
  
   fullRatios = evaluateDecomposedRatio(w,x,xarray)
@@ -554,7 +566,7 @@ def fitAdaptive():
   F1pdf = w.pdf('sighistpdf_F0_F1')
   outputs = predict('{0}/model/{1}/adaptive_F0_F1.pkl'.format(dir,model_g),xarray.reshape(xarray.shape[0],1))
  
-  pdfratios = [singleRatio(score,F1pdf,F0pdf,xs) for xs in outputs]
+  pdfratios = [singleRatio(scoref,F1pdf,F0pdf,xs) for xs in outputs]
   pdfratios = np.array(pdfratios)
   saveFig(xarray, [pdfratios], makePlotName('full','trained',type='ratio'))
   saveFig(xarray, [np.array(y2) - pdfratios],makePlotName('full','trained',type='diff'))
@@ -565,8 +577,34 @@ def fitAdaptive():
   testdata, testtarget = loadData('{0}/data/{1}/testdata_F0_f0.dat'.format(dir,model_g)) 
   decomposedRatio = evaluateDecomposedRatio(w,x,testdata,plotting=False,roc=True)
   outputs = predict('{0}/model/{1}/adaptive_F0_F1.pkl'.format(dir,model_g),testdata.reshape(testdata.shape[0],1))
-  completeRatio = [singleRatio(score,F1pdf,F0pdf,xs) for xs in outputs]
+  completeRatio = [singleRatio(scoref,F1pdf,F0pdf,xs) for xs in outputs]
   realRatio = [singleRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in testdata]
+
+  #Histogram F0-f0 for decomposed
+  bins = 70
+  low = -1.
+  high = 3.
+  w.factory('ratio[{0},{1}]'.format(low, high))
+  ratio = w.var('ratio')
+  numtest = decomposedRatio.shape[0] 
+  for l,name in enumerate(['sig','bkg']):
+    hist = ROOT.TH1F('{0}hist_F0_f0'.format(name),'hist',bins,low,high)
+    for val in decomposedRatio[l*numtest/2:(l+1)*numtest/2]:
+      hist.Fill(val)
+    datahist = ROOT.RooDataHist('{0}datahist_F0_f0'.format(name),'hist',
+          ROOT.RooArgList(ratio),hist)
+    ratio.setBins(bins)
+    histpdf = ROOT.RooHistPdf('{0}histpdf_F0_f0'.format(name),'hist',
+          ROOT.RooArgSet(ratio), datahist, 0)
+
+    histpdf.specialIntegratorConfig(ROOT.kTRUE).method1D().setLabel('RooBinIntegrator')
+    getattr(w,'import')(hist)
+    getattr(w,'import')(datahist) # work around for morph = w.import(morph)
+    getattr(w,'import')(histpdf) # work around for morph = w.import(morph)
+
+    if verbose_printing == True and name == 'bkg':
+      printFrame(w,'ratio',[w.pdf('sighistpdf_F0_f0'), w.pdf('bkghistpdf_F0_f0')], makePlotName('composite','trained',type='hist'),['signal','bkg'])
+
 
   saveFig(completeRatio,[realRatio], makePlotName('full','trained',type='scatter'),scatter=True,axis=['full trained ratio','true ratio'])
   saveFig(decomposedRatio,[realRatio], makePlotName('composite','trained',type='scatter'),scatter=True, axis=['composed trained ratio','true ratio'])
@@ -611,7 +649,7 @@ if __name__ == '__main__':
   # Set this value to False if only final plots are needed
   verbose_printing = True
 
-  makeData(num_train=10000,num_test=5000) 
+  makeData(num_train=20000,num_test=10000) 
   trainClassifier(clf)
   classifierPdf()
   fitAdaptive()
