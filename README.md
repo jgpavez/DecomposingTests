@@ -1,8 +1,8 @@
 ## Decomposing tests between mixture models into their components
 
 This work is based on the section **5.4 Decomposing tests between mixture models into their components** 
-of the paper (ongoing work) [Approximating generalized likelihood ratio tests with calibrated discriminative classifiers]
-(https://github.com/cranmer/parametrized-learning/blob/master/tex/parametrized-learning.pdf) by Kyle Cranmer.
+of the paper (ongoing work) [Approximating Likelihood Ratios with Calibrated Discriminative Classifiers]
+(http://arxiv.org/abs/1506.02169) by Kyle Cranmer.
 
 We start with a simple model composed of three 1-Dim pdfs. Those pdfs are shown next
 
