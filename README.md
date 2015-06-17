@@ -55,7 +55,7 @@ signal coefficient become smaller.
 In the next image the mixture models for coefficients for signal of [0.2,0.1,0.05,0.01] are 
 shown
 
-!<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.2/full_model.png" with="20">                      |  ![0.1](https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/full_model.png)
+!<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.2/full_model.png" width="100">  |  ![0.1](https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/full_model.png)
 :-------------------------:|:-------------------------:
 ![0.05](https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/full_model.png)  |  ![0.01](https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/full_model.png)
 
