@@ -32,7 +32,7 @@ Secondly, we compare each ratio obtained by training pair-wise to the real ratio
 
 The ROC curves obtained by varying the threshold on the trained and true ratios of each pair of functions are shown in the next image.
 
-![Decomposed ROC](https://github.com/jgpavez/systematics/blob/master/plots/dec_comparison_mlp_roc.png)
+![Decomposed ROC](https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/dec_comparison_mlp_roc.png)
 
 In the next image the composed ratio using the formula (24) is compared to the ratio obtained by training the classifier 
 in the full model and to the true ratio.
@@ -58,8 +58,25 @@ shown
  0.20                   | 0.10
 :-------------------------:|:-------------------------:
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.2/full_model.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/full_model.png" width="350" >
-:-------------------------:|:-------------------------:
  0.05                   | 0.01
-:-------------------------:|:-------------------------:
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/full_model.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/full_model.png" width="350" >
+
+Now, we compare the real ratios, the composed ratios and the full trained ratios for each 
+one of the cases
+
+ 0.20                   | 0.10
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.2/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/full_comparison_mlp_ratio.png" width="350" >
+ 0.05                   | 0.01
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/full_comparison_mlp_ratio.png" width="350" >
+
+Finally, in the next image the Signal Efficiency - Bkg Rejection curves for the composed, full trained and truth ratio are shown for each one of the cases
+
+ 0.20                   | 0.10
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.2/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/full_comparison_mlp_sigbkg.png" width="350" >
+ 0.05                   | 0.01
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/full_comparison_mlp_sigbkg.png" width="350" >
+
+It can be seen that for very low signal presence the composed ratios are still working, on the other hand the full trained MLP is not able to reproduce correclty the ratio.
 
