@@ -10,13 +10,13 @@ We start with a simple model composed of three 1-Dim pdfs. Those pdfs are shown 
 
 Those pdfs forms two mixture models, as shown in formula (21) of the paper of reference.
 The first distribution correspond to the null signal hypothesis, meanwhile the second one 
-correspond to the distribution including signal (in this case signal corresponds to f1). 
-Both distributions for coefficients c0 = [ 0.,0.3,0.7] and c1 = [0.16666667,0.25,0.58333333]
+correspond to the mixture model including the signal (in this case the signal corresponds to f0). 
+Both distributions for coefficients **c0 = [ 0.,0.3,0.7]** and **c1 = [0.16666667,0.25,0.58333333]**
 are shown in the next image.
 
 ![Full Model](https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/full_model.png)
 
-First we compare the ratios obtained by training different classifiers (*Logistic, MLP and BDT*) and then composed using the formula (24) on the paper to the true ratio.
+First we compare the real ratios to the ratios obtained by training different classifiers (*Logistic, MLP and BDT*) and then composed using the formula (24) on the paper.
 
 ![All Classifiers](https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/composite_trained_all_ratio.png)
 
@@ -52,7 +52,7 @@ Next, the Signal Efficiency - Background Rejection curves of each one of the rat
 We want to check how the composed and the full strategy are affected when the value of the 
 signal coefficient become smaller.
 
-In the next image the mixture models for coefficients for signal of [0.2,0.1,0.05,0.01] are 
+In the next image the mixture models for coefficients for signal of **[0.2,0.1,0.05,0.01]** are 
 shown
 
  0.20                   | 0.10
@@ -70,7 +70,7 @@ one of the cases
  0.05                   | 0.01
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/full_comparison_mlp_ratio.png" width="350" >
 
-Finally, in the next image the Signal Efficiency - Bkg Rejection curves for the composed, full trained and truth ratio are shown for each one of the cases
+Finally, in the next image the Signal Efficiency - Background Rejection curves for the composed, full trained and true ratio are shown for each one of the cases
 
  0.20                   | 0.10
 :-------------------------:|:-------------------------:
@@ -78,5 +78,5 @@ Finally, in the next image the Signal Efficiency - Bkg Rejection curves for the 
  0.05                   | 0.01
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/full_comparison_mlp_sigbkg.png" width="350" >
 
-It can be seen that for very low signal presence the composed ratios are still working, on the other hand the full trained MLP is not able to reproduce correclty the ratio.
+It can be seen that for very low signal presence the composed ratios are still working, on the other hand the full trained MLP is not able to reproduce correctly the ratio.
 
