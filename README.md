@@ -20,10 +20,6 @@ First we compare the real ratios to the ratios obtained by training different cl
 
 ![All Classifiers](https://github.com/jgpavez/systematics/blob/master/plots/comp_train_all_ratio.png)
 
-The difference of each one of the composed ratios to the true ratio is shown in the next image.
-
-![All Classifiers Differences](https://github.com/jgpavez/systematics/blob/master/plots/comp_train_all_diff.png)
-
 Given that *MLP* gives the best results, we will use this classifier for the next experiments.
 
 Secondly, we compare each ratio obtained by training pair-wise to the real ratio of each pair of functions.
@@ -38,10 +34,6 @@ In the next image the composed ratio using the formula (24) is compared to the r
 in the full model and to the true ratio.
 
 ![All Ratios](https://github.com/jgpavez/systematics/blob/master/plots/full_comparison_mlp_ratio.png)
-
-The difference of the composed ratio and the full trained ratio to the true ratio is shown in the image below.
-
-![All Ratios Differences](https://github.com/jgpavez/systematics/blob/master/plots/full_comparison_mlp_diff.png)
 
 Next, the Signal Efficiency - Background Rejection curves of each one of the ratios (composed, full trained and full truth) is shown.
 
