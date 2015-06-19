@@ -176,7 +176,7 @@ def makeData(num_train=500,num_test=100):
   x = w.var('x')
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):  
-      if k == j:
+      if k == j or k > j:
         continue
       traindata, targetdata = makeDataset(x,w.pdf('f{0}'.format(k)),w.pdf('f{0}'.format(j))
       ,num_train)
@@ -213,9 +213,23 @@ def makeData(num_train=500,num_test=100):
 
 
 def loadData(filename):
+  #result = logit(make_predictions(dataset=traindata, model_file=filename)[:,1])
+  sfilename,k,j = filename.split('_')
+  j = j.split('.')[0]
+  if k <> 'F0':
+    k = int(k)
+    j = int(j)
+    if k > j:
+      filename = '{0}_{1}_{2}.dat'.format(sfilename,min(k,j),max(k,j))
   traintarget = np.loadtxt(filename)
   traindata = traintarget[:,0]
   targetdata = traintarget[:,1]
+  if k <> 'F0':
+    if k > j:
+      sigdata = np.zeros(traindata.shape[0]/2)
+      sigdata[:]  = traindata[traindata.shape[0]/2:]  
+      traindata[traindata.shape[0]/2:] = traindata[:traindata.shape[0]/2]
+      traindata[:traindata.shape[0]/2] = sigdata
   return (traindata, targetdata)
 
 def logit(p):
@@ -223,8 +237,17 @@ def logit(p):
 
 def predict(filename, traindata):
   if model_g == 'mlp':
+    sig = 1
     #result = logit(make_predictions(dataset=traindata, model_file=filename)[:,1])
-    return make_predictions(dataset=traindata, model_file=filename)[:,1]
+    sfilename,k,j = filename.split('_')
+    j = j.split('.')[0]
+    sig = 1
+    if k <> 'F0':
+      k = int(k)
+      j = int(j)
+      sig = 1 if k < j else 0
+      filename = '{0}_{1}_{2}.pkl'.format(sfilename,min(k,j),max(k,j))
+    return make_predictions(dataset=traindata, model_file=filename)[:,sig]
     #return result
   else:
     clf = joblib.load(filename)
@@ -291,7 +314,7 @@ def trainClassifier(clf):
 
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
-      if k==j:
+      if k==j or k > j:
         continue
       print " Training Classifier on f{0}/f{1}".format(k,j)
       #clf = svm.NuSVC(probability=True) #Why use a SVR??
@@ -330,7 +353,7 @@ def classifierPdf():
     test
   '''
 
-  bins = 70
+  bins = 40
   low = -7.
   high = 7.  
 
@@ -342,7 +365,7 @@ def classifierPdf():
   s = w.var('score')
   
   #This is because most of the data of the full model concentrate around 0 
-  bins_full = 70
+  bins_full = 40
   low_full = -1.0
   high_full = 1.0
   w.factory('scoref[{0},{1}]'.format(low_full, high_full))
@@ -369,7 +392,7 @@ def classifierPdf():
             ROOT.RooArgList(s),hist)
       s.setBins(bins)
       histpdf = ROOT.RooHistPdf('{0}histpdf_{1}_{2}'.format(name,k,j),'hist',
-            ROOT.RooArgSet(s), datahist, 0)
+            ROOT.RooArgSet(s), datahist, 1)
     
       histpdf.specialIntegratorConfig(ROOT.kTRUE).method1D().setLabel('RooBinIntegrator')
 
@@ -379,7 +402,7 @@ def classifierPdf():
       getattr(w,'import')(histpdf) # work around for morph = w.import(morph)
 
       score_str = 'scoref' if pos == None else 'score'
-      w.factory('KeysPdf::{0}dist_{1}_{2}({3},{0}data_{1}_{2},RooKeysPdf::NoMirror,2)'.format(name,k,j,score_str))
+      #w.factory('KeysPdf::{0}dist_{1}_{2}({3},{0}data_{1}_{2},RooKeysPdf::NoMirror,2)'.format(name,k,j,score_str))
 
       # Calculate the density of the classifier output using kernel density 
       # estimation technique
@@ -388,9 +411,9 @@ def classifierPdf():
       if verbose_printing == True and name == 'bkg' and k <> j:
         full = 'full' if pos == None else 'dec'
         # print histograms
-        #printFrame(w,score_str,[w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j))], makePlotName(full,'train',k,j,type='hist'),['signal','bkg'])
+        printFrame(w,score_str,[w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j))], makePlotName(full,'train',k,j,type='hist'),['signal','bkg'])
         # print histogram and density estimation together
-        printFrame(w,score_str,[w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j)),w.pdf('sigdist_{0}_{1}'.format(k,j)),w.pdf('bkgdist_{0}_{1}'.format(k,j))], makePlotName(full,'train',k,j,type='hist'),['signal_hist','bkg_hist','signal_est','bkg_est'])
+        #printFrame(w,score_str,[w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j)),w.pdf('sigdist_{0}_{1}'.format(k,j)),w.pdf('bkgdist_{0}_{1}'.format(k,j))], makePlotName(full,'train',k,j,type='hist'),['signal_hist','bkg_hist','signal_est','bkg_est'])
         # print density estimation
         #printFrame(w,'score',[w.pdf('sigdist_{0}_{1}'.format(k,j)), w.pdf('bkgdist_{0}_{1}'.format(k,j))], makePlotName(full,'trained',k,j,type='density'),['signal','bkg'])
 
@@ -590,8 +613,8 @@ def fitAdaptive(use_log = False):
       if c == 0:
         continue
       for j, c_ in enumerate(c1):
-        f0pdf = w.pdf('bkgdist_{0}_{1}'.format(k,j))
-        f1pdf = w.pdf('sigdist_{0}_{1}'.format(k,j))
+        f0pdf = w.pdf('bkghistpdf_{0}_{1}'.format(k,j))
+        f1pdf = w.pdf('sighistpdf_{0}_{1}'.format(k,j))
         f0 = w.pdf('f{0}'.format(k))
         f1 = w.pdf('f{0}'.format(j))
         if k == j:
@@ -644,8 +667,8 @@ def fitAdaptive(use_log = False):
         #xarray = np.sort(testdata)
         #xarray = np.sort(testdata)
 
-        f0pdf = w.pdf('bkgdist_{0}_{1}'.format(k,j))
-        f1pdf = w.pdf('sigdist_{0}_{1}'.format(k,j))
+        f0pdf = w.pdf('bkghistpdf_{0}_{1}'.format(k,j))
+        f1pdf = w.pdf('sighistpdf_{0}_{1}'.format(k,j))
         f0 = w.pdf('f{0}'.format(k))
         f1 = w.pdf('f{0}'.format(j))
         if k <> j:
@@ -711,8 +734,8 @@ def fitAdaptive(use_log = False):
   saveFig(xarray, [np.array(y2) - fullRatios], makePlotName('comp','train',type='diff'+post))
 
   # NN trained on complete model
-  F0pdf = w.pdf('bkgdist_F0_F1')
-  F1pdf = w.pdf('sigdist_F0_F1')
+  F0pdf = w.pdf('bkghistpdf_F0_F1')
+  F1pdf = w.pdf('sighistpdf_F0_F1')
   outputs = predict('{0}/model/{1}/{2}/adaptive_F0_F1.pkl'.format(dir,model_g,c1_g),xarray.reshape(xarray.shape[0],1))
  
   pdfratios = [getRatio(scoref,F1pdf,F0pdf,xs) for xs in outputs]
@@ -733,14 +756,14 @@ def fitAdaptive(use_log = False):
   all_ratios_plots = []
   all_names_plots = []
   bins = 70
-  low = 0.
-  high = 2.0
+  low = 0.6
+  high = 1.2
   if use_log == True:
     low = -1.0
     high = 1.0
   w.factory('ratio[{0},{1}]'.format(low, high))
   ratio = w.var('ratio')
-  for curr, curr_ratios in zip(['truth','full','composed'],[realRatio, completeRatio, decomposedRatio]):
+  for curr, curr_ratios in zip(['composed','full','truth'],[realRatio, completeRatio, decomposedRatio]):
     numtest = curr_ratios.shape[0] 
     for l,name in enumerate(['sig','bkg']):
       hist = ROOT.TH1F('{0}_{1}hist_F0_f0'.format(curr,name),'hist',bins,low,high)
@@ -759,11 +782,13 @@ def fitAdaptive(use_log = False):
       if name == 'bkg':
         all_ratios_plots.append([w.pdf('{0}_sighistpdf_F0_f0'.format(curr)),
               w.pdf('{0}_bkghistpdf_F0_f0'.format(curr))])
-        all_names_plots.append(['{0}_signal'.format(curr),'{0}_bkg'.format(curr)])
+        #all_names_plots.append(['{0}_signal'.format(curr),'{0}_bkg'.format(curr)])
       
-
+  all_ratios_plots = [[all_ratios_plots[0][0],all_ratios_plots[1][0],all_ratios_plots[2][0]],
+                    [all_ratios_plots[0][1],all_ratios_plots[1][1],all_ratios_plots[2][1]]]
+  all_names_plots = [['sig_truth','sig_full','sig_composed'],
+                    ['bkg_truth','bkg_full','bkg_composed']]
   printMultiFrame(w,'ratio',all_ratios_plots, makePlotName('ratio','comparison',type='hist'+post),all_names_plots)
-
 
   saveFig(completeRatio,[realRatio], makePlotName('full','train',type='scat'+post),scatter=True,axis=['full trained ratio','true ratio'])
   saveFig(decomposedRatio,[realRatio], makePlotName('comp','train',type='scat'+post),scatter=True, axis=['composed trained ratio','true ratio'])
@@ -819,7 +844,7 @@ if __name__ == '__main__':
   verbose_printing = True
 
   makeModel()
-  #makeData(num_train=100000,num_test=30000) 
+  #makeData(num_train=500000,num_test=30000) 
   #trainClassifier(clf)
   classifierPdf()
   fitAdaptive(use_log=False)
