@@ -44,31 +44,31 @@ Next, the Signal Efficiency - Background Rejection curves of each one of the rat
 We want to check how the composed and the full strategy are affected when the value of the 
 signal coefficient become smaller.
 
-In the next image the mixture models for coefficients for signal of **[0.2,0.1,0.05,0.01]** are 
+In the next image the mixture models for coefficients for signal of **[0.1,0.05,0.01,0.005]** are 
 shown
 
- 0.20                   | 0.10
+ 0.10                   | 0.05
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.2/full_model.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/full_model.png" width="350" >
- 0.05                   | 0.01
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/full_model.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/full_model.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.1/full_model.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/full_model.png" width="350" >
+ 0.01                   | 0.005
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/full_model.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.005/full_model.png" width="350" >
 
 Now, we compare the real ratios, the composed ratios and the full trained ratios for each 
 one of the cases
 
- 0.20                   | 0.10
+ 0.10                   | 0.05
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.2/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/full_comparison_mlp_ratio.png" width="350" >
- 0.05                   | 0.01
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/full_comparison_mlp_ratio.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.1/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/full_comparison_mlp_ratio.png" width="350" >
+ 0.01                   | 0.005
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.001/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.005/full_comparison_mlp_ratio.png" width="350" >
 
 Finally, in the next image the Signal Efficiency - Background Rejection curves for the composed, full trained and true ratio are shown for each one of the cases
 
- 0.20                   | 0.10
+ 0.10                   | 0.05
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.2/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/full_comparison_mlp_sigbkg.png" width="350" >
- 0.05                   | 0.01
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/full_comparison_mlp_sigbkg.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.1/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/full_comparison_mlp_sigbkg.png" width="350" >
+ 0.01                   | 0.005
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.005/full_comparison_mlp_sigbkg.png" width="350" >
 
 It can be seen that for very low signal presence the composed ratios are still working, on the other hand the full trained MLP is not able to reproduce correctly the ratio.
 
