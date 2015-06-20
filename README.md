@@ -18,7 +18,7 @@ are shown in the next image.
 
 First we compare the real ratios to the ratios obtained by training different classifiers (*Logistic, MLP and BDT*) and then composed using the formula (24) on the paper.
 
-![All Classifiers](https://github.com/jgpavez/systematics/blob/master/plots/comp_train_all_ratio.png)
+![All Classifiers](https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/comp_train_all_ratio.png)
 
 Given that *MLP* gives the best results, we will use this classifier for the next experiments.
 
