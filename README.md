@@ -33,11 +33,11 @@ The ROC curves obtained by varying the threshold on the trained and true ratios 
 In the next image the composed ratio using the formula (24) is compared to the ratio obtained by training the classifier 
 in the full model and to the true ratio.
 
-![All Ratios](https://github.com/jgpavez/systematics/blob/master/plots/full_comparison_mlp_ratio.png)
+![All Ratios](https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/full_comparison_mlp_ratio.png)
 
 Next, the Signal Efficiency - Background Rejection curves of each one of the ratios (composed, full trained and full truth) is shown.
 
-![All ROC](https://github.com/jgpavez/systematics/blob/master/plots/full_comparison_mlp_sigbkg.png)
+![All ROC](https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/full_comparison_mlp_sigbkg.png)
 
 # Varying the signal presence 
 
@@ -49,7 +49,7 @@ shown
 
  0.10                   | 0.05
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.1/full_model.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/full_model.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/full_model.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/full_model.png" width="350" >
  0.01                   | 0.005
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/full_model.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.005/full_model.png" width="350" >
 
@@ -58,15 +58,15 @@ one of the cases
 
  0.10                   | 0.05
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.1/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/full_comparison_mlp_ratio.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/full_comparison_mlp_ratio.png" width="350" >
  0.01                   | 0.005
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.001/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.005/full_comparison_mlp_ratio.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.005/full_comparison_mlp_ratio.png" width="350" >
 
 Finally, in the next image the Signal Efficiency - Background Rejection curves for the composed, full trained and true ratio are shown for each one of the cases
 
  0.10                   | 0.05
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.1/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/full_comparison_mlp_sigbkg.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/full_comparison_mlp_sigbkg.png" width="350" >
  0.01                   | 0.005
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.005/full_comparison_mlp_sigbkg.png" width="350" >
 
