@@ -62,6 +62,24 @@ one of the cases
  0.01                   | 0.005
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.005/full_comparison_mlp_ratio.png" width="350" >
 
+Next, the score histogram for each one of the pair-wise trained classifiers for signal 
+and background is shown, notice that only histograms for k < j is shown
+
+ 0.10                   | 0.05
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/decomp_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/decomp_all_mlp_hist.png" width="350" >
+ 0.01                   | 0.005
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/decomp_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.005/decomp_all_mlp_hist.png" width="350" >
+
+The ratio histograms for the composite, full trained and true cases is shown in the next image, those histograms are constructed over data sampled from the distribution of F0 background and f0 signal.
+
+ 0.10                   | 0.05
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/ratio_comparison_mlp_hist.png" width="350" >
+ 0.01                   | 0.005
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.005/ratio_comparison_mlp_hist.png" width="350" >
+
+
 Finally, in the next image the Signal Efficiency - Background Rejection curves for the composed, full trained and true ratio are shown for each one of the cases
 
  0.10                   | 0.05
