@@ -71,7 +71,7 @@ and background is shown, notice that only histograms for k < j is shown
  0.01                   | 0.005
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/decomp_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.005/decomp_all_mlp_hist.png" width="350" >
 
-The ratio histograms for the composite, full trained and true cases is shown in the next image, those histograms are constructed over data sampled from the distribution of F0 background and f0 signal.
+The ratio histograms for the composite, full trained and true cases are shown in the next image, those histograms are constructed over data sampled from the distribution of F0 background and f0 signal.
 
  0.10                   | 0.05
 :-------------------------:|:-------------------------:
@@ -89,4 +89,41 @@ Finally, in the next image the Signal Efficiency - Background Rejection curves f
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.005/full_comparison_mlp_sigbkg.png" width="350" >
 
 It can be seen that for very low signal presence the composed ratios are still working perfectly, on the other hand the full trained MLP is not able to reproduce the ratio at all.
+
+# Checking how the training affect the ratios
+
+Three major points will be studied
+ * Using more training data.
+ * Reuse the classifier trained for fi - fj in fj - fi.
+ * Sample only one time from each fi (previously samples were obtained for each fi
+ in each pair including fi)
+
+ First we compare the composite ratio obtained using 10000 samples for the cases: reusing 
+ the classifier, not reusing the classifier, and not reusing the classifier and resampling 
+ for each pair.
+
+ Reusing classifier        | Not reusing
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/50000/comp_train_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/50000_2/comp_train_mlp_ratio.png" width="350" >
+ Reusing and resampling    | 
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/50000_3/comp_train_mlp_ratio.png" width="350">  | 
+
+Next, we study how the ratios are affected given the number of training data. The image shown
+the composite ratios for 1000,10000,100000 and 200000 samples reusing the classifiers and 
+not resampling.
+
+ 1000                  | 10000
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/500/comp_train_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/5000/comp_train_mlp_ratio.png" width="350" >
+ 20000                   | 100000
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/10000/comp_train_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/50000/comp_train_mlp_ratio.png" width="350" >
+
+And finally the same ratios but not reusing the classifiers
+
+ 1000                  | 10000
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/500_2/comp_train_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/5000_2/comp_train_mlp_ratio.png" width="350" >
+ 20000                   | 100000
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/10000_2/comp_train_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/50000_2/comp_train_mlp_ratio.png" width="350" >
+
 
