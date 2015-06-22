@@ -1,7 +1,7 @@
 ## Decomposing tests between mixture models into their components
 
 This work is based on the section **5.4 Decomposing tests between mixture models into their components** 
-of the paper (ongoing work) [Approximating Likelihood Ratios with Calibrated Discriminative Classifiers]
+of the paper [Approximating Likelihood Ratios with Calibrated Discriminative Classifiers]
 (http://arxiv.org/abs/1506.02169) by Kyle Cranmer.
 
 We start with a simple model composed of three 1-Dim pdfs. Those pdfs are shown next
@@ -11,7 +11,7 @@ We start with a simple model composed of three 1-Dim pdfs. Those pdfs are shown 
 Those pdfs forms two mixture models, as shown in formula (21) of the paper of reference.
 The first distribution correspond to the null signal hypothesis, meanwhile the second one 
 correspond to the mixture model including the signal (in this case the signal corresponds to f0). 
-Both distributions for coefficients **c0 = [ 0.,0.3,0.7]** and **c1 = [0.16666667,0.25,0.58333333]**
+Both distributions for coefficients **c0 = [ 0.,0.3,0.7]** and **c1 = [0.09090909,0.27272727,0.63636364]**
 are shown in the next image.
 
 ![Full Model](https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/full_model.png)
@@ -70,5 +70,5 @@ Finally, in the next image the Signal Efficiency - Background Rejection curves f
  0.01                   | 0.005
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.005/full_comparison_mlp_sigbkg.png" width="350" >
 
-It can be seen that for very low signal presence the composed ratios are still working, on the other hand the full trained MLP is not able to reproduce correctly the ratio.
+It can be seen that for very low signal presence the composed ratios are still working perfectly, on the other hand the full trained MLP is not able to reproduce the ratio at all.
 
