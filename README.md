@@ -116,7 +116,7 @@ not resampling.
 :-------------------------:|:-------------------------:
 <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/500/comp_train_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/5000/comp_train_mlp_ratio.png" width="350" >
  20000                   | 100000
-<img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/50000/comp_train_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/50000/comp_train_mlp_ratio.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/10000/comp_train_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/50000/comp_train_mlp_ratio.png" width="350" >
 
 And finally the same ratios but not reusing the classifiers
 
