@@ -38,12 +38,22 @@ import copy
 from logistic_sgd import LogisticRegression
 
 # This function is repeated in Decomposing... I should facorize this
-def loadData(filename):
-  traintarget = numpy.loadtxt(filename)
-  traindata = traintarget[:,0]
-  targetdata = traintarget[:,1]
+def loadData(type,k,j,folder=None):
+  if folder <> None:
+    fk = numpy.loadtxt('{0}/{1}_{2}.dat'.format(folder,type,k))
+    fj = numpy.loadtxt('{0}/{1}_{2}.dat'.format(folder,type,j))
+  else:
+    fk = numpy.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,type,k))
+    fj = numpy.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,type,j))
+  num = fk.shape[0]
+  traindata = numpy.zeros(num*2)
+  targetdata = numpy.zeros(num*2)
+  traindata[:num] = fj[:]
+  traindata[num:] = fk[:]
+  targetdata[:num].fill(1)
+  targetdata[num:].fill(0)
+  #result = logit(make_predictions(dataset=traindata, model_file=filename)[:,1])
   return (traindata, targetdata)
-
 
 class HiddenLayer(object):
     def __init__(self, rng, input, n_in, n_out, W=None, b=None,
@@ -179,6 +189,7 @@ class MLP(object):
 
         self.y_out = self.logRegressionLayer.p_y_given_x
         self.predictions = self.logRegressionLayer.y_pred
+        self.logit = T.log(self.y_out) - T.log(1. - self.y_out)
 
         # the parameters of the model are the parameters of the two layer it is
         # made out of
@@ -237,7 +248,7 @@ def shared_dataset(data_xy, borrow=True):
 
 
 
-def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100,
+def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=10,
               batch_size=20, n_hidden=10,in_size=1,out_size=2,
               model_file='model/mlp/adaptive_0_1.pkl'):
 
@@ -265,7 +276,7 @@ def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_
                      n_hidden=n_hidden, n_out=out_size)
 
 
-    test_model = theano.function([], [classifier.predictions,classifier.y_out],
+    test_model = theano.function([], [classifier.predictions,classifier.logit],
                             givens={x: test_set_x})
 
     classifier.load_model(filename=model_file)
@@ -275,7 +286,7 @@ def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_
     return probs
 
 def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100,
-             dataset='data/mlp/traindata_0_1.dat', batch_size=20, n_hidden=10,in_size=1,out_size=2,
+             dir='data/mlp',datatype='train',kpos=0,jpos=0, batch_size=20, n_hidden=10,in_size=1,out_size=2,
               save_file='model/mlp/adaptive_0_1.pkl'):
     """
     Demonstrate stochastic gradient descent optimization for a multilayer
@@ -304,7 +315,7 @@ def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100,
 
 
    """
-    datasets = loadData(dataset)
+    datasets = loadData(datatype,kpos,jpos,folder=dir)
     train_set_x, train_set_y = datasets
     indices = numpy.random.permutation(train_set_x.shape[0])
     train_set_x = train_set_x[indices]
