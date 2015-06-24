@@ -92,38 +92,46 @@ It can be seen that for very low signal presence the composed ratios are still w
 
 # Checking how the training affect the ratios
 
-Three major points will be studied
- * Using more training data.
+Four major points will be studied
+ * Using more training data to train the MLP.
+ * Keep the same MLP, but changing the ammount of data used to create the histograms of score for each f_i.
  * Reuse the classifier trained for fi - fj in fj - fi.
- * Sample only one time from each fi (previously samples were obtained for each fi
- in each pair including fi)
+ * Sample only once from each fi (other way woule be to obtain samples for each fi in each pair including fi).
 
- First we compare the composite ratio obtained using 10000 samples for the cases: reusing 
- the classifier, not reusing the classifier, and not reusing the classifier and resampling 
- for each pair.
-
- Reusing classifier        | Not reusing
-:-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/50000/comp_train_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/50000_2/comp_train_mlp_ratio.png" width="350" >
- Not reusing and resampling    | 
-<img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/50000_3/comp_train_mlp_ratio.png" width="350">  | 
-
-Next, we study how the ratios are affected given the number of training data. The image shown
-the composite ratios for 1000,10000,100000 and 200000 samples reusing the classifiers and 
-not resampling.
+First, we study how the ratios are affected by the number of samples used to train the MLP. We train the MLP with 1000, 10000, 100000 and 200000 samples.
+The next image shows the results.
 
  1000                  | 10000
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/500/comp_train_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/5000/comp_train_mlp_ratio.png" width="350" >
- 20000                   | 100000
-<img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/10000/comp_train_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/50000/comp_train_mlp_ratio.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/1000/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/10000/full_comparison_mlp_ratio.png" width="350" >
+ 100000                   | 200000
+<img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/100000/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/200000/full_comparison_mlp_ratio.png" width="350" >
 
-And finally the same ratios but not reusing the classifiers
+Secondly, we keep the MLP fixed (using the one trained with 200000 samples) and change the number of samples used to create the score histograms for each one of the distributions.
+Results for 1000 20000 10000 and 1000000 samples are shown next.
 
- 1000                  | 10000
+ 1000                  | 2000
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/500_2/comp_train_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/5000_2/comp_train_mlp_ratio.png" width="350" >
- 20000                   | 100000
-<img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/10000_2/comp_train_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/50000_2/comp_train_mlp_ratio.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/1000_h/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/2000_h/full_comparison_mlp_ratio.png" width="350" >
+ 10000                   | 100000
+<img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/10000_h/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/100000_h/full_comparison_mlp_ratio.png" width="350" >
 
+Now, we are interested in check how the ratio are affected when not reusing the classifiers trained for i-j in the dataset j-i. In the previous cases we reuse the output of the classifier 
+trained for i-j in the dataset j-i but with the complement of the output. Results using 10000 and 200000 samples for training and building histograms without reusing the classifiers 
+are shown next.
+
+ Not reusing classifier - 10000        | Not reusing classifier - 200000
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/10000_nr/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/200000_nr/full_comparison_mlp_ratio.png" width="350" >
+ Reusing classifier - 10000        | Reusing classifier - 200000
+<img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/10000/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/200000/full_comparison_mlp_ratio.png" width="350" >
+
+
+Finally, we will check how the results are effected if we use different samples from f_i for each pair. Commonly we would sample only one dataset from each f_i to construct each combined dataset, if we use different samples for each one of the combinations results are affected, as shown next.
+
+ Not reusing classifier - 10000        | Not reusing classifier - 200000
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/10000_nr_nf/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/200000_nr_nf/full_comparison_mlp_ratio.png" width="350" >
+ Reusing classifier - 10000        | Reusing classifier - 200000
+<img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/10000/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/200000/full_comparison_mlp_ratio.png" width="350" >
 
