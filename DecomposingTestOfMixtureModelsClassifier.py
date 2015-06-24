@@ -82,8 +82,6 @@ def printMultiFrame(w,obs,all_pdfs,name,legends):
     can.Update()
   can.SaveAs('{0}/plots/{1}/{2}.png'.format(dir,model_g,name))
 
-
-
 def printFrame(w,obs,pdf,name,legends):
   '''
     This just print a bunch of pdfs 
@@ -156,62 +154,54 @@ def makeData(num_train=500,num_test=100):
   w = f.Get('w')
   f.Close()
 
-  def makeDataset(x,bkgpdf,sigpdf,num):
-    traindata = np.zeros(num*2)
-    targetdata = np.zeros(num*2)
-    bkgdata = bkgpdf.generate(ROOT.RooArgSet(x),num)
-    sigdata = sigpdf.generate(ROOT.RooArgSet(x),num)
-    
-    traindata[:num] = [sigdata.get(i).getRealValue('x') 
+  def makeDataFi(x, pdf, num):
+    traindata = np.zeros(num) 
+    data = pdf.generate(ROOT.RooArgSet(x),num)
+    traindata[:] = [data.get(i).getRealValue('x') 
         for i in range(num)]
-    targetdata[:num].fill(1)
-
-    traindata[num:] = [bkgdata.get(i).getRealValue('x')
-        for i in range(num)]
-    targetdata[num:].fill(0)
-    
-    return traindata, targetdata  
- 
+    return traindata
 
   x = w.var('x')
   for k,c in enumerate(c0):
-    for j,c_ in enumerate(c1):  
-      if k == j or k > j:
-        continue
-      traindata, targetdata = makeDataset(x,w.pdf('f{0}'.format(k)),w.pdf('f{0}'.format(j))
-      ,num_train)
-      #plt.hist(traindata[:10000],bins=100,color='red')
-      #plt.hist(traindata[10000:],bins=100,color='blue')
-      #plt.title('traindata_{1}_{2}'.format(model_g, k, j))
-      #plt.show()
-      np.savetxt('{0}/data/{1}/{2}/traindata_{3}_{4}.dat'.format(dir,model_g,c1_g,k,j),
-              np.column_stack((traindata,targetdata)),fmt='%f')
+    traindata = makeDataFi(x,w.pdf('f{0}'.format(k)), num_train)
+    np.savetxt('{0}/data/{1}/{2}/train_{3}.dat'.format(dir,'mlp',c1_g,k),
+                      traindata,fmt='%f')
+    testdata = makeDataFi(x, w.pdf('f{0}'.format(k)), num_test)
+    np.savetxt('{0}/data/{1}/{2}/test_{3}.dat'.format(dir,'mlp',c1_g,k),
+                      testdata,fmt='%f')
 
-      testdata, testtarget = makeDataset(x,w.pdf('f{0}'.format(k)),w.pdf('f{0}'.format(j))
-      ,num_test)
+  traindata = makeDataFi(x,w.pdf('F0'), num_train)
+  np.savetxt('{0}/data/{1}/{2}/train_F0.dat'.format(dir,'mlp',c1_g),
+                    traindata,fmt='%f')
+  traindata = makeDataFi(x,w.pdf('F1'), num_train)
+  np.savetxt('{0}/data/{1}/{2}/train_F1.dat'.format(dir,'mlp',c1_g),
+                    traindata,fmt='%f')
+  testdata = makeDataFi(x, w.pdf('F0'), num_test)
+  np.savetxt('{0}/data/{1}/{2}/test_F0.dat'.format(dir,'mlp',c1_g),
+                    testdata,fmt='%f')
+  testdata = makeDataFi(x, w.pdf('F1'), num_test)
+  np.savetxt('{0}/data/{1}/{2}/test_F1.dat'.format(dir,'mlp',c1_g),
+                    testdata,fmt='%f')
 
-      np.savetxt('{0}/data/{1}/{2}/testdata_{3}_{4}.dat'.format(dir,model_g,c1_g,k,j),
-              np.column_stack((testdata,testtarget)),fmt='%f')
-
-
+  '''
   traindata, targetdata = makeDataset(x,w.pdf('F0'),w.pdf('F1'),num_train)
 
-  np.savetxt('{0}/data/{1}/{2}/traindata_F0_F1.dat'.format(dir,model_g,c1_g),
+  np.savetxt('{0}/data/{1}/{2}/traindata_F0_F1.dat'.format(dir,'mlp',c1_g),
           np.column_stack((traindata,targetdata)),fmt='%f')
 
   testdata, testtarget = makeDataset(x,w.pdf('F0'.format(k)),w.pdf('F1'.format(j))
   ,num_test)
 
-  np.savetxt('{0}/data/{1}/{2}/testdata_F0_F1.dat'.format(dir,model_g,c1_g),
+  np.savetxt('{0}/data/{1}/{2}/testdata_F0_F1.dat'.format(dir,'mlp',c1_g),
           np.column_stack((testdata,testtarget)),fmt='%f')
 
   testdata, testtarget = makeDataset(x,w.pdf('F0'),w.pdf('f0'),num_test)
 
 
-  np.savetxt('{0}/data/{1}/{2}/testdata_F0_f0.dat'.format(dir,model_g,c1_g),
+  np.savetxt('{0}/data/{1}/{2}/testdata_F0_f0.dat'.format(dir,'mlp',c1_g),
           np.column_stack((testdata,testtarget)),fmt='%f')
-
-
+  '''
+'''
 def loadData(filename):
   #result = logit(make_predictions(dataset=traindata, model_file=filename)[:,1])
   sfilename,k,j = filename.split('_')
@@ -231,22 +221,30 @@ def loadData(filename):
       traindata[traindata.shape[0]/2:] = traindata[:traindata.shape[0]/2]
       traindata[:traindata.shape[0]/2] = sigdata
   return (traindata, targetdata)
+'''
+def loadData(type,k,j,folder=None):
+  if folder <> None:
+    fk = np.loadtxt('{0}/{1}_{2}.dat'.format(folder,type,k))
+    fj = np.loadtxt('{0}/{1}_{2}.dat'.format(folder,type,j))
+  else:
+    fk = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,type,k))
+    fj = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,type,j))
+  num = fk.shape[0]
+  traindata = np.zeros(num*2)
+  targetdata = np.zeros(num*2)
+  traindata[:num] = fj[:]
+  traindata[num:] = fk[:]
+  targetdata[:num].fill(1)
+  targetdata[num:].fill(0)
+  return (traindata, targetdata)
 
 def logit(p):
   return np.log(p) - np.log(1.-p)
 
+'''
 def predict(filename, traindata):
+  sig = 1
   if model_g == 'mlp':
-    sig = 1
-    #result = logit(make_predictions(dataset=traindata, model_file=filename)[:,1])
-    sfilename,k,j = filename.split('_')
-    j = j.split('.')[0]
-    sig = 1
-    if k <> 'F0':
-      k = int(k)
-      j = int(j)
-      sig = 1 if k < j else 0
-      filename = '{0}_{1}_{2}.pkl'.format(sfilename,min(k,j),max(k,j))
     return make_predictions(dataset=traindata, model_file=filename)[:,sig]
     #return result
   else:
@@ -255,7 +253,28 @@ def predict(filename, traindata):
       output = clf.predict(traindata)
       return np.clip(output,0.,1.)
     else:
-      return clf.predict_proba(traindata)[:,1]
+      return clf.predict_proba(traindata)[:,sig]
+
+'''
+def predict(filename, traindata):
+  sig = 1
+  sfilename,k,j = filename.split('_')
+  j = j.split('.')[0]
+  sig = 1
+  if k <> 'F0':
+    k = int(k)
+    j = int(j)
+    sig = 1 if k < j else 0
+    filename = '{0}_{1}_{2}.pkl'.format(sfilename,min(k,j),max(k,j))
+  if model_g == 'mlp':
+    return make_predictions(dataset=traindata, model_file=filename)[:,sig]
+  else:
+    clf = joblib.load(filename)
+    if clf.__class__.__name__ == 'NuSVR':
+      output = clf.predict(traindata)
+      return np.clip(output,0.,1.)
+    else:
+      return clf.predict_proba(traindata)[:,sig]
 
 def makeROC(outputs, target, label):
   '''
@@ -316,26 +335,25 @@ def trainClassifier(clf):
     for j,c_ in enumerate(c1):
       if k==j or k > j:
         continue
+      #if k == j:
       print " Training Classifier on f{0}/f{1}".format(k,j)
       #clf = svm.NuSVC(probability=True) #Why use a SVR??
       if model_g == 'mlp':
-        train_mlp(dataset='{0}/data/{1}/{2}/traindata_{3}_{4}.dat'.format(dir,model_g,c1_g,k,j),
+        train_mlp(datatype='train',kpos=k,jpos=j,dir='{0}/data/{1}/{2}'.format(dir,'mlp',c1_g),
           save_file='{0}/model/{1}/{2}/adaptive_{3}_{4}.pkl'.format(dir,model_g,c1_g,k,j))
       else:
-        traindata,targetdata = loadData('{0}/data/{1}/{2}/traindata_{3}_{4}.dat'.format(dir,model_g,c1_g,k,j)) 
+        traindata,targetdata = loadData('train',k,j) 
         clf.fit(traindata.reshape(traindata.shape[0],1)
             ,targetdata)
         joblib.dump(clf, '{0}/model/{1}/{2}/adaptive_{3}_{4}.pkl'.format(dir,model_g,c1_g,k,j))
-
-
       #makeROC(outputs, testtarget, makePlotName('decomposed','trained',k,j,'roc'))
   
   print " Training Classifier on F0/F1"
   if model_g == 'mlp':
-    train_mlp(dataset='{0}/data/{1}/{2}/traindata_F0_F1.dat'.format(dir,model_g,c1_g), 
+    train_mlp(datatype='train',kpos='F0',jpos='F1',dir='{0}/data/{1}/{2}'.format(dir,'mlp',c1_g), 
         save_file='{0}/model/{1}/{2}/adaptive_F0_F1.pkl'.format(dir,model_g,c1_g))
   else:
-    traindata,targetdata = loadData('{0}/data/{1}/{2}/traindata_F0_F1.dat'.format(dir,model_g,c1_g)) 
+    traindata,targetdata = loadData('train','F0','F1') 
     #clf = svm.NuSVC(probability=True) #Why use a SVR??
     clf.fit(traindata.reshape(traindata.shape[0],1)
         ,targetdata)
@@ -370,6 +388,8 @@ def classifierPdf():
   high_full = 1.0
   w.factory('scoref[{0},{1}]'.format(low_full, high_full))
   s_full = w.var('scoref')
+  histos = []
+  histos_names = []
 
   def saveHistos(w,ouputs,s,bins,low,high,pos=None):
     numtrain = outputs.shape[0]
@@ -416,12 +436,15 @@ def classifierPdf():
         #printFrame(w,score_str,[w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j)),w.pdf('sigdist_{0}_{1}'.format(k,j)),w.pdf('bkgdist_{0}_{1}'.format(k,j))], makePlotName(full,'train',k,j,type='hist'),['signal_hist','bkg_hist','signal_est','bkg_est'])
         # print density estimation
         #printFrame(w,'score',[w.pdf('sigdist_{0}_{1}'.format(k,j)), w.pdf('bkgdist_{0}_{1}'.format(k,j))], makePlotName(full,'trained',k,j,type='density'),['signal','bkg'])
+        if k < j and k <> 'F0':
+          histos.append([w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j))])
+          histos_names.append(['f{0}-f{1}_signal'.format(k,j), 'f{0}-f{1}_background'.format(k,j)])
 
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
       if k == j: 
         continue
-      traindata, targetdata = loadData('{0}/data/{1}/{2}/traindata_{3}_{4}.dat'.format(dir,model_g,c1_g,k,j))
+      traindata, targetdata = loadData('train',k,j)
       numtrain = traindata.shape[0]       
 
       # Should I be using test data here?
@@ -429,7 +452,8 @@ def classifierPdf():
       #outputs = clf.predict_proba(traindata.reshape(traindata.shape[0],1)) 
       saveHistos(w,outputs,s,bins,low,high,(k,j))
 
-  traindata, targetdata = loadData('{0}/data/{1}/{2}/traindata_F0_F1.dat'.format(dir,model_g,c1_g))
+  printMultiFrame(w,'score',histos, makePlotName('decomp','all',type='hist'),histos_names)
+  traindata, targetdata = loadData('train','F0','F1')
   numtrain = traindata.shape[0]       
 
   # Should I be using test data here?
@@ -629,7 +653,7 @@ def fitAdaptive(use_log = False):
           saveFig(xarray, [ksTrained[k-1][j],ks[k-1][j]], makePlotName('dec','train',k,j,type='ratiolog'),
             ['trained','truth'])
         if roc == True and k <> j:
-          testdata, testtarget = loadData('data/{0}/{1}/testdata_{2}_{3}.dat'.format(model_g,c1_g,k,j)) 
+          testdata, testtarget = loadData('test',k,j) 
           outputs = predict('model/{0}/{1}/adaptive_{2}_{3}.pkl'.format(model_g,c1_g,k,j),
                     testdata.reshape(testdata.shape[0],1))
           clfRatios = [singleRatio(score,f0pdf,f1pdf,xs) for xs in outputs]
@@ -689,7 +713,7 @@ def fitAdaptive(use_log = False):
           saveFig(xarray, [pdfratios,ratios], makePlotName('dec','train',k,j,type='ratio'),
             ['trained','truth'])
         if roc == True and k <> j:
-          testdata, testtarget = loadData('{0}/data/{1}/{2}/testdata_{3}_{4}.dat'.format(dir,model_g,c1_g,k,j)) 
+          testdata, testtarget = loadData('test',k,j) 
           outputs = predict('{0}/model/{1}/{2}/adaptive_{3}_{4}.pkl'.format(dir,model_g,c1_g,k,j),
                     testdata.reshape(testdata.shape[0],1))
           clfRatios = [singleRatio(score,f0pdf,f1pdf,xs) for xs in outputs]
@@ -746,7 +770,7 @@ def fitAdaptive(use_log = False):
   # ROC for ratios
   # load test data
   # check if ratios fulfill the requeriments of type
-  testdata, testtarget = loadData('{0}/data/{1}/{2}/testdata_F0_f0.dat'.format(dir,model_g,c1_g)) 
+  testdata, testtarget = loadData('test','F0',0) 
   decomposedRatio = evaluateRatio(w,x,testdata,plotting=False,roc=True)
   outputs = predict('{0}/model/{1}/{2}/adaptive_F0_F1.pkl'.format(dir,model_g,c1_g),testdata.reshape(testdata.shape[0],1))
   completeRatio = np.array([getRatio(scoref,F1pdf,F0pdf,xs) for xs in outputs])
@@ -798,7 +822,7 @@ def fitAdaptive(use_log = False):
   makeSigBkg(1.-np.array(completeRatio), testtarget,makePlotName('full','train',type='sigbkg'+post))
 
 
-  testdata, testtarget = loadData('{0}/data/{1}/{2}/testdata_F0_F1.dat'.format(dir,model_g,c1_g)) 
+  testdata, testtarget = loadData('test','F0','F1') 
   # Scatter plot to compare regression function and classifier score
   reg = np.array([regFunc(x,w.pdf('F0'),w.pdf('F1'),xs) for xs in testdata])
   #reg = reg/np.max(reg)
@@ -844,9 +868,9 @@ if __name__ == '__main__':
   verbose_printing = True
 
   makeModel()
-  #makeData(num_train=500000,num_test=30000) 
-  #trainClassifier(clf)
+  makeData(num_train=100000,num_test=30000) 
+  trainClassifier(clf)
   classifierPdf()
   fitAdaptive(use_log=False)
-  #fitAdaptive(use_log=True)
+  fitAdaptive(use_log=True)
 

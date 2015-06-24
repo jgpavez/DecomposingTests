@@ -54,6 +54,28 @@ def loadData(type,k,j,folder=None):
   targetdata[num:].fill(0)
   #result = logit(make_predictions(dataset=traindata, model_file=filename)[:,1])
   return (traindata, targetdata)
+'''
+
+def loadData(filename):
+  #result = logit(make_predictions(dataset=traindata, model_file=filename)[:,1])
+  sfilename,k,j = filename.split('_')
+  j = j.split('.')[0]
+  if k <> 'F0':
+    k = int(k)
+    j = int(j)
+    if k > j:
+      filename = '{0}_{1}_{2}.dat'.format(sfilename,min(k,j),max(k,j))
+  traintarget = numpy.loadtxt(filename)
+  traindata = traintarget[:,0]
+  targetdata = traintarget[:,1]
+  if k <> 'F0':
+    if k > j:
+      sigdata = numpy.zeros(traindata.shape[0]/2)
+      sigdata[:]  = traindata[traindata.shape[0]/2:]  
+      traindata[traindata.shape[0]/2:] = traindata[:traindata.shape[0]/2]
+      traindata[:traindata.shape[0]/2] = sigdata
+  return (traindata, targetdata)
+'''
 
 class HiddenLayer(object):
     def __init__(self, rng, input, n_in, n_out, W=None, b=None,
@@ -245,9 +267,6 @@ def shared_dataset(data_xy, borrow=True):
     # lets ous get around this issue
     return shared_x, T.cast(shared_y, 'int32')
 
-
-
-
 def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=10,
               batch_size=20, n_hidden=10,in_size=1,out_size=2,
               model_file='model/mlp/adaptive_0_1.pkl'):
@@ -288,6 +307,11 @@ def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_
 def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100,
              dir='data/mlp',datatype='train',kpos=0,jpos=0, batch_size=20, n_hidden=10,in_size=1,out_size=2,
               save_file='model/mlp/adaptive_0_1.pkl'):
+
+#def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100,
+#             dataset='data/mlp',batch_size=20, n_hidden=10,in_size=1,out_size=2,
+#              save_file='model/mlp/adaptive_0_1.pkl'):
+
     """
     Demonstrate stochastic gradient descent optimization for a multilayer
     perceptron
@@ -316,6 +340,7 @@ def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100,
 
    """
     datasets = loadData(datatype,kpos,jpos,folder=dir)
+    #datasets = loadData(dataset)
     train_set_x, train_set_y = datasets
     indices = numpy.random.permutation(train_set_x.shape[0])
     train_set_x = train_set_x[indices]
