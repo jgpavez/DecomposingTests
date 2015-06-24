@@ -88,7 +88,7 @@ Finally, in the next image the Signal Efficiency - Background Rejection curves f
  0.01                   | 0.005
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.005/full_comparison_mlp_sigbkg.png" width="350" >
 
-It can be seen that for very low signal presence the composed ratios are still working perfectly, on the other hand the full trained MLP is not able to reproduce the ratio at all.
+It can be seen that for very low signal presence the composed ratios are still **working perfectly**, on the other hand the full trained MLP is not able to reproduce the ratio at all.
 
 # Checking how the training affect the ratios
 
