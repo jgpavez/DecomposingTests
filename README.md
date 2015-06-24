@@ -94,9 +94,9 @@ It can be seen that for very low signal presence the composed ratios are still w
 
 Four major points will be studied
  * Using more training data to train the MLP.
- * Keep the same MLP, but changing the ammount of data used to create the histograms of score for each f_i.
+ * Keep the same MLP, but changing the amount of data used to create the histograms of score for each f_i.
  * Reuse the classifier trained for fi - fj in fj - fi.
- * Sample only once from each fi (other way woule be to obtain samples for each fi in each pair including fi).
+ * Sample only once from each fi (other way would be to obtain samples for each fi in each pair including fi).
 
 First, we study how the ratios are affected by the number of samples used to train the MLP. We train the MLP with 1000, 10000, 100000 and 200000 samples.
 The next image shows the results.
@@ -108,7 +108,7 @@ The next image shows the results.
 <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/100000/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/200000/full_comparison_mlp_ratio.png" width="350" >
 
 Secondly, we keep the MLP fixed (using the one trained with 200000 samples) and change the number of samples used to create the score histograms for each one of the distributions.
-Results for 1000 20000 10000 and 1000000 samples are shown next.
+Results for 1000, 20000, 10000 and 1000000 samples are shown next.
 
  1000                  | 2000
 :-------------------------:|:-------------------------:
@@ -129,9 +129,9 @@ are shown next.
 
 Finally, we will check how the results are effected if we use different samples from f_i for each pair. Commonly we would sample only one dataset from each f_i to construct each combined dataset, if we use different samples for each one of the combinations results are affected, as shown next.
 
- Not reusing classifier - 10000        | Not reusing classifier - 200000
+ Not reusing clf nor fi - 10000        | Not reusing clf nor fi - 200000
 :-------------------------:|:-------------------------:
 <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/10000_nr_nf/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/200000_nr_nf/full_comparison_mlp_ratio.png" width="350" >
- Reusing classifier - 10000        | Reusing classifier - 200000
+ Reusing classifier and fi - 10000        | Reusing classifier and fi - 200000
 <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/10000/full_comparison_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/training_study/plots/mlp/200000/full_comparison_mlp_ratio.png" width="350" >
 
