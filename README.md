@@ -15,11 +15,12 @@ correspond to the mixture model including the signal (in this case the signal co
 Both distributions for coefficients **c0 = [ 0.,0.3,0.7]** and **c1 = [0.09090909,0.27272727,0.63636364]**
 are shown in the next image.
 
+![decomposed model](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.10/full_model.png)
 
 First, the ROC curves obtained by varying the threshold on the trained and true ratios on each pair of 
 functions are shown in the next image.
 
-![Decomposed ROC](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.10/dec_comparison_mlp_roc.png)
+![Decomposed ROC](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/dec_comparison_mlp_roc.png)
 
 Next, the Signal Efficiency - Background Rejection curves of each one of the ratios (composed, full trained and full truth) is shown.
 
