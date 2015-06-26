@@ -38,7 +38,20 @@ verbose_printing = True
 model_g = None
 dir = '/afs/cern.ch/user/j/jpavezse/systematics'
 
-vars_g = ['x','y']
+vars_g = ['x0','x1','x2','x3','x4','x5','x6','x7','x8','x9']
+mu1_g = [5.,2.,3.,4.,5.,1.,2.5,2.5,4.,0.5]
+mu2_g = [2.,3.,0.1,1.,3.,4.5,3.2,0.2,2.1,2.3]
+cov1_g = [[3.,0.,0.,0.,0.,0.,0.,0.,0.,0.],[0.,2.,0.,0.,0.,0.,0.,0.,0.,0.],
+        [0.,0.,4.,0.,0.,0.,0.,0.,0.,0.],[0.,0.,0.,5.,0.,0.,0.,0.,0.,0.],
+        [0.,0.,0.,0.,3.,0.,0.,0.,0.,0.],[0.,0.,0.,0.,0.,5.,0.,0.,0.,0.],
+        [0.,0.,0.,0.,0.,0.,5.,0.,0.,0.],[0.,0.,0.,0.,0.,0.,0.,3.,0.,0.],
+        [0.,0.,0.,0.,0.,0.,0.,0.,1.,0.],[0.,0.,0.,0.,0.,0.,0.,0.,0.,0.3]]
+cov2_g = [[3.5,0.,0.,0.,0.,0.,0.,0.,0.,0.],[0.,0.5,0.,0.,0.,0.,0.,0.,0.,0.],
+        [0.,0.,0.1,0.,0.,0.,0.,0.,0.,0.],[0.,0.,0.,0.2,0.,0.,0.,0.,0.,0.],
+        [0.,0.,0.,0.,0.5,0.,0.,0.,0.,0.],[0.,0.,0.,0.,0.,3.5,0.,0.,0.,0.],
+        [0.,0.,0.,0.,0.,0.,0.2,0.,0.,0.],[0.,0.,0.,0.,0.,0.,0.,4.5,0.,0.],
+        [0.,0.,0.,0.,0.,0.,0.,0.,0.5,0.],[0.,0.,0.,0.,0.,0.,0.,0.,0.,0.5]]
+
 
 def printMultiFrame(w,obs,all_pdfs,name,legends,setLog=False):
   '''
@@ -112,7 +125,6 @@ def printFrame(w,obs,pdf,name,legends):
   frame = []
   for var in x:
     frame.append(var.frame())
-
   for j,fra in enumerate(frame):    
     can.cd(j+1)
     for i,f in enumerate(funcs):
@@ -128,12 +140,68 @@ def printFrame(w,obs,pdf,name,legends):
         leg.AddEntry(fra.findObject(legends[i]), l, 'l')
       else:
         leg.AddEntry(fra.findObject(legends[i]), l, 'l')
-    
     fra.Draw()
     leg.Draw()
   can.SaveAs('{0}/plots/{1}/{2}.png'.format(dir,model_g,name))
 
-def makeModel():
+def makeModelND():
+  '''
+  RooFit statistical model for the data
+  
+  '''  
+  # Statistical model
+  w = ROOT.RooWorkspace('w')
+  vars_string = ','.join(['{0}[0,5]'.format(var) for var in vars_g]) 
+  gaus_vars_string = ','.join(vars_g)
+  exponential_string = '+'.join(vars_g) 
+  # Gaussian 1
+  cov1 = ROOT.TMatrixDSym(len(vars_g))
+  for i,var1 in enumerate(vars_g):
+    for j,var2 in enumerate(vars_g):
+      cov1[i][j] = cov1_g[i][j]
+  getattr(w,'import')(cov1,'cov1')
+
+  cov2 = ROOT.TMatrixDSym(len(vars_g))
+  for i,var1 in enumerate(vars_g):
+    for j,var2 in enumerate(vars_g):
+      cov2[i][j] = cov2_g[i][j]
+  getattr(w,'import')(cov2,'cov2')
+
+  mu1 = ','.join([str(mu) for mu in mu1_g])
+  mu2 = ','.join([str(mu) for mu in mu2_g])
+  
+  w.factory("EXPR::f2('exp(-0.4*({0}))',{1})".format(exponential_string,vars_string))
+  # Making Multi Var Gaussian, factory not working
+  #w.factory("MultiVarGaussian::f1({{{0}}},{{{1}}},cov1)".format(gaus_vars_string,mu1))
+  #w.factory("MultiVarGaussian::f0({{{0}}},{{{1}}},cov2)".format(gaus_vars_string,mu2))
+  args = ROOT.RooArgList() 
+  for i,var in enumerate(vars_g):
+    args.add(w.var(var))
+  vec1 = ROOT.TVectorD(len(vars_g))
+  for i,mu in enumerate(mu1_g):
+    vec1[i] = mu
+  gaussian1 = ROOT.RooMultiVarGaussian('f1','f1',args,vec1,cov1)
+  getattr(w,'import')(gaussian1)
+
+  vec2 = ROOT.TVectorD(len(vars_g))
+  for i,mu in enumerate(mu2_g):
+    vec2[i] = mu
+  gaussian2 = ROOT.RooMultiVarGaussian('f0','f0',args,vec2,cov2)
+  getattr(w,'import')(gaussian2)
+
+  w.factory("SUM::F0(c00[{0}]*f0,c01[{1}]*f1,f2)".format(c0[0],c0[1]))
+  w.factory("SUM::F1(c10[{0}]*f0,c11[{1}]*f1,f2)".format(c1[0],c1[1]))
+  
+  # Check Model
+  w.Print()
+  w.writeToFile('{0}/workspace_DecomposingTestOfMixtureModelsClassifiers.root'.format(dir))
+  if verbose_printing == True:
+    printFrame(w,vars_g,[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']) 
+    printFrame(w,vars_g,[w.pdf('F0'),w.pdf('F1')],'full_model',['F0','F1'])
+    printFrame(w,vars_g,[w.pdf('F1'),'f0'],'full_signal', ['F1','f0'])
+
+
+def makeModel2D():
   '''
   RooFit statistical model for the data
   
@@ -211,21 +279,6 @@ def makeData(num_train=500,num_test=100):
                     testdata,fmt='%f')
 
 
-  def makeDataset(x,bkgpdf,sigpdf,num):
-    traindata = np.zeros((num*2,len(vars_g)))
-    targetdata = np.zeros(num*2)
-    bkgdata = bkgpdf.generate(x,num)
-    sigdata = sigpdf.generate(x,num)
-    
-    traindata[:num] = [[sigdata.get(i).getRealValue(var) for var in vars_g]
-        for i in range(num)]
-    targetdata[:num].fill(1)
-
-    traindata[num:] = [[bkgdata.get(i).getRealValue(var) for var in vars_g]
-        for i in range(num)]
-    targetdata[num:].fill(0)
-    
-    return traindata, targetdata  
 
 def loadData(type,k,j,folder=None):
   if folder <> None:
@@ -280,7 +333,7 @@ def makeROC(outputs, target, label):
   plt.ylabel('True Positive Rate')
   plt.title('{0}'.format(label))
   plt.legend(loc="lower right")
-  np.savetxt('{0}/plots/{1}/{2}.txt'.format(dir,model_g,label),np.column_stack((fpr,tpr)))
+  np.savetxt('{0}/plots/{1}/results/{2}.txt'.format(dir,model_g,label),np.column_stack((fpr,tpr)))
   plt.savefig('{0}/plots/{1}/{2}.png'.format(dir,model_g,label))
   plt.close(fig)
   plt.clf()
@@ -302,7 +355,7 @@ def makeSigBkg(outputs, target, label):
   plt.ylabel('Background Rejection')
   plt.title('{0}'.format(label))
   plt.legend(loc="lower right")
-  np.savetxt('{0}/plots/{1}/{2}.txt'.format(dir,model_g,label),np.column_stack((fpr,tpr)))
+  np.savetxt('{0}/plots/{1}/results/{2}.txt'.format(dir,model_g,label),np.column_stack((fpr,tpr)))
   plt.savefig('{0}/plots/{1}/{2}.png'.format(dir,model_g,label))
   plt.close(fig)
   plt.clf()
@@ -796,8 +849,8 @@ if __name__ == '__main__':
   # Set this value to False if only final plots are needed
   verbose_printing = True
   
-  makeModel()
-  makeData(num_train=50000,num_test=3000) 
+  makeModelND()
+  makeData(num_train=100000,num_test=3000) 
   trainClassifier(clf)
   classifierPdf()
   fitAdaptive(use_log=False)
