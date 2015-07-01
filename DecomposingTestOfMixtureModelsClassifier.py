@@ -39,19 +39,78 @@ model_g = None
 dir = '/afs/cern.ch/user/j/jpavezse/systematics'
 
 vars_g = ['x0','x1','x2','x3','x4','x5','x6','x7','x8','x9']
-mu1_g = [5.,2.,3.,4.,5.,1.,2.5,2.5,4.,0.5]
-mu2_g = [2.,3.,0.1,1.,3.,4.5,3.2,0.2,2.1,2.3]
-cov1_g = [[3.,0.,0.,0.,0.,0.,0.,0.,0.,0.],[0.,2.,0.,0.,0.,0.,0.,0.,0.,0.],
-        [0.,0.,4.,0.,0.,0.,0.,0.,0.,0.],[0.,0.,0.,5.,0.,0.,0.,0.,0.,0.],
-        [0.,0.,0.,0.,3.,0.,0.,0.,0.,0.],[0.,0.,0.,0.,0.,5.,0.,0.,0.,0.],
-        [0.,0.,0.,0.,0.,0.,5.,0.,0.,0.],[0.,0.,0.,0.,0.,0.,0.,3.,0.,0.],
-        [0.,0.,0.,0.,0.,0.,0.,0.,1.,0.],[0.,0.,0.,0.,0.,0.,0.,0.,0.,0.3]]
-cov2_g = [[3.5,0.,0.,0.,0.,0.,0.,0.,0.,0.],[0.,0.5,0.,0.,0.,0.,0.,0.,0.,0.],
-        [0.,0.,0.1,0.,0.,0.,0.,0.,0.,0.],[0.,0.,0.,0.2,0.,0.,0.,0.,0.,0.],
-        [0.,0.,0.,0.,0.5,0.,0.,0.,0.,0.],[0.,0.,0.,0.,0.,3.5,0.,0.,0.,0.],
-        [0.,0.,0.,0.,0.,0.,0.2,0.,0.,0.],[0.,0.,0.,0.,0.,0.,0.,4.5,0.,0.],
-        [0.,0.,0.,0.,0.,0.,0.,0.,0.5,0.],[0.,0.,0.,0.,0.,0.,0.,0.,0.,0.5]]
+mu1_g = [5.,5.,4.,3.,5.,5.,4.5,2.5,4.,3.5]
+mu2_g = [2.,4.5,0.6,5.,6.,4.5,4.2,0.2,4.1,3.3]
+cov1_g =[[3.,0.,0.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,2.,0.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,0.,14.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,0.,0.,6.,0.,0.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,17.,0.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,10.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,0.,5.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,1.3,0.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,0.,1.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,0.,0.,0.3]]
+cov2_g =[[3.5,0.,0.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,3.5,0.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,0.,3.5,0.,0.,0.,0.,0.,0.,0.],
+         [0.,0.,0.,7.2,0.,0.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,4.5,0.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,3.5,0.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,0.,8.2,0.,0.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,9.5,0.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,0.,0.5,0.],
+         [0.,0.,0.,0.,0.,0.,0.,0.,0.,0.5]]
 
+mu3_g = [1.,0.5,0.3,0.5,0.6,0.4,0.1,0.2,0.1,0.3]
+cov3_g =[[13.,0.,0.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,12.,0.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,0.,14.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,0.,0.,6.,0.,0.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,1.,0.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,10.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,0.,15.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,6.3,0.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,0.,11.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,0.,0.,1.3]]
+
+'''
+mu1_g = [5.,3.8,4.2,4.,5.,5.,4.5,3.5,5.,3.5]
+mu2_g = [2.,3.5,2.6,4.,2.,3.5,2.2,4.2,3.1,2.3]
+mu3_g = [-2.,-0.5,-2.3,-1.3,-3.6,-2.4,-1.1,-2.2,-3.1,-1.3]
+cov1_g =[[3.,0.,0.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,2.,0.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,0.,5.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,0.,0.,6.,0.,0.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,11.,0.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,10.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,0.,5.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,1.3,0.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,0.,1.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,0.,0.,0.3]]
+cov2_g =[[3.5,0.,0.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,3.5,0.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,0.,3.5,0.,0.,0.,0.,0.,0.,0.],
+         [0.,0.,0.,7.2,0.,0.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,4.5,0.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,3.5,0.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,0.,5.2,0.,0.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,4.5,0.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,0.,0.5,0.],
+         [0.,0.,0.,0.,0.,0.,0.,0.,0.,0.5]]
+
+cov3_g =[[13.,0.,0.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,12.,0.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,0.,14.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,0.,0.,6.,0.,0.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,5.,0.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,10.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,0.,15.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,9.3,0.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,0.,11.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,0.,0.,10.3]]
+
+'''
 
 def printMultiFrame(w,obs,all_pdfs,name,legends,setLog=False):
   '''
@@ -154,46 +213,72 @@ def makeModelND():
   vars_string = ','.join(['{0}[0,5]'.format(var) for var in vars_g]) 
   gaus_vars_string = ','.join(vars_g)
   exponential_string = '+'.join(vars_g) 
+
+  print 'Generating initial distributions'
+
   # Gaussian 1
+  cov1_m = np.matrix(cov1_g)
+  #cov1_m = np.dot(cov1_m,cov1_m.transpose()) 
   cov1 = ROOT.TMatrixDSym(len(vars_g))
   for i,var1 in enumerate(vars_g):
     for j,var2 in enumerate(vars_g):
-      cov1[i][j] = cov1_g[i][j]
+      cov1[i][j] = cov1_m[i,j]
   getattr(w,'import')(cov1,'cov1')
-
+  cov2_m = np.matrix(cov2_g)
+  #cov2_m = np.dot(cov2_m,cov2_m.transpose())
   cov2 = ROOT.TMatrixDSym(len(vars_g))
   for i,var1 in enumerate(vars_g):
     for j,var2 in enumerate(vars_g):
-      cov2[i][j] = cov2_g[i][j]
+      print cov2_m[i,j],
+      cov2[i][j] = cov2_m[i,j]
+    print
   getattr(w,'import')(cov2,'cov2')
 
   mu1 = ','.join([str(mu) for mu in mu1_g])
   mu2 = ','.join([str(mu) for mu in mu2_g])
   
-  w.factory("EXPR::f2('exp(-0.4*({0}))',{1})".format(exponential_string,vars_string))
+  cov3_m = np.matrix(cov3_g)
+  cov3 = ROOT.TMatrixDSym(len(vars_g))
+  for i,var1 in enumerate(vars_g):
+    for j,var2 in enumerate(vars_g):
+      cov3[i][j] = cov3_m[i,j]
+  getattr(w,'import')(cov3,'cov3')
+
+  mu3 = ','.join([str(mu) for mu in mu3_g])
+
+  #w.factory("EXPR::f2('exp(-0.4*({0}))',{1})".format(exponential_string,vars_string))
   # Making Multi Var Gaussian, factory not working
   #w.factory("MultiVarGaussian::f1({{{0}}},{{{1}}},cov1)".format(gaus_vars_string,mu1))
   #w.factory("MultiVarGaussian::f0({{{0}}},{{{1}}},cov2)".format(gaus_vars_string,mu2))
-  args = ROOT.RooArgList() 
+  argus = ROOT.RooArgList() 
   for i,var in enumerate(vars_g):
-    args.add(w.var(var))
+    w.factory('{0}[{1},{2}]'.format(var,0,5))
+    argus.add(w.var(var))
+
   vec1 = ROOT.TVectorD(len(vars_g))
   for i,mu in enumerate(mu1_g):
     vec1[i] = mu
-  gaussian1 = ROOT.RooMultiVarGaussian('f1','f1',args,vec1,cov1)
+  gaussian1 = ROOT.RooMultiVarGaussian('f1','f1',argus,vec1,cov1)
   getattr(w,'import')(gaussian1)
 
   vec2 = ROOT.TVectorD(len(vars_g))
   for i,mu in enumerate(mu2_g):
     vec2[i] = mu
-  gaussian2 = ROOT.RooMultiVarGaussian('f0','f0',args,vec2,cov2)
+  gaussian2 = ROOT.RooMultiVarGaussian('f0','f0',argus,vec2,cov2)
   getattr(w,'import')(gaussian2)
+
+  vec3 = ROOT.TVectorD(len(vars_g))
+  for i,mu in enumerate(mu3_g):
+    vec3[i] = mu
+  gaussian3 = ROOT.RooMultiVarGaussian('f2','f2',argus,vec3,cov3)
+  getattr(w,'import')(gaussian3)
 
   w.factory("SUM::F0(c00[{0}]*f0,c01[{1}]*f1,f2)".format(c0[0],c0[1]))
   w.factory("SUM::F1(c10[{0}]*f0,c11[{1}]*f1,f2)".format(c1[0],c1[1]))
   
   # Check Model
   w.Print()
+
   w.writeToFile('{0}/workspace_DecomposingTestOfMixtureModelsClassifiers.root'.format(dir))
   if verbose_printing == True:
     printFrame(w,vars_g,[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']) 
@@ -239,6 +324,7 @@ def makeData(num_train=500,num_test=100):
   w = f.Get('w')
   f.Close()
 
+  print 'Making Data'
   # Start generating data
   ''' 
     Each function will be discriminated pair-wise
@@ -258,6 +344,7 @@ def makeData(num_train=500,num_test=100):
   x = ROOT.RooArgSet(vars)
 
   for k,c in enumerate(c0):
+    print 'Making {0}'.format(k)
     traindata = makeDataFi(x,w.pdf('f{0}'.format(k)), num_train)
     np.savetxt('{0}/data/{1}/{2}/train_{3}.dat'.format(dir,'mlp',c1_g,k),
                       traindata,fmt='%f')
@@ -344,18 +431,23 @@ def makeSigBkg(outputs, target, label):
     make plots for ROC curve of classifier and 
     test data.
   '''
-  fpr, tpr, _  = roc_curve(target.ravel(),outputs.ravel())
-  tnr = 1. - fpr
-  roc_auc = auc(tpr,tnr)
+  #fpr, tpr, _  = roc_curve(target.ravel(),outputs.ravel())
+  #tnr = 1. - fpr
+  fnr, tnr, thresholds = roc_curve(1.-target.ravel(), outputs.ravel())
+  fnr = np.array([float(np.sum((outputs > tr) * (target == 0)))/float(np.sum(target == 0)) for tr in thresholds])
+  fnr = fnr.ravel()
+  tpr = np.array([float(np.sum((outputs < tr) * (target == 1)))/float(np.sum(target == 1)) for tr in thresholds])
+  tpr = tpr.ravel()
+  roc_auc = auc(tpr,fnr)
   fig = plt.figure()
-  plt.plot(tpr, tnr, label='Signal Eff Bkg Rej (area = %0.2f)' % roc_auc)
+  plt.plot(tpr, fnr, label='Signal Eff Bkg Rej (area = %0.2f)' % roc_auc)
   plt.xlim([0.0, 1.0])
   plt.ylim([0.0, 1.05])
   plt.xlabel('Signal Efficiency')
   plt.ylabel('Background Rejection')
   plt.title('{0}'.format(label))
   plt.legend(loc="lower right")
-  np.savetxt('{0}/plots/{1}/results/{2}.txt'.format(dir,model_g,label),np.column_stack((fpr,tpr)))
+  np.savetxt('{0}/plots/{1}/results/{2}.txt'.format(dir,model_g,label),np.column_stack((tpr,fnr)))
   plt.savefig('{0}/plots/{1}/{2}.png'.format(dir,model_g,label))
   plt.close(fig)
   plt.clf()
@@ -371,6 +463,8 @@ def trainClassifier(clf):
     Train classifiers pair-wise on 
     datasets
   '''
+
+  print 'Training classifier'
 
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
@@ -418,6 +512,8 @@ def classifierPdf():
   f = ROOT.TFile('{0}/workspace_DecomposingTestOfMixtureModelsClassifiers.root'.format(dir))
   w = f.Get('w')
   f.Close()
+  
+  print 'Generating Score Histograms'
 
   w.factory('score[{0},{1}]'.format(low,high))
   s = w.var('score')
@@ -616,6 +712,8 @@ def fitAdaptive(use_log=False):
   f = ROOT.TFile('{0}/workspace_DecomposingTestOfMixtureModelsClassifiers.root'.format(dir))
   w = f.Get('w')
   f.Close()
+  
+  print 'Calculating ratios'
 
   #x = w.var('x[-5,5]')
   #x = ROOT.RooRealVar('x','x',0.2,0.,5.)
@@ -630,11 +728,20 @@ def fitAdaptive(use_log=False):
       v.setVal(val[i])
       v = iter.Next()
       i = i+1
-    if f0.getVal(x) < 10E-10:
+    if f0.getVal(x) < 10E-25:
       return 0.
     return f1.getVal(x) / f0.getVal(x)
     #return f0.getVal(ROOT.RooArgSet(x))
 
+  def evalDist(x,f0,val):
+    iter = x.createIterator()
+    v = iter.Next()
+    i = 0
+    while v:
+      v.setVal(val[i])
+      v = iter.Next()
+      i = i+1
+    return f0.getVal(x)
 
   # To calculate the ratio between single functions
   def regFunc(x,f0,f1,val):
@@ -645,7 +752,7 @@ def fitAdaptive(use_log=False):
       v.setVal(val[i])
       v = iter.Next()
       i = i+1
-    if (f0.getVal(x) + f1.getVal(x)) < 10E-10:
+    if (f0.getVal(x) + f1.getVal(x)) < 10E-25:
       return 0.
     return f1.getVal(x) / (f0.getVal(x) + f1.getVal(x))
 
@@ -719,16 +826,20 @@ def fitAdaptive(use_log=False):
           testdata, testtarget = loadData('test',k,j) 
           outputs = predict('{0}/model/{1}/{2}/adaptive_{3}_{4}.pkl'.format(dir,model_g,c1_g,k,j),
                     testdata.reshape(testdata.shape[0],testdata.shape[1]))
-          clfRatios = [singleRatio(score,f0pdf,f1pdf,[xs]) for xs in outputs]
-          trRatios = [singleRatio(x,f0,f1,xs) for xs in testdata]
-          makeROC(np.array(trRatios), testtarget, makePlotName('dec','truth',k,j,type='roc'))
-          makeROC(np.array(clfRatios), testtarget,makePlotName('dec','train',k,j,type='roc'))
+          clfRatios = np.array([singleRatio(score,f0pdf,f1pdf,[xs]) for xs in outputs])
+          trRatios = np.array([singleRatio(x,f0,f1,xs) for xs in testdata])
+          makeROC(trRatios/trRatios.max(), testtarget, makePlotName('dec','truth',k,j,type='roc'))
+          makeROC(clfRatios/clfRatios.max(), testtarget,makePlotName('dec','train',k,j,type='roc'))
           # Scatter plot to compare regression function and classifier score
           reg = np.array([regFunc(x,f0,f1,xs) for xs in testdata])
           #reg = reg/np.max(reg)
-          #pdb.set_trace()
           saveFig(outputs,[reg], makePlotName('dec','train',k,j,type='scat'),scatter=True, axis=['score','regression'])
           #saveFig(testdata, [reg, outputs],  makePlotName('dec','train',k,j,type='mul_scat'),scatter=True,labels=['regression', 'score'])
+
+          # Scatter of distributions
+          #f0data = [evalDist(x,f0,xs) for xs in testdata]
+          #f1data = [evalDist(x,f1,xs) for xs in testdata]
+          #saveFig(testdata,[f0data,f1data],makePlotName('dec','truth',k,j,type='scat'),scatter=True,axis=['x','y'])
 
         #saveFig(xarray, ratios, makePlotName('decomposed','truth',k,j,type='ratio'))
       fullRatios += 1./innerRatios
@@ -808,16 +919,15 @@ def fitAdaptive(use_log=False):
   saveFig(completeRatio,[realRatio], makePlotName('full','train',type='scat'+post),scatter=True,axis=['full trained ratio','true ratio'])
   saveFig(decomposedRatio,[realRatio], makePlotName('comp','train',type='scat'+post),scatter=True, axis=['composed trained ratio','true ratio'])
 
-  makeSigBkg(1.-np.array(realRatio), testtarget,makePlotName('full','truth',type='sigbkg'+post))
-  makeSigBkg(1.-np.array(decomposedRatio), testtarget,makePlotName('comp','train',type='sigbkg'+post))
-  makeSigBkg(1.-np.array(completeRatio), testtarget,makePlotName('full','train',type='sigbkg'+post))
+  makeSigBkg(np.array(decomposedRatio),testtarget,makePlotName('comp','train',type='sigbkg'+post))
+  makeSigBkg(np.array(realRatio), testtarget,makePlotName('full','truth',type='sigbkg'+post))
+  makeSigBkg(np.array(completeRatio), testtarget,makePlotName('full','train',type='sigbkg'+post))
 
   testdata, testtarget = loadData('test','F0','F1') 
   # Scatter plot to compare regression function and classifier score
   reg = np.array([regFunc(x,w.pdf('F0'),w.pdf('F1'),xs) for xs in testdata])
   #reg = reg/np.max(reg)
   outputs = predict('{0}/model/{1}/{2}/adaptive_F0_F1.pkl'.format(dir,model_g,c1_g),testdata.reshape(testdata.shape[0],testdata.shape[1]))
-  #pdb.set_trace()
   saveFig(outputs,[reg], makePlotName('full','train',type='scat'),scatter=True,axis=['score','regression'])
   #saveFig(testdata, [reg, outputs],  makePlotName('full','train',type='mul_scat'),scatter=True,labels=['regression', 'score'])
 
@@ -846,11 +956,13 @@ if __name__ == '__main__':
   print c1_g
   
   ROOT.gROOT.SetBatch(ROOT.kTRUE)
+  ROOT.RooAbsPdf.defaultIntegratorConfig().setEpsRel(1E-15)
+  ROOT.RooAbsPdf.defaultIntegratorConfig().setEpsAbs(1E-15)
   # Set this value to False if only final plots are needed
   verbose_printing = True
   
   makeModelND()
-  makeData(num_train=100000,num_test=3000) 
+  makeData(num_train=100000,num_test=30000) 
   trainClassifier(clf)
   classifierPdf()
   fitAdaptive(use_log=False)
