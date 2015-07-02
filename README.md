@@ -85,6 +85,18 @@ are shown in the next image.
 
 ![decomposed model](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/10dim/0.10/full_model.png)
 
+The following images show scatter plots between a subset of features for the pairwise combinations 1-2, 1-3 and 2-3
+the number of the feature is indicated in the columns and rows of the grid of plots.
+
+# f1-f2
+![scatter grid 1](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/10dim/dec_truth_0_1_grid.png)
+
+#f1-f3
+![scatter grid 2](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/10dim/dec_truth_0_2_grid.png)
+
+#f2-f3
+![scatter grid 3](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/10dim/dec_truth_1_2_grid.png)
+
 First, the ROC curves obtained by varying the threshold on the trained and true ratios on each pair of 
 functions are shown in the next image.
 
