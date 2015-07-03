@@ -20,6 +20,7 @@ import pylab as plt
 
 from mlp import make_predictions, train_mlp
 
+
 ''' 
  A simple example for the work on the section 
  5.4 of the paper 'Approximating generalized 
@@ -74,43 +75,6 @@ cov3_g =[[13.,0.,0.,0.,0.,0.,0.,0.,0.,0.],
          [0.,0.,0.,0.,0.,0.,0.,0.,11.,0.],
          [0.,0.,0.,0.,0.,0.,0.,0.,0.,1.3]]
 
-'''
-mu1_g = [5.,3.8,4.2,4.,5.,5.,4.5,3.5,5.,3.5]
-mu2_g = [2.,3.5,2.6,4.,2.,3.5,2.2,4.2,3.1,2.3]
-mu3_g = [-2.,-0.5,-2.3,-1.3,-3.6,-2.4,-1.1,-2.2,-3.1,-1.3]
-cov1_g =[[3.,0.,0.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,2.,0.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,5.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,0.,6.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,11.,0.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,10.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,0.,5.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,1.3,0.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,0.,1.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,0.,0.,0.3]]
-cov2_g =[[3.5,0.,0.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,3.5,0.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,3.5,0.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,0.,7.2,0.,0.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,4.5,0.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,3.5,0.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,0.,5.2,0.,0.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,4.5,0.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,0.,0.5,0.],
-         [0.,0.,0.,0.,0.,0.,0.,0.,0.,0.5]]
-
-cov3_g =[[13.,0.,0.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,12.,0.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,14.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,0.,6.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,5.,0.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,10.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,0.,15.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,9.3,0.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,0.,11.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,0.,0.,10.3]]
-
-'''
 
 def printMultiFrame(w,obs,all_pdfs,name,legends,setLog=False):
   '''
@@ -366,7 +330,6 @@ def makeData(num_train=500,num_test=100):
                     testdata,fmt='%f')
 
 
-
 def loadData(type,k,j,folder=None):
   if folder <> None:
     fk = np.loadtxt('{0}/{1}_{2}.dat'.format(folder,type,k))
@@ -428,26 +391,21 @@ def makeROC(outputs, target, label):
 
 def makeSigBkg(outputs, target, label):
   '''
-    make plots for ROC curve of classifier and 
-    test data.
+  make plots for ROC curve of classifier and
+  test data.
   '''
-  #fpr, tpr, _  = roc_curve(target.ravel(),outputs.ravel())
-  #tnr = 1. - fpr
-  fnr, tnr, thresholds = roc_curve(1.-target.ravel(), outputs.ravel())
-  fnr = np.array([float(np.sum((outputs > tr) * (target == 0)))/float(np.sum(target == 0)) for tr in thresholds])
-  fnr = fnr.ravel()
-  tpr = np.array([float(np.sum((outputs < tr) * (target == 1)))/float(np.sum(target == 1)) for tr in thresholds])
-  tpr = tpr.ravel()
-  roc_auc = auc(tpr,fnr)
+  fpr, tpr, _ = roc_curve(target.ravel(),1./outputs.ravel())
+  tnr = 1. - fpr
+  roc_auc = auc(tpr,tnr)
   fig = plt.figure()
-  plt.plot(tpr, fnr, label='Signal Eff Bkg Rej (area = %0.2f)' % roc_auc)
+  plt.plot(tpr, tnr, label='Signal Eff Bkg Rej (area = %0.2f)' % roc_auc)
   plt.xlim([0.0, 1.0])
   plt.ylim([0.0, 1.05])
   plt.xlabel('Signal Efficiency')
   plt.ylabel('Background Rejection')
   plt.title('{0}'.format(label))
   plt.legend(loc="lower right")
-  np.savetxt('{0}/plots/{1}/results/{2}.txt'.format(dir,model_g,label),np.column_stack((tpr,fnr)))
+  np.savetxt('{0}/plots/{1}/results/{2}.txt'.format(dir,model_g,label),np.column_stack((fpr,tpr)))
   plt.savefig('{0}/plots/{1}/{2}.png'.format(dir,model_g,label))
   plt.close(fig)
   plt.clf()
@@ -457,6 +415,7 @@ def makePlotName(full, truth, f0 = None, f1 = None, type=None):
     return '{0}_{1}_f{2}_f{3}_{4}_{5}'.format(full, truth, f0, f1, model_g,type)
   else:
     return '{0}_{1}_{2}_{3}'.format(full, truth, model_g,type)
+
 
 def trainClassifier(clf):
   '''
@@ -700,6 +659,121 @@ def saveFig3D(x,y,z,file,labels=None,scatter=False,axis=None):
   plt.clf()
 
 
+# To calculate the ratio between single functions
+def singleRatio(x,f0,f1,val):
+  iter = x.createIterator()
+  v = iter.Next()
+  i = 0
+  while v:
+    v.setVal(val[i])
+    v = iter.Next()
+    i = i+1
+  if f0.getVal(x) < 10E-25:
+    return 0.
+  return f1.getVal(x) / f0.getVal(x)
+  #return f0.getVal(ROOT.RooArgSet(x))
+
+def evalDist(x,f0,val):
+  iter = x.createIterator()
+  v = iter.Next()
+  i = 0
+  while v:
+    v.setVal(val[i])
+    v = iter.Next()
+    i = i+1
+  return f0.getVal(x)
+
+# To calculate the ratio between single functions
+def regFunc(x,f0,f1,val):
+  iter = x.createIterator()
+  v = iter.Next()
+  i = 0
+  while v:
+    v.setVal(val[i])
+    v = iter.Next()
+    i = i+1
+  if (f0.getVal(x) + f1.getVal(x)) < 10E-25:
+    return 0.
+  return f1.getVal(x) / (f0.getVal(x) + f1.getVal(x))
+
+# Functions for Log Ratios
+def singleLogRatio(x, f0, f1, val):
+  iter = x.createIterator()
+  v = iter.Next()
+  i = 0
+  while v:
+    v.setVal(val[i])
+    v = iter.Next()
+    i = i+1
+  rat = np.log(f1.getVal(x)) - np.log(f0.getVal(x))
+  return rat
+def computeLogKi(x, f0, f1, c0, c1, val):
+  iter = x.createIterator()
+  v = iter.Next()
+  i = 0
+  while v:
+    v.setVal(val[i])
+    v = iter.Next()
+    i = i+1
+  k_ij = np.log(c1*f1.getVal(x)) - np.log(c0*f0.getVal(x))
+  return k_ij
+# ki is a vector
+def computeAi(k0, ki):
+  ai = -k0 - np.log(1. + np.sum(np.exp(ki - k0),0))
+  return ai
+
+def evaluateDecomposedRatio(w,x,evalData,plotting=True, roc=False,gridsize=None,c0arr=None, c1arr=None):
+  # pair-wise ratios
+  # and decomposition computation
+  score = ROOT.RooArgSet(w.var('score'))
+  npoints = evalData.shape[0]
+  fullRatios = np.zeros(npoints)
+  fullRatiosReal = np.zeros(npoints)
+  c0arr = c0 if c0arr == None else c0arr
+  c1arr = c1 if c1arr == None else c1arr
+
+  for k,c in enumerate(c0arr):
+    innerRatios = np.zeros(npoints)
+    if c == 0:
+      continue
+    for j,c_ in enumerate(c1arr):
+
+      f0pdf = w.pdf('bkghistpdf_{0}_{1}'.format(k,j))
+      f1pdf = w.pdf('sighistpdf_{0}_{1}'.format(k,j))
+      f0 = w.pdf('f{0}'.format(k))
+      f1 = w.pdf('f{0}'.format(j))
+      if k <> j:
+        outputs = predict('{0}/model/{1}/{2}/adaptive_{3}_{4}.pkl'.format(dir,model_g,c1_g,k,j),
+                evalData)
+        pdfratios = [singleRatio(score,f0pdf,f1pdf,[xs]) for xs in outputs]
+        pdfratios = np.array(pdfratios)
+      else:
+        pdfratios = np.ones(npoints)
+      # the cases in which both distributions are the same can be problematic
+      # one will expect that the classifier gives same prob to both signal and bkg
+      # but it can behave in weird ways, I will just avoid this for now 
+      innerRatios += (c_/c) * pdfratios
+      ratios = np.array([singleRatio(x,f0,f1,xs) for xs in evalData])
+      innerTrueRatios += (c_/c) * ratios
+      if roc == True and k <> j:
+        testdata, testtarget = loadData('test',k,j) 
+        outputs = predict('{0}/model/{1}/{2}/adaptive_{3}_{4}.pkl'.format(dir,model_g,c1_g,k,j),
+                  testdata.reshape(testdata.shape[0],testdata.shape[1]))
+        clfRatios = np.array([singleRatio(score,f0pdf,f1pdf,[xs]) for xs in outputs])
+        trRatios = np.array([singleRatio(x,f0,f1,xs) for xs in testdata])
+        makeROC(trRatios, testtarget, makePlotName('dec','truth',k,j,type='roc'))
+        makeROC(clfRatios, testtarget,makePlotName('dec','train',k,j,type='roc'))
+        # Scatter plot to compare regression function and classifier score
+        reg = np.array([regFunc(x,f0,f1,xs) for xs in testdata])
+        #reg = reg/np.max(reg)
+        saveFig(outputs,[reg], makePlotName('dec','train',k,j,type='scat'),scatter=True, axis=['score','regression'])
+        #saveFig(testdata, [reg, outputs],  makePlotName('dec','train',k,j,type='mul_scat'),scatter=True,labels=['regression', 'score'])
+
+      #saveFig(xarray, ratios, makePlotName('decomposed','truth',k,j,type='ratio'))
+    fullRatios += 1./innerRatios
+    fullRatiosReal += 1./innerTrueRatios
+  return fullRatios,fullRatiosReal
+
 def fitAdaptive(use_log=False):
   '''
     Use the computed score densities to compute 
@@ -708,142 +782,18 @@ def fitAdaptive(use_log=False):
   ROOT.gSystem.Load('{0}/parametrized-learning/SciKitLearnWrapper/libSciKitLearnWrapper'.format(dir))
   ROOT.gROOT.ProcessLine('.L CompositeFunctionPdf.cxx+')
 
-
   f = ROOT.TFile('{0}/workspace_DecomposingTestOfMixtureModelsClassifiers.root'.format(dir))
   w = f.Get('w')
   f.Close()
   
   print 'Calculating ratios'
 
-  #x = w.var('x[-5,5]')
-  #x = ROOT.RooRealVar('x','x',0.2,0.,5.)
-  #getattr(w,'import')(ROOT.RooArgSet(x),ROOT.RooFit.RecycleConflictNodes()) 
-
-  # To calculate the ratio between single functions
-  def singleRatio(x,f0,f1,val):
-    iter = x.createIterator()
-    v = iter.Next()
-    i = 0
-    while v:
-      v.setVal(val[i])
-      v = iter.Next()
-      i = i+1
-    if f0.getVal(x) < 10E-25:
-      return 0.
-    return f1.getVal(x) / f0.getVal(x)
-    #return f0.getVal(ROOT.RooArgSet(x))
-
-  def evalDist(x,f0,val):
-    iter = x.createIterator()
-    v = iter.Next()
-    i = 0
-    while v:
-      v.setVal(val[i])
-      v = iter.Next()
-      i = i+1
-    return f0.getVal(x)
-
-  # To calculate the ratio between single functions
-  def regFunc(x,f0,f1,val):
-    iter = x.createIterator()
-    v = iter.Next()
-    i = 0
-    while v:
-      v.setVal(val[i])
-      v = iter.Next()
-      i = i+1
-    if (f0.getVal(x) + f1.getVal(x)) < 10E-25:
-      return 0.
-    return f1.getVal(x) / (f0.getVal(x) + f1.getVal(x))
-
-  # Functions for Log Ratios
-  def singleLogRatio(x, f0, f1, val):
-    iter = x.createIterator()
-    v = iter.Next()
-    i = 0
-    while v:
-      v.setVal(val[i])
-      v = iter.Next()
-      i = i+1
-    rat = np.log(f1.getVal(x)) - np.log(f0.getVal(x))
-    return rat
-  def computeLogKi(x, f0, f1, c0, c1, val):
-    iter = x.createIterator()
-    v = iter.Next()
-    i = 0
-    while v:
-      v.setVal(val[i])
-      v = iter.Next()
-      i = i+1
-    k_ij = np.log(c1*f1.getVal(x)) - np.log(c0*f0.getVal(x))
-    return k_ij
-  # ki is a vector
-  def computeAi(k0, ki):
-    ai = -k0 - np.log(1. + np.sum(np.exp(ki - k0),0))
-    return ai
-
-  # pair-wise ratios
-  # and decomposition computation
   npoints = 50
 
   vars = ROOT.TList()
   for var in vars_g:
     vars.Add(w.var(var))
   x = ROOT.RooArgSet(vars)
-
-  def evaluateDecomposedRatio(w,x,evalData,plotting=True, roc=False,gridsize=None):
-    score = ROOT.RooArgSet(w.var('score'))
-    npoints = evalData.shape[0]
-    fullRatios = np.zeros(npoints)
-    for k,c in enumerate(c0):
-      innerRatios = np.zeros(npoints)
-      if c == 0:
-        continue
-      for j,c_ in enumerate(c1):
-        #testdata, testtarget = loadData('data/{0}/testdata_{1}_{2}.dat'.format(model_g, k, j)) 
-        #xarray = np.sort(testdata)
-        #xarray = np.sort(testdata)
-
-        f0pdf = w.pdf('bkghistpdf_{0}_{1}'.format(k,j))
-        f1pdf = w.pdf('sighistpdf_{0}_{1}'.format(k,j))
-        f0 = w.pdf('f{0}'.format(k))
-        f1 = w.pdf('f{0}'.format(j))
-        if k <> j:
-          outputs = predict('{0}/model/{1}/{2}/adaptive_{3}_{4}.pkl'.format(dir,model_g,c1_g,k,j),
-                  evalData)
-          pdfratios = [singleRatio(score,f0pdf,f1pdf,[xs]) for xs in outputs]
-          pdfratios = np.array(pdfratios)
-        else:
-          pdfratios = np.ones(npoints)
-        # the cases in which both distributions are the same can be problematic
-        # one will expect that the classifier gives same prob to both signal and bkg
-        # but it can behave in weird ways, I will just avoid this for now 
-        innerRatios += (c_/c) * pdfratios
-        ratios = [singleRatio(x,f0,f1,xs) for xs in evalData]
-        #if k == 1 and  j == 2:
-          #pdb.set_trace()
-        if roc == True and k <> j:
-          testdata, testtarget = loadData('test',k,j) 
-          outputs = predict('{0}/model/{1}/{2}/adaptive_{3}_{4}.pkl'.format(dir,model_g,c1_g,k,j),
-                    testdata.reshape(testdata.shape[0],testdata.shape[1]))
-          clfRatios = np.array([singleRatio(score,f0pdf,f1pdf,[xs]) for xs in outputs])
-          trRatios = np.array([singleRatio(x,f0,f1,xs) for xs in testdata])
-          makeROC(trRatios/trRatios.max(), testtarget, makePlotName('dec','truth',k,j,type='roc'))
-          makeROC(clfRatios/clfRatios.max(), testtarget,makePlotName('dec','train',k,j,type='roc'))
-          # Scatter plot to compare regression function and classifier score
-          reg = np.array([regFunc(x,f0,f1,xs) for xs in testdata])
-          #reg = reg/np.max(reg)
-          saveFig(outputs,[reg], makePlotName('dec','train',k,j,type='scat'),scatter=True, axis=['score','regression'])
-          #saveFig(testdata, [reg, outputs],  makePlotName('dec','train',k,j,type='mul_scat'),scatter=True,labels=['regression', 'score'])
-
-          # Scatter of distributions
-          #f0data = [evalDist(x,f0,xs) for xs in testdata]
-          #f1data = [evalDist(x,f1,xs) for xs in testdata]
-          #saveFig(testdata,[f0data,f1data],makePlotName('dec','truth',k,j,type='scat'),scatter=True,axis=['x','y'])
-
-        #saveFig(xarray, ratios, makePlotName('decomposed','truth',k,j,type='ratio'))
-      fullRatios += 1./innerRatios
-    return fullRatios
 
   if use_log == True:
     evaluateRatio = evaluateLogDecomposedRatio
@@ -869,7 +819,7 @@ def fitAdaptive(use_log=False):
   # load test data
   # check if ratios fulfill the requeriments of type
   testdata, testtarget = loadData('test','F0',0) 
-  decomposedRatio = evaluateDecomposedRatio(w,x,testdata,plotting=False,roc=True)
+  decomposedRatio,_ = evaluateDecomposedRatio(w,x,testdata,plotting=False,roc=True)
   outputs = predict('{0}/model/{1}/{2}/adaptive_F0_F1.pkl'.format(dir,model_g,c1_g),testdata.reshape(testdata.shape[0],testdata.shape[1]))
   completeRatio = np.array([getRatio(scoref,F1pdf,F0pdf,[xs]) for xs in outputs])
   realRatio = np.array([getRatio(x,w.pdf('F1'),w.pdf('F0'),xs) for xs in testdata])
@@ -898,16 +848,17 @@ def fitAdaptive(use_log=False):
       datahist = ROOT.RooDataHist('{0}_{1}datahist_F0_f0'.format(curr,name),'hist',
             ROOT.RooArgList(ratio),hist)
       ratio.setBins(bins)
-      histpdf = ROOT.RooHistPdf('{0}_{1}histpdf_F0_f0'.format(curr,name),'hist',
+      histpdf = ROOT.RooHistFunc('{0}_{1}histpdf_F0_f0'.format(curr,name),'hist',
             ROOT.RooArgSet(ratio), datahist, 0)
 
       histpdf.specialIntegratorConfig(ROOT.kTRUE).method1D().setLabel('RooBinIntegrator')
       getattr(w,'import')(hist)
       getattr(w,'import')(datahist) # work around for morph = w.import(morph)
       getattr(w,'import')(histpdf) # work around for morph = w.import(morph)
+      print '{0} {1} {2}'.format(curr,name,hist.Integral())
       if name == 'bkg':
-        all_ratios_plots.append([w.pdf('{0}_sighistpdf_F0_f0'.format(curr)),
-              w.pdf('{0}_bkghistpdf_F0_f0'.format(curr))])
+        all_ratios_plots.append([w.function('{0}_sighistpdf_F0_f0'.format(curr)),
+              w.function('{0}_bkghistpdf_F0_f0'.format(curr))])
         #all_names_plots.append(['{0}_signal'.format(curr),'{0}_bkg'.format(curr)])
       
   all_ratios_plots = [[all_ratios_plots[0][0],all_ratios_plots[1][0],all_ratios_plots[2][0]],
@@ -932,6 +883,42 @@ def fitAdaptive(use_log=False):
   #saveFig(testdata, [reg, outputs],  makePlotName('full','train',type='mul_scat'),scatter=True,labels=['regression', 'score'])
 
   #w.Print()
+
+def evalC1Likelihood(use_log=False):
+
+  f = ROOT.TFile('{0}/workspace_DecomposingTestOfMixtureModelsClassifiers.root'.format(dir))
+  w = f.Get('w')
+  f.Close()
+
+  vars = ROOT.TList()
+  for var in vars_g:
+    vars.Add(w.var(var))
+  x = ROOT.RooArgSet(vars)
+
+  if use_log == True:
+    evaluateRatio = evaluateLogDecomposedRatio
+    post = 'log'
+  else:
+    evaluateRatio = evaluateDecomposedRatio
+    post = ''
+
+  npoints = 10
+  cs = np.linspace(0.,1.,npoints)
+  testdata, testtarget = loadData('test','F0',0) 
+  decomposedLikelihood = np.zeros(npoints)
+  trueLikelihood = np.zeros(npoints)
+  for i,cs in enumerate(cs):
+    c1s = c1[:]
+    c1s[0] = cs
+    c1s = c1s/c1s.sum()
+    print 'c1[0]: {0}, c1[1]: {1}, c1[2]: {2}, c1/c2: {3}'.format(c1s[0],c1s[1],c1s[2],c1s[1]/c1s[2])
+    decomposedRatios,trueRatios = evaluateRatio(w,x,testdata,plotting=False,roc=False,c0arr=c0,c1arr=c1s)
+    decomposedLikelihood[i] = decomposedRatios.prod()
+    trueLikelihood[i] = trueRatios.prod()
+    print 'dec: {0}, true: {1}'.format(decomposedLikelihood[i], trueLikelihood[i])
+  saveFig(cs,[decomposedLikelihood,trueLikelihood],makePlotName('comp','train',type=post+'likelihood'),
+        labels=['decomposed','true'],axis=['c1[0]','Likelihood'])
+
 
 if __name__ == '__main__':
   classifiers = {'svc':svm.NuSVC(probability=True),'svr':svm.NuSVR(),
@@ -961,9 +948,10 @@ if __name__ == '__main__':
   # Set this value to False if only final plots are needed
   verbose_printing = True
   
-  makeModelND()
-  makeData(num_train=100000,num_test=30000) 
-  trainClassifier(clf)
-  classifierPdf()
-  fitAdaptive(use_log=False)
+  #makeModelND()
+  #makeData(num_train=200000,num_test=30000) 
+  #trainClassifier(clf)
+  #classifierPdf()
+  #fitAdaptive(use_log=False)
+  evalC1Likelihood()  
 
