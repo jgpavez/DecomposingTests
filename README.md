@@ -97,6 +97,10 @@ the number of the feature is indicated in the columns and rows of the grid of pl
 #f2-f3
 ![scatter grid 3](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/10dim/dec_truth_1_2_grid.png)
 
+Next, a parallel coordinates plot of the distributions F0 background - f0 signal is shown
+
+![parallel](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/paralell_coordinates_F0-f0.png)
+
 First, the ROC curves obtained by varying the threshold on the trained and true ratios on each pair of 
 functions are shown in the next image.
 

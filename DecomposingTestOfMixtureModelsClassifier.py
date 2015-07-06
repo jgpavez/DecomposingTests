@@ -668,7 +668,7 @@ def singleRatio(x,f0,f1,val):
     v.setVal(val[i])
     v = iter.Next()
     i = i+1
-  if f0.getVal(x) < 10E-25:
+  if f0.getVal(x) < 10E-35:
     return 0.
   return f1.getVal(x) / f0.getVal(x)
   #return f0.getVal(ROOT.RooArgSet(x))
@@ -692,7 +692,7 @@ def regFunc(x,f0,f1,val):
     v.setVal(val[i])
     v = iter.Next()
     i = i+1
-  if (f0.getVal(x) + f1.getVal(x)) < 10E-25:
+  if (f0.getVal(x) + f1.getVal(x)) < 10E-35:
     return 0.
   return f1.getVal(x) / (f0.getVal(x) + f1.getVal(x))
 
@@ -734,6 +734,7 @@ def evaluateDecomposedRatio(w,x,evalData,plotting=True, roc=False,gridsize=None,
 
   for k,c in enumerate(c0arr):
     innerRatios = np.zeros(npoints)
+    innerTrueRatios = np.zeros(npoints)
     if c == 0:
       continue
     for j,c_ in enumerate(c1arr):
@@ -902,22 +903,32 @@ def evalC1Likelihood(use_log=False):
     evaluateRatio = evaluateDecomposedRatio
     post = ''
 
-  npoints = 10
-  cs = np.linspace(0.,1.,npoints)
-  testdata, testtarget = loadData('test','F0',0) 
+  npoints = 25
+  #csarray = np.linspace(0.0005,0.01,npoints)
+  csarray = np.linspace(0.001,0.20,npoints)
+  #testdata, testtarget = loadData('test','F0','F1') 
+  testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,'test','F1'))
   decomposedLikelihood = np.zeros(npoints)
   trueLikelihood = np.zeros(npoints)
-  for i,cs in enumerate(cs):
+  for i,cs in enumerate(csarray):
     c1s = c1[:]
     c1s[0] = cs
     c1s = c1s/c1s.sum()
     print 'c1[0]: {0}, c1[1]: {1}, c1[2]: {2}, c1/c2: {3}'.format(c1s[0],c1s[1],c1s[2],c1s[1]/c1s[2])
     decomposedRatios,trueRatios = evaluateRatio(w,x,testdata,plotting=False,roc=False,c0arr=c0,c1arr=c1s)
-    decomposedLikelihood[i] = decomposedRatios.prod()
-    trueLikelihood[i] = trueRatios.prod()
+    if use_log == False:
+      decomposedLikelihood[i] = np.log(decomposedRatios).sum()
+      trueLikelihood[i] = np.log(trueRatios).sum()
+    else:
+      decomposedLikelihood[i] = decomposedRatios.sum()
+      trueLikelihood[i] = trueRatios.sum()
     print 'dec: {0}, true: {1}'.format(decomposedLikelihood[i], trueLikelihood[i])
-  saveFig(cs,[decomposedLikelihood,trueLikelihood],makePlotName('comp','train',type=post+'likelihood'),
+  decomposedLikelihood = decomposedLikelihood - decomposedLikelihood.min()
+  trueLikelihood = trueLikelihood - trueLikelihood.min() 
+  saveFig(csarray,[decomposedLikelihood,trueLikelihood],makePlotName('comp','train',type=post+'likelihood'),
         labels=['decomposed','true'],axis=['c1[0]','Likelihood'])
+
+  #w.Print()
 
 
 if __name__ == '__main__':
@@ -937,21 +948,23 @@ if __name__ == '__main__':
 
   c1[0] = sys.argv[2]
   c1_g = "%.2f"%c1[0]
+  c1[0] = (c1[0]*(c1[1]+c1[2]))/(1.-c1[0])
   c1 = c1 / c1.sum()
   print c0
   print c1
+  print c1.sum()
   print c1_g
-  
+ 
   ROOT.gROOT.SetBatch(ROOT.kTRUE)
   ROOT.RooAbsPdf.defaultIntegratorConfig().setEpsRel(1E-15)
   ROOT.RooAbsPdf.defaultIntegratorConfig().setEpsAbs(1E-15)
   # Set this value to False if only final plots are needed
   verbose_printing = True
   
-  #makeModelND()
-  #makeData(num_train=200000,num_test=30000) 
-  #trainClassifier(clf)
-  #classifierPdf()
-  #fitAdaptive(use_log=False)
+  makeModelND()
+  makeData(num_train=100000,num_test=30000) 
+  trainClassifier(clf)
+  classifierPdf()
+  fitAdaptive(use_log=False)
   evalC1Likelihood()  
 
