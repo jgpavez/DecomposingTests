@@ -166,9 +166,9 @@ First, We will check how the likelihood are affected by the number of data gener
 
  100                   | 500
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/100/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/500/comp_train_mlp_likelihood.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/100/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/500/comp_train_mlp_likelihood.png" width="350" >
  1000                   | 5000
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/1000/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/5000/comp_train_mlp_likelihood.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/1000/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/5000/comp_train_mlp_likelihood.png" width="350" >
 
 
 Now, we will check if it is possible to identify both, the signal coefficient **c1[0]** and the 
@@ -176,9 +176,9 @@ background coefficient **c1[1]** (using c1[2] = 1.-c1[0]-c1[1]). In this case we
 
  100                  | 500 
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/100/comp_train_mlp_multilikelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/500/comp_train_mlp_multilikelihood.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/100/comp_train_mlp_multilikelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/500/comp_train_mlp_multilikelihood.png" width="350" >
  1000                   | 5000 
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/1000/comp_train_mlp_multilikelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/5000/comp_train_mlp_multilikelihood.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/1000/comp_train_mlp_multilikelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/5000/comp_train_mlp_multilikelihood.png" width="350" >
 
 It can be seen that again the method do a very good job on identifying the correct values for the coefficients.
 
