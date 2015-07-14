@@ -246,7 +246,7 @@ def shared_dataset(data_xy, borrow=True):
     return shared_x, T.cast(shared_y, 'int32')
 
 def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=10,
-              batch_size=20, n_hidden=10,in_size=1,out_size=2,
+              batch_size=20, n_hidden=20,in_size=1,out_size=2,
               model_file='model/mlp/adaptive_0_1.pkl'):
 
     test_set_x = dataset
@@ -284,7 +284,7 @@ def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_
     return probs
 
 def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100,
-             dir='data/mlp',datatype='train',kpos=0,jpos=0, batch_size=20, n_hidden=10,in_size=1,out_size=2,
+             dir='data/mlp',datatype='train',kpos=0,jpos=0, batch_size=20, n_hidden=20,in_size=1,out_size=2,
               save_file='model/mlp/adaptive_0_1.pkl'):
 
 

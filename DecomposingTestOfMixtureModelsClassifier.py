@@ -309,19 +309,19 @@ def makeData(num_train=500,num_test=100):
 
   for k,c in enumerate(c0):
     print 'Making {0}'.format(k)
-    traindata = makeDataFi(x,w.pdf('f{0}'.format(k)), num_train)
-    np.savetxt('{0}/data/{1}/{2}/train_{3}.dat'.format(dir,'mlp',c1_g,k),
-                      traindata,fmt='%f')
+    #traindata = makeDataFi(x,w.pdf('f{0}'.format(k)), num_train)
+    #np.savetxt('{0}/data/{1}/{2}/train_{3}.dat'.format(dir,'mlp',c1_g,k),
+    #                  traindata,fmt='%f')
     testdata = makeDataFi(x, w.pdf('f{0}'.format(k)), num_test)
     np.savetxt('{0}/data/{1}/{2}/test_{3}.dat'.format(dir,'mlp',c1_g,k),
                       testdata,fmt='%f')
 
-  traindata = makeDataFi(x,w.pdf('F0'), num_train)
-  np.savetxt('{0}/data/{1}/{2}/train_F0.dat'.format(dir,'mlp',c1_g),
-                    traindata,fmt='%f')
-  traindata = makeDataFi(x,w.pdf('F1'), num_train)
-  np.savetxt('{0}/data/{1}/{2}/train_F1.dat'.format(dir,'mlp',c1_g),
-                    traindata,fmt='%f')
+  #traindata = makeDataFi(x,w.pdf('F0'), num_train)
+  #np.savetxt('{0}/data/{1}/{2}/train_F0.dat'.format(dir,'mlp',c1_g),
+  #                  traindata,fmt='%f')
+  #traindata = makeDataFi(x,w.pdf('F1'), num_train)
+  #np.savetxt('{0}/data/{1}/{2}/train_F1.dat'.format(dir,'mlp',c1_g),
+  #                  traindata,fmt='%f')
   testdata = makeDataFi(x, w.pdf('F0'), num_test)
   np.savetxt('{0}/data/{1}/{2}/test_F0.dat'.format(dir,'mlp',c1_g),
                     testdata,fmt='%f')
@@ -582,42 +582,62 @@ class ScikitLearnCallback:
     
     return outputs
 
-
-def saveFig(x,y,file,labels=None,scatter=False,axis=None):
+def saveFig(x,y,file,labels=None,scatter=False,contour=False,axis=None, marker=False):
   fig,ax = plt.subplots()
-  if scatter == True:
-    if len(y) == 1: 
-      ax.scatter(x,y[0],s=2)
-      ax.set_xlabel(axis[0])
-      ax.set_ylabel(axis[1])
-    else:
-      sc1 = ax.scatter(x,y[0],color='black')
-      sc2 = ax.scatter(x,y[1],color='red')
-      ax.legend((sc1,sc2),(labels[0],labels[1]))
-      ax.set_xlabel('x')
-      ax.set_ylabel('regression(score)')
+  if contour == True: 
+    cs1 = plt.contour(x,y[0],y[1],[0.,0.1,0.5,1.,5.,10.,50.,100.])
+    cs2 = plt.contour(x,y[0],y[2],[0.,0.1,0.5,1.,5.,10.,50.,100.],linestyles="dashed")
+    plt.clabel(cs1, inline=1, fontsize=10)
+    lines = [cs1.collections[0],cs2.collections[0]]
+    plt.legend(lines,labels)
+    ax.set_title('c1[0]-c2[0] -ln(L)')
+    ax.set_xlabel('c1[0]') 
+    ax.set_ylabel('c1[1]')
+    print 'c1s: {0} {1}'.format(c1[0],c1[1])
+    if marker == True: 
+      plt.axvline(c1[0], color='black')
+      plt.axhline(c1[1], color='black')
+    #ax.plot([c1[0]],[c1[1]],'o')
+    #ax.annotate('min',xy=(c1[0],c1[1]),xytext=(0.,0.))
   else:
-    if len(y) == 1:
-      ax.plot(x,y[0],'b')
+    if scatter == True:
+      if len(y) == 1: 
+        ax.scatter(x,y[0],s=2)
+        ax.set_xlabel(axis[0])
+        ax.set_ylabel(axis[1])
+      else:
+        sc1 = ax.scatter(x,y[0],color='black')
+        sc2 = ax.scatter(x,y[1],color='red')
+        ax.legend((sc1,sc2),(labels[0],labels[1]))
+        ax.set_xlabel('x')
+        ax.set_ylabel('regression(score)')
     else:
-      #Just supporting two plots for now
-      ax.plot(x,y[0],'b-',label=labels[0]) 
-      ax.plot(x,y[1],'r-',label=labels[1])
-      ax.legend()
-    ax.set_ylabel('LR')
-    ax.set_xlabel('x')
-  ax.set_title(file)
-  if (len(y) > 1):
-    # This breaks the naming convention for plots, I will solve
-    # it later
-    for i,l in enumerate(labels):
-      np.savetxt('{0}/plots/{1}/results/{2}_{3}.txt'.format(dir,model_g,file,l),y[i])
-  else:
-    np.savetxt('{0}/plots/{1}/results/{2}.txt'.format(dir,model_g,file),y[0])
+      if len(y) == 1:
+        ax.plot(x,y[0],'b')
+      else:
+        #Just supporting two plots for now
+        ax.plot(x,y[0],'b-',label=labels[0]) 
+        ax.plot(x,y[1],'r-',label=labels[1])
+        ax.legend()
+      if axis <> None:
+        ax.set_ylabel(axis[1])
+        ax.set_xlabel(axis[0]) 
+      else:
+        ax.set_ylabel('LR')
+        ax.set_xlabel('x')
+      if marker == True:
+        plt.axvline(c1[0], color='black')
+    ax.set_title(file)
+    if (len(y) > 1):
+      # This breaks the naming convention for plots, I will solve
+      # it later
+      for i,l in enumerate(labels):
+        np.savetxt('{0}/plots/{1}/results/{2}_{3}.txt'.format(dir,model_g,file,l),y[i])
+    else:
+      np.savetxt('{0}/plots/{1}/results/{2}.txt'.format(dir,model_g,file),y[0])
   fig.savefig('{0}/plots/{1}/{2}.png'.format(dir,model_g,file))
   plt.close(fig)
   plt.clf()
-
 
 def saveFig3D(x,y,z,file,labels=None,scatter=False,axis=None):
   fig = plt.figure()
@@ -904,14 +924,15 @@ def evalC1Likelihood(use_log=False):
     post = ''
 
   npoints = 25
-  #csarray = np.linspace(0.0005,0.01,npoints)
-  csarray = np.linspace(0.001,0.20,npoints)
+  csarray = np.linspace(0.01,0.10,npoints)
+  #csarray = np.linspace(0.001,0.15,npoints)
   #testdata, testtarget = loadData('test','F0','F1') 
   testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,'test','F1'))
   decomposedLikelihood = np.zeros(npoints)
   trueLikelihood = np.zeros(npoints)
+  c1s = np.zeros(c1.shape[0])
   for i,cs in enumerate(csarray):
-    c1s = c1[:]
+    c1s[:] = c1[:]
     c1s[0] = cs
     c1s = c1s/c1s.sum()
     print 'c1[0]: {0}, c1[1]: {1}, c1[2]: {2}, c1/c2: {3}'.format(c1s[0],c1s[1],c1s[2],c1s[1]/c1s[2])
@@ -926,9 +947,71 @@ def evalC1Likelihood(use_log=False):
   decomposedLikelihood = decomposedLikelihood - decomposedLikelihood.min()
   trueLikelihood = trueLikelihood - trueLikelihood.min() 
   saveFig(csarray,[decomposedLikelihood,trueLikelihood],makePlotName('comp','train',type=post+'likelihood'),
-        labels=['decomposed','true'],axis=['c1[0]','Likelihood'])
+        labels=['decomposed','true'],axis=['c1[0]','-ln(L)'],marker=True)
 
   #w.Print()
+
+
+
+def evalC1C2Likelihood(use_log=False):
+
+  f = ROOT.TFile('{0}/workspace_DecomposingTestOfMixtureModelsClassifiers.root'.format(dir))
+  w = f.Get('w')
+  f.Close()
+
+  vars = ROOT.TList()
+  for var in vars_g:
+    vars.Add(w.var(var))
+  x = ROOT.RooArgSet(vars)
+
+  if use_log == True:
+    evaluateRatio = evaluateLogDecomposedRatio
+    post = 'log'
+  else:
+    evaluateRatio = evaluateDecomposedRatio
+    post = ''
+
+  npoints = 25
+  csarray = np.linspace(0.01,0.07,npoints)
+  cs2array = np.linspace(0.1,0.4,npoints)
+  #csarray = np.linspace(0.001,0.15,npoints)
+  #testdata, testtarget = loadData('test','F0','F1') 
+  testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,'test','F1'))
+  decomposedLikelihood = np.zeros((npoints,npoints))
+  trueLikelihood = np.zeros((npoints,npoints))
+  c1s = np.zeros(c1.shape[0])
+  c0s = np.zeros(c1.shape[0])
+  for i,cs in enumerate(csarray):
+    for j, cs2 in enumerate(cs2array):
+      c1s[:] = c1[:]
+      c1s[0] = cs
+      c1s[1] = cs2
+      c1s[2] = 1.-cs-cs2
+      #c1s = c1s / c1s.sum()
+      #c0s[1] = cs2 + cs/2.
+      #c0s[2] = c1s[2] + cs/2.
+      #c1s = c1s/c1s.sum()
+      print 'c1[0]: {0}, c1[1]: {1}, c1[2]: {2}, sum: {3}, c1[1]/c1[2]: {4}'.format(c1s[0],c1s[1],c1s[2],c1s.sum(),c1s[1]/c1s[2])
+      print 'c0[1]: {0}, c0[2]: {1}, sum: {2}'.format(c0s[1], c0s[2], c0s.sum())
+      decomposedRatios,trueRatios = evaluateRatio(w,x,testdata,plotting=False,roc=False,c0arr=c0,c1arr=c1s)
+      if use_log == False:
+        decomposedLikelihood[i,j] = np.log(decomposedRatios).sum()
+        trueLikelihood[i,j] = np.log(trueRatios).sum()
+      else:
+        decomposedLikelihood[i,j] = decomposedRatios.sum()
+        trueLikelihood[i,j] = trueRatios.sum()
+      #print 'dec: {0}, true: {1}'.format(decomposedLikelihood[i], trueLikelihood[i])
+  decomposedLikelihood = decomposedLikelihood - decomposedLikelihood.min()
+  trueLikelihood = trueLikelihood - trueLikelihood.min() 
+  X,Y = np.meshgrid(csarray, cs2array)
+  saveFig(X,[Y,decomposedLikelihood,trueLikelihood],makePlotName('comp','train',type='multilikelihood'),
+  labels=['composed','true'],contour=True,marker=True)
+
+  #saveFig(csarray,[decomposedLikelihood,trueLikelihood],makePlotName('comp','train',type=post+'multi_likelihood'),
+  #      labels=['decomposed','true'],axis=['c1[0]','c1[1]','Likelihood'])
+
+  #w.Print()
+
 
 
 if __name__ == '__main__':
@@ -961,10 +1044,14 @@ if __name__ == '__main__':
   # Set this value to False if only final plots are needed
   verbose_printing = True
   
-  makeModelND()
-  makeData(num_train=100000,num_test=30000) 
-  trainClassifier(clf)
-  classifierPdf()
-  fitAdaptive(use_log=False)
+  if (len(sys.argv) > 3):
+    print 'Setting seed: {0} '.format(sys.argv[3])
+    ROOT.RooRandom.randomGenerator().SetSeed(int(sys.argv[3])) 
+  #makeModelND()
+  makeData(num_train=200000,num_test=5000) 
+  #trainClassifier(clf)
+  #classifierPdf()
+  #fitAdaptive(use_log=False)
   evalC1Likelihood()  
+  evalC1C2Likelihood()  
 

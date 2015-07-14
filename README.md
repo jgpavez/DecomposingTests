@@ -153,3 +153,33 @@ Finally, in the next image the Signal Efficiency - Background Rejection curves f
 For this N dimensional case all ratios behave better, still is clear than for smaller signal coefficient the trained ratios are working almost perfectly for the composed 
 case.
 
+## Identifying the signal coefficient by fitting
+
+What we want to check now if it is possible to identify the signal coefficient 
+**c1[0]**, leaving the **c1[1]/c1[2]** ratio constant, by using the likelihood of the ratios.
+To do this we first train the decomposed model on the N-dim data with a defined **c1[0]**.
+After doing this we use this model and compute the composed likelihood ratio for different 
+values of **c1[0]** and the data obtained using the previously fixed **c1[0]**. It will be expected
+ that the minimum corresponds to the real **c1[0]**. 
+
+First, We will check how the likelihood are affected by the number of data generated to compute the likelihoods, for the case c1[0] = 0.05.
+
+ 100                   | 500
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/100/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/500/comp_train_mlp_likelihood.png" width="350" >
+ 1000                   | 5000
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/1000/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/5000/comp_train_mlp_likelihood.png" width="350" >
+
+
+Now, we will check if it is possible to identify both, the signal coefficient **c1[0]** and the 
+background coefficient **c1[1]** (using c1[2] = 1.-c1[0]-c1[1]). In this case we are using 100,500,1000 and 5000 samples to compute the likelihood and values for the coefficients of c1[0] = 0.05 and c1[1] = 0.285. Truth likelihoods are compared to trained Likelihoods.
+
+ 100                  | 500 
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/100/comp_train_mlp_multilikelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/500/comp_train_mlp_multilikelihood.png" width="350" >
+ 1000                   | 5000 
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/1000/comp_train_mlp_multilikelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/5000/comp_train_mlp_multilikelihood.png" width="350" >
+
+It can be seen that again the method do a very good job on identifying the correct values for the coefficients.
+
+
