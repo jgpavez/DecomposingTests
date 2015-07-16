@@ -216,7 +216,7 @@ def makeModelND():
   #w.factory("MultiVarGaussian::f0({{{0}}},{{{1}}},cov2)".format(gaus_vars_string,mu2))
   argus = ROOT.RooArgList() 
   for i,var in enumerate(vars_g):
-    w.factory('{0}[{1},{2}]'.format(var,0,5))
+    w.factory('{0}[{1},{2}]'.format(var,-10,15))
     argus.add(w.var(var))
 
   vec1 = ROOT.TVectorD(len(vars_g))
@@ -688,7 +688,7 @@ def singleRatio(x,f0,f1,val):
     v.setVal(val[i])
     v = iter.Next()
     i = i+1
-  if f0.getVal(x) < 10E-35:
+  if f0.getVal(x) == 0.:
     return 0.
   return f1.getVal(x) / f0.getVal(x)
   #return f0.getVal(ROOT.RooArgSet(x))
@@ -712,7 +712,7 @@ def regFunc(x,f0,f1,val):
     v.setVal(val[i])
     v = iter.Next()
     i = i+1
-  if (f0.getVal(x) + f1.getVal(x)) < 10E-35:
+  if (f0.getVal(x) + f1.getVal(x)) == 0.:
     return 0.
   return f1.getVal(x) / (f0.getVal(x) + f1.getVal(x))
 
@@ -791,8 +791,12 @@ def evaluateDecomposedRatio(w,x,evalData,plotting=True, roc=False,gridsize=None,
         #saveFig(testdata, [reg, outputs],  makePlotName('dec','train',k,j,type='mul_scat'),scatter=True,labels=['regression', 'score'])
 
       #saveFig(xarray, ratios, makePlotName('decomposed','truth',k,j,type='ratio'))
-    fullRatios += 1./innerRatios
-    fullRatiosReal += 1./innerTrueRatios
+    innerRatios = 1./innerRatios
+    innerRatios[innerRatios == np.inf] = 0.
+    fullRatios += innerRatios
+    innerTrueRatios = 1./innerTrueRatios
+    innerTrueRatios[innerTrueRatios == np.inf] = 0.
+    fullRatiosReal += innerTrueRatios
   return fullRatios,fullRatiosReal
 
 def fitAdaptive(use_log=False):
@@ -950,8 +954,6 @@ def evalC1Likelihood(use_log=False):
         labels=['decomposed','true'],axis=['c1[0]','-ln(L)'],marker=True)
 
   #w.Print()
-
-
 
 def evalC1C2Likelihood(use_log=False):
 
