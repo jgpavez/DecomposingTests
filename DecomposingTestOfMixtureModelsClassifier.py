@@ -465,8 +465,8 @@ def classifierPdf():
   '''
 
   bins = 40
-  low = -7.
-  high = 7.  
+  low = 0.
+  high = 1.  
 
   f = ROOT.TFile('{0}/workspace_DecomposingTestOfMixtureModelsClassifiers.root'.format(dir))
   w = f.Get('w')
@@ -479,8 +479,8 @@ def classifierPdf():
   
   #This is because most of the data of the full model concentrate around 0 
   bins_full = 40
-  low_full = -1.0
-  high_full = 1.0
+  low_full = 0.
+  high_full = 1.
   w.factory('scoref[{0},{1}]'.format(low_full, high_full))
   s_full = w.var('scoref')
   histos = []
