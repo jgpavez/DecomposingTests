@@ -39,10 +39,12 @@ verbose_printing = True
 model_g = None
 dir = '/afs/cern.ch/user/j/jpavezse/systematics'
 
+mu_g = []
+cov_g = []
 vars_g = ['x0','x1','x2','x3','x4','x5','x6','x7','x8','x9']
-mu1_g = [5.,5.,4.,3.,5.,5.,4.5,2.5,4.,3.5]
-mu2_g = [2.,4.5,0.6,5.,6.,4.5,4.2,0.2,4.1,3.3]
-cov1_g =[[3.,0.,0.,0.,0.,0.,0.,0.,0.,0.],
+mu_g.append([5.,5.,4.,3.,5.,5.,4.5,2.5,4.,3.5])
+mu_g.append([2.,4.5,0.6,5.,6.,4.5,4.2,0.2,4.1,3.3])
+cov_g.append([[3.,0.,0.,0.,0.,0.,0.,0.,0.,0.],
          [0.,2.,0.,0.,0.,0.,0.,0.,0.,0.],
          [0.,0.,14.,0.,0.,0.,0.,0.,0.,0.],
          [0.,0.,0.,6.,0.,0.,0.,0.,0.,0.],
@@ -51,8 +53,8 @@ cov1_g =[[3.,0.,0.,0.,0.,0.,0.,0.,0.,0.],
          [0.,0.,0.,0.,0.,0.,5.,0.,0.,0.],
          [0.,0.,0.,0.,0.,0.,0.,1.3,0.,0.],
          [0.,0.,0.,0.,0.,0.,0.,0.,1.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,0.,0.,0.3]]
-cov2_g =[[3.5,0.,0.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,0.,0.,0.3]])
+cov_g.append([[3.5,0.,0.,0.,0.,0.,0.,0.,0.,0.],
          [0.,3.5,0.,0.,0.,0.,0.,0.,0.,0.],
          [0.,0.,3.5,0.,0.,0.,0.,0.,0.,0.],
          [0.,0.,0.,7.2,0.,0.,0.,0.,0.,0.],
@@ -61,10 +63,10 @@ cov2_g =[[3.5,0.,0.,0.,0.,0.,0.,0.,0.,0.],
          [0.,0.,0.,0.,0.,0.,8.2,0.,0.,0.],
          [0.,0.,0.,0.,0.,0.,0.,9.5,0.,0.],
          [0.,0.,0.,0.,0.,0.,0.,0.,0.5,0.],
-         [0.,0.,0.,0.,0.,0.,0.,0.,0.,0.5]]
+         [0.,0.,0.,0.,0.,0.,0.,0.,0.,0.5]])
 
-mu3_g = [1.,0.5,0.3,0.5,0.6,0.4,0.1,0.2,0.1,0.3]
-cov3_g =[[13.,0.,0.,0.,0.,0.,0.,0.,0.,0.],
+mu_g.append([1.,0.5,0.3,0.5,0.6,0.4,0.1,0.2,0.1,0.3])
+cov_g.append([[13.,0.,0.,0.,0.,0.,0.,0.,0.,0.],
          [0.,12.,0.,0.,0.,0.,0.,0.,0.,0.],
          [0.,0.,14.,0.,0.,0.,0.,0.,0.,0.],
          [0.,0.,0.,6.,0.,0.,0.,0.,0.,0.],
@@ -73,7 +75,7 @@ cov3_g =[[13.,0.,0.,0.,0.,0.,0.,0.,0.,0.],
          [0.,0.,0.,0.,0.,0.,15.,0.,0.,0.],
          [0.,0.,0.,0.,0.,0.,0.,6.3,0.,0.],
          [0.,0.,0.,0.,0.,0.,0.,0.,11.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,0.,0.,1.3]]
+         [0.,0.,0.,0.,0.,0.,0.,0.,0.,1.3]])
 
 
 def printMultiFrame(w,obs,all_pdfs,name,legends,setLog=False):
@@ -167,6 +169,60 @@ def printFrame(w,obs,pdf,name,legends):
     leg.Draw()
   can.SaveAs('{0}/plots/{1}/{2}.png'.format(dir,model_g,name))
 
+def makeModelPrivateND(n_private = 3):
+  '''
+  RooFit statistical model for the data
+  
+  '''  
+  # Statistical model
+  w = ROOT.RooWorkspace('w')
+
+  print 'Generating initial distributions'
+  cov_m = []
+  mu_m = []
+  mu_str = []
+  cov_root = []
+  vec = []
+  argus = ROOT.RooArgList() 
+  meansum = [[2.,1.,-2.],[1.,-3.,0.5],[0.2,1.2,-2.3]]
+  coeffs = [[ 0.28174199,0.46707738,0.25118062],[0.18294893,0.33386682,0.48318425],[ 0.25763285,0.28015834,0.46220881]]
+  for i,var in enumerate(vars_g):
+    w.factory('{0}[{1},{2}]'.format(var,-25,30))
+    argus.add(w.var(var))
+  for glob in range(3):
+    for priv in range(n_private):
+      cov_m.append(np.matrix(cov_g[glob]))
+      cov_root.append(ROOT.TMatrixDSym(len(vars_g)))
+      for i,var1 in enumerate(vars_g):
+        for j,var2 in enumerate(vars_g):
+          cov_root[-1][i][j] = cov_m[-1][i,j]
+      getattr(w,'import')(cov_root[-1],'cov{0}'.format(glob*3 + priv))
+      #mu_m.append(np.array(mu_g[glob]) + (20.*np.random.rand(len(mu_g[glob])) - 10.))
+      mu_m.append(np.array(mu_g[glob]) + meansum[glob][priv])
+      vec.append(ROOT.TVectorD(len(vars_g)))
+      for i, mu in enumerate(mu_m[-1]):
+        vec[-1][i] = mu
+      mu_str.append(','.join([str(mu) for mu in mu_m[-1]]))
+      gaussian = ROOT.RooMultiVarGaussian('f{0}_{1}'.format(glob,priv),
+            'f{0}_{1}'.format(glob,priv),argus,vec[-1],cov_root[-1])
+      getattr(w,'import')(gaussian)
+    priv_coeffs = np.array(coeffs[glob])
+    #priv_coeffs = priv_coeffs/priv_coeffs.sum()
+    print 'priv coef {0} {1}'.format(priv_coeffs, priv_coeffs.sum())
+    sum_str = ','.join(['c_{0}_{1}[{2}]*f{0}_{1}'.format(glob,j,priv_coeffs[j]) for j in range(n_private)])
+    w.factory('SUM::f{0}({1})'.format(glob,sum_str))
+  w.factory("SUM::F0(c00[{0}]*f0,c01[{1}]*f1,f2)".format(c0[0],c0[1]))
+  w.factory("SUM::F1(c10[{0}]*f0,c11[{1}]*f1,f2)".format(c1[0],c1[1]))
+  
+  # Check Model
+  w.Print()
+
+  w.writeToFile('{0}/workspace_DecomposingTestOfMixtureModelsClassifiers.root'.format(dir))
+  if verbose_printing == True:
+    printFrame(w,vars_g,[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']) 
+    printFrame(w,vars_g,[w.pdf('F0'),w.pdf('F1')],'full_model',['F0','F1'])
+    printFrame(w,vars_g,[w.pdf('F1'),'f0'],'full_signal', ['F1','f0'])
+
 def makeModelND():
   '''
   RooFit statistical model for the data
@@ -174,69 +230,32 @@ def makeModelND():
   '''  
   # Statistical model
   w = ROOT.RooWorkspace('w')
-  vars_string = ','.join(['{0}[0,5]'.format(var) for var in vars_g]) 
-  gaus_vars_string = ','.join(vars_g)
-  exponential_string = '+'.join(vars_g) 
 
   print 'Generating initial distributions'
-
-  # Gaussian 1
-  cov1_m = np.matrix(cov1_g)
-  #cov1_m = np.dot(cov1_m,cov1_m.transpose()) 
-  cov1 = ROOT.TMatrixDSym(len(vars_g))
-  for i,var1 in enumerate(vars_g):
-    for j,var2 in enumerate(vars_g):
-      cov1[i][j] = cov1_m[i,j]
-  getattr(w,'import')(cov1,'cov1')
-  cov2_m = np.matrix(cov2_g)
-  #cov2_m = np.dot(cov2_m,cov2_m.transpose())
-  cov2 = ROOT.TMatrixDSym(len(vars_g))
-  for i,var1 in enumerate(vars_g):
-    for j,var2 in enumerate(vars_g):
-      print cov2_m[i,j],
-      cov2[i][j] = cov2_m[i,j]
-    print
-  getattr(w,'import')(cov2,'cov2')
-
-  mu1 = ','.join([str(mu) for mu in mu1_g])
-  mu2 = ','.join([str(mu) for mu in mu2_g])
-  
-  cov3_m = np.matrix(cov3_g)
-  cov3 = ROOT.TMatrixDSym(len(vars_g))
-  for i,var1 in enumerate(vars_g):
-    for j,var2 in enumerate(vars_g):
-      cov3[i][j] = cov3_m[i,j]
-  getattr(w,'import')(cov3,'cov3')
-
-  mu3 = ','.join([str(mu) for mu in mu3_g])
-
-  #w.factory("EXPR::f2('exp(-0.4*({0}))',{1})".format(exponential_string,vars_string))
-  # Making Multi Var Gaussian, factory not working
-  #w.factory("MultiVarGaussian::f1({{{0}}},{{{1}}},cov1)".format(gaus_vars_string,mu1))
-  #w.factory("MultiVarGaussian::f0({{{0}}},{{{1}}},cov2)".format(gaus_vars_string,mu2))
+  cov_m = []
+  mu_m = []
+  mu_str = []
+  cov_root = []
+  vec = []
   argus = ROOT.RooArgList() 
   for i,var in enumerate(vars_g):
-    w.factory('{0}[{1},{2}]'.format(var,-10,15))
+    w.factory('{0}[{1},{2}]'.format(var,-25,30))
     argus.add(w.var(var))
-
-  vec1 = ROOT.TVectorD(len(vars_g))
-  for i,mu in enumerate(mu1_g):
-    vec1[i] = mu
-  gaussian1 = ROOT.RooMultiVarGaussian('f1','f1',argus,vec1,cov1)
-  getattr(w,'import')(gaussian1)
-
-  vec2 = ROOT.TVectorD(len(vars_g))
-  for i,mu in enumerate(mu2_g):
-    vec2[i] = mu
-  gaussian2 = ROOT.RooMultiVarGaussian('f0','f0',argus,vec2,cov2)
-  getattr(w,'import')(gaussian2)
-
-  vec3 = ROOT.TVectorD(len(vars_g))
-  for i,mu in enumerate(mu3_g):
-    vec3[i] = mu
-  gaussian3 = ROOT.RooMultiVarGaussian('f2','f2',argus,vec3,cov3)
-  getattr(w,'import')(gaussian3)
-
+  for glob in range(3):
+    cov_m.append(np.matrix(cov_g[glob]))
+    cov_root.append(ROOT.TMatrixDSym(len(vars_g)))
+    for i,var1 in enumerate(vars_g):
+      for j,var2 in enumerate(vars_g):
+        cov_root[-1][i][j] = cov_m[-1][i,j]
+    getattr(w,'import')(cov_root[-1],'cov{0}'.format(glob))
+    mu_m.append(np.array(mu_g[glob]))
+    vec.append(ROOT.TVectorD(len(vars_g)))
+    for i, mu in enumerate(mu_m[-1]):
+      vec[-1][i] = mu
+    mu_str.append(','.join([str(mu) for mu in mu_m[-1]]))
+    gaussian = ROOT.RooMultiVarGaussian('f{0}'.format(glob),
+          'f{0}'.format(glob),argus,vec[-1],cov_root[-1])
+    getattr(w,'import')(gaussian)
   w.factory("SUM::F0(c00[{0}]*f0,c01[{1}]*f1,f2)".format(c0[0],c0[1]))
   w.factory("SUM::F1(c10[{0}]*f0,c11[{1}]*f1,f2)".format(c1[0],c1[1]))
   
@@ -309,19 +328,19 @@ def makeData(num_train=500,num_test=100):
 
   for k,c in enumerate(c0):
     print 'Making {0}'.format(k)
-    #traindata = makeDataFi(x,w.pdf('f{0}'.format(k)), num_train)
-    #np.savetxt('{0}/data/{1}/{2}/train_{3}.dat'.format(dir,'mlp',c1_g,k),
-    #                  traindata,fmt='%f')
+    traindata = makeDataFi(x,w.pdf('f{0}'.format(k)), num_train)
+    np.savetxt('{0}/data/{1}/{2}/train_{3}.dat'.format(dir,'mlp',c1_g,k),
+                      traindata,fmt='%f')
     testdata = makeDataFi(x, w.pdf('f{0}'.format(k)), num_test)
     np.savetxt('{0}/data/{1}/{2}/test_{3}.dat'.format(dir,'mlp',c1_g,k),
                       testdata,fmt='%f')
 
-  #traindata = makeDataFi(x,w.pdf('F0'), num_train)
-  #np.savetxt('{0}/data/{1}/{2}/train_F0.dat'.format(dir,'mlp',c1_g),
-  #                  traindata,fmt='%f')
-  #traindata = makeDataFi(x,w.pdf('F1'), num_train)
-  #np.savetxt('{0}/data/{1}/{2}/train_F1.dat'.format(dir,'mlp',c1_g),
-  #                  traindata,fmt='%f')
+  traindata = makeDataFi(x,w.pdf('F0'), num_train)
+  np.savetxt('{0}/data/{1}/{2}/train_F0.dat'.format(dir,'mlp',c1_g),
+                    traindata,fmt='%f')
+  traindata = makeDataFi(x,w.pdf('F1'), num_train)
+  np.savetxt('{0}/data/{1}/{2}/train_F1.dat'.format(dir,'mlp',c1_g),
+                    traindata,fmt='%f')
   testdata = makeDataFi(x, w.pdf('F0'), num_test)
   np.savetxt('{0}/data/{1}/{2}/test_F0.dat'.format(dir,'mlp',c1_g),
                     testdata,fmt='%f')
@@ -1014,8 +1033,6 @@ def evalC1C2Likelihood(use_log=False):
 
   #w.Print()
 
-
-
 if __name__ == '__main__':
   classifiers = {'svc':svm.NuSVC(probability=True),'svr':svm.NuSVR(),
         'logistic': linear_model.LogisticRegression(), 
@@ -1032,7 +1049,7 @@ if __name__ == '__main__':
     print 'Not found classifier, Using logistic instead'
 
   c1[0] = sys.argv[2]
-  c1_g = "%.2f"%c1[0]
+  c1_g = "%.3f"%c1[0]
   c1[0] = (c1[0]*(c1[1]+c1[2]))/(1.-c1[0])
   c1 = c1 / c1.sum()
   print c0
@@ -1049,11 +1066,13 @@ if __name__ == '__main__':
   if (len(sys.argv) > 3):
     print 'Setting seed: {0} '.format(sys.argv[3])
     ROOT.RooRandom.randomGenerator().SetSeed(int(sys.argv[3])) 
+  makeModelPrivateND()
   #makeModelND()
-  makeData(num_train=200000,num_test=5000) 
-  #trainClassifier(clf)
-  #classifierPdf()
-  #fitAdaptive(use_log=False)
+  makeData(num_train=200000,num_test=30000) 
+  trainClassifier(clf)
+  classifierPdf()
+  fitAdaptive(use_log=False)
+  makeData(num_train=200000,num_test=500) 
   evalC1Likelihood()  
   evalC1C2Likelihood()  
 
