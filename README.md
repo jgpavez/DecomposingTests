@@ -277,4 +277,26 @@ background coefficient **c1[1]** (using c1[2] = 1.-c1[0]-c1[1]). In this case we
 
 Again, the method works pretty good even with this harder model.
 
+# How training affect ratios
 
+Now, what we will study is how the quality of training affect the final ratios. We will keep a large amount of data to construct the likelihood ratios (30000 samples) but we will vary 
+the amount of data used to train the classiffier. We will use 0, 1000, 10000, and 1000000 samples to train the classifier.
+The Likelihood ratios histograms are shown in the next image for each one of the cases and for a signal coefficient of **0.05**.
+
+ 0                   | 1000
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/0/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/1000/comp_train_mlp_likelihood.png" width="350" >
+ 10000                   | 100000
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/10000/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/100000/comp_train_mlp_likelihood.png" width="350" >
+
+
+The signal efficiency - background rejection curves are shown next for each one of the cases.
+
+
+ 0                   | 1000
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/0/full_comparison_mlp_sigbkgkelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/1000/full_comparison_mlp_sigbkgkelihood.png" width="350" >
+ 10000                   | 100000
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/10000/full_comparison_mlp_sigbkgkelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/100000/full_comparison_mlp_sigbkgkelihood.png" width="350" >
+
+It can be seen that even with a relatively small amount of samples the ratios can be correctly calibrated.
