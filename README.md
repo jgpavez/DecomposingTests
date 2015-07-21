@@ -285,9 +285,9 @@ The Likelihood ratios histograms are shown in the next image for each one of the
 
  0                   | 1000
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/0/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/1000/comp_train_mlp_likelihood.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/0/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/1000/ratio_comparison_mlp_hist.png" width="350" >
  10000                   | 100000
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/10000/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/100000/comp_train_mlp_likelihood.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/10000/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/100000/ratio_comparison_mlp_hist.png" width="350" >
 
 
 The signal efficiency - background rejection curves are shown next for each one of the cases.
@@ -295,8 +295,8 @@ The signal efficiency - background rejection curves are shown next for each one 
 
  0                   | 1000
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/0/full_comparison_mlp_sigbkgkelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/1000/full_comparison_mlp_sigbkgkelihood.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/0/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/1000/full_comparison_mlp_sigbkg.png" width="350" >
  10000                   | 100000
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/10000/full_comparison_mlp_sigbkgkelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/100000/full_comparison_mlp_sigbkgkelihood.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/10000/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/100000/full_comparison_mlp_sigbkg.png" width="350" >
 
 It can be seen that even with a relatively small amount of samples the ratios can be correctly calibrated.
