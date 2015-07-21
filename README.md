@@ -299,4 +299,4 @@ The signal efficiency - background rejection curves are shown next for each one 
  10000                   | 100000
 <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/10000/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/100000/full_comparison_mlp_sigbkg.png" width="350" >
 
-It can be seen that even with a relatively small amount of samples the ratios can be correctly calibrated.
+It can be seen that even with a relatively small amount of samples the ratios (specially the ones obtained with the composing formula) can be correctly calibrated.
