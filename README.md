@@ -182,6 +182,21 @@ background coefficient **c1[1]** (using c1[2] = 1.-c1[0]-c1[1]). In this case we
 
 It can be seen that again the method do a very good job on identifying the correct values for the coefficients.
 
+Next we will check if the estimated **c1[0]** and **c1[1]** are unbiased estimators of the 
+real values. In the next images histograms of the estimated values for the likelihood 
+obtained by the true and composed methods and values of **c1[0] = 0.05** and **c1[1] = 0.285** 
+ are shown. 
+
+ c1                  | c1
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.005/c1c2_train_mlp_c1_hist.png" width="350" >
+ c2                   | c2
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/1000/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.005/5000/c1c2_train_mlp_c2_hist.png" width="350" >
+
+It can be seen that both methods obtain unbiased estimators of the true values.
+
+
+
 #N-dimensions Private Model
 
 We will check the composition method in a N-dim mixture model. But this time each pdf is also a sum of gaussians, with 
