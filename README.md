@@ -191,7 +191,7 @@ obtained by the true and composed methods and values of **c1[0] = 0.05** and **c
 :-------------------------:|:-------------------------:
 <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.005/c1c2_train_mlp_c1_hist.png" width="350" >
  c2                   | c2
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/1000/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.005/5000/c1c2_train_mlp_c2_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.005/5000/c1c2_train_mlp_c2_hist.png" width="350" >
 
 It can be seen that both methods obtain unbiased estimators of the true values.
 
