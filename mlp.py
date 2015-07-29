@@ -33,27 +33,9 @@ import numpy
 import theano
 import theano.tensor as T
 import copy
-
+from utils import loadData
 
 from logistic_sgd import LogisticRegression
-
-# This function is repeated in Decomposing... I should facorize this
-def loadData(type,k,j,folder=None):
-  if folder <> None:
-    fk = numpy.loadtxt('{0}/{1}_{2}.dat'.format(folder,type,k))
-    fj = numpy.loadtxt('{0}/{1}_{2}.dat'.format(folder,type,j))
-  else:
-    fk = numpy.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,type,k))
-    fj = numpy.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,type,j))
-  num = fk.shape[0]
-  traindata = numpy.zeros((num*2,fk.shape[1]))
-  targetdata = numpy.zeros(num*2)
-  traindata[:num] = fj[:]
-  traindata[num:] = fk[:]
-  targetdata[:num].fill(1)
-  targetdata[num:].fill(0)
-  #result = logit(make_predictions(dataset=traindata, model_file=filename)[:,1])
-  return (traindata, targetdata)
 
 class HiddenLayer(object):
     def __init__(self, rng, input, n_in, n_out, W=None, b=None,
