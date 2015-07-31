@@ -314,7 +314,7 @@ The signal efficiency - background rejection curves are shown next for each one 
  10000                   | 100000
 <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/10000/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/100000/full_comparison_mlp_sigbkg.png" width="350" >
 
-Finally, the histograms for the values of the coefficients c1[0] and c2[0] obtained by maximizing the log-likelihood on a dataset in each case of the cases are shown. 
+Finally, the histograms for the values of the coefficients c1[0] and c2[0] obtained by maximizing the log-likelihood on a dataset in each one of the cases are shown. 
 
 
 c1[0] - 0                   | c1[0] - 1000
