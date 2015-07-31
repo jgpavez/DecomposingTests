@@ -199,8 +199,8 @@ It can be seen that both methods obtain unbiased estimators of the true values.
 
 #N-dimensions Private Model
 
-We will check the composition method in a N-dim mixture model. But this time each pdf is also a sum of gaussians, with 
-unknown coefficients. We want to see how the method works in this harder case.
+We will check the composition method in a N-dim mixture model. But this time each pdf is also a sum of gaussians with fixed coefficients. 
+We want to see how the method works in this harder case.
 
 ![decomposed model](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.10/decomposed_model.png)
 
@@ -314,4 +314,21 @@ The signal efficiency - background rejection curves are shown next for each one 
  10000                   | 100000
 <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/10000/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/100000/full_comparison_mlp_sigbkg.png" width="350" >
 
-It can be seen that even with a relatively small amount of samples the ratios (specially the ones obtained with the composing formula) can be correctly calibrated.
+Finally, the histograms for the values of the coefficients c1[0] and c2[0] obtained by maximizing the log-likelihood on a dataset in each case of the cases are shown. 
+
+
+c1[0] - 0                   | c1[0] - 1000
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/0/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/1000/c1c2_train_mlp_c1_hist.png" width="350" >
+c1[0] - 10000                | c1[0] - 100000
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/10000/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/100000/c1c2_train_mlp_c1_hist.png" width="350" >
+
+c1[1] - 0                   | c1[1] - 1000
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/0/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/1000/c1c2_train_mlp_c2_hist.png" width="350" >
+c1[1] - 10000                | c1[1] - 100000
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/10000/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/100000/c1c2_train_mlp_c2_hist.png" width="350" >
+
+With a relatively small amount of samples, the trained likelihood is able to approximate closely the true value of the coefficients **c1[0]** and **c1[1]** with only a small bias. 
+With more data the approximation is very good.
+
