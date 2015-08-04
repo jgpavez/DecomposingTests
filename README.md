@@ -300,9 +300,9 @@ The Likelihood ratios histograms are shown in the next image for each one of the
 
  0                   | 1000
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/0/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/1000/ratio_comparison_mlp_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/0/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/1000/ratio_comparison_mlp_hist.png" width="350" >
  10000                   | 100000
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/10000/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/100000/ratio_comparison_mlp_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/10000/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/100000/ratio_comparison_mlp_hist.png" width="350" >
 
 
 The signal efficiency - background rejection curves are shown next for each one of the cases.
@@ -310,24 +310,24 @@ The signal efficiency - background rejection curves are shown next for each one 
 
  0                   | 1000
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/0/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/1000/full_comparison_mlp_sigbkg.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/0/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/1000/full_comparison_mlp_sigbkg.png" width="350" >
  10000                   | 100000
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/10000/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/100000/full_comparison_mlp_sigbkg.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/10000/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/100000/full_comparison_mlp_sigbkg.png" width="350" >
 
 Finally, the histograms for the values of the coefficients c1[0] and c2[0] obtained by maximizing the log-likelihood on a dataset in each one of the cases are shown. 
 
 
 c1[0] - 0                   | c1[0] - 1000
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/0/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/1000/c1_train_mlp_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/0/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/1000/c1_train_mlp_hist.png" width="350" >
 c1[0] - 10000                | c1[0] - 100000
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/10000/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/100000/c1c2_train_mlp_c1_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/10000/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/100000/c1c2_train_mlp_c1_hist.png" width="350" >
 
 c1[1] - 0                   | c1[1] - 1000
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/0/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/1000/c1c2_train_mlp_c2_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/0/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/1000/c1c2_train_mlp_c2_hist.png" width="350" >
 c1[1] - 10000                | c1[1] - 100000
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/10000/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/100000/c1c2_train_mlp_c2_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/10000/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/100000/c1c2_train_mlp_c2_hist.png" width="350" >
 
 With a relatively small amount of samples, the trained likelihood is able to approximate closely the true value of the coefficients **c1[0]** and **c1[1]** with only a small bias. 
 With more data the approximation is very good.
