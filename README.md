@@ -319,7 +319,7 @@ Finally, the histograms for the values of the coefficients c1[0] and c2[0] obtai
 
 c1[0] - 0                   | c1[0] - 1000
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/0/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/1000/c1c2_train_mlp_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/0/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/1000/c1c2_train_mlp_c1_hist.png" width="350" >
 c1[0] - 10000                | c1[0] - 100000
 <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/10000/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/100000/c1c2_train_mlp_c1_hist.png" width="350" >
 
