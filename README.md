@@ -46,7 +46,7 @@ and background is shown, notice that only histograms for k < j is shown
 
  0.10                   | 0.05
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/dec0_all_mlp_hist.pdf" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/decomp_all_mlp_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.10/decomp_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/decomp_all_mlp_hist.png" width="350" >
  0.01                   | 0.005
 <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.01/decomp_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.005/decomp_all_mlp_hist.png" width="350" >
 
