@@ -19,7 +19,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from mlp import make_predictions, train_mlp
 
-from makeData import makeData, makeModelND
+from make_data import makeData, makeModelND
 from utils import printMultiFrame, printFrame, saveFig, loadData, printFrame, makePlotName,\
           loadData,makeSigBkg,makeROC
 from train_classifiers import predict
@@ -119,10 +119,10 @@ class DecomposedTest:
         if self.verbose_printing == True and name == 'bkg' and k <> j:
           full = 'full' if pos == None else 'dec'
           # print histograms
-          printFrame(w,[score_str],[w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j))], makePlotName(full,'train',k,j,type='hist',dir=self.dir,model_g=self.model_g,c1_g=self.c1_g),['signal','bkg'],dir=self.dir, model_g=self.model_g)
+          #printFrame(w,[score_str],[w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j))], makePlotName(full,'train',k,j,type='hist',dir=self.dir,model_g=self.model_g,c1_g=self.c1_g),['signal','bkg'],dir=self.dir, model_g=self.model_g)
           if k < j and k <> 'F0':
             histos.append([w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j))])
-            histos_names.append(['f{0}-f{1}_signal'.format(k,j), 'f{0}-f{1}_background'.format(k,j)])
+            histos_names.append(['f{0}-f{1}_f{0}(signal)'.format(k,j), 'f{0}-f{1}_f{1}(background)'.format(k,j)])
 
     for k,c in enumerate(self.c0):
       for j,c_ in enumerate(self.c1):
@@ -136,8 +136,9 @@ class DecomposedTest:
         saveHistos(w,outputs,s,bins,low,high,(k,j))
 
     if self.verbose_printing==True:
-      printMultiFrame(w,'score',histos, makePlotName('decomp','all',type='hist',dir=self.dir,c1_g=self.c1_g,model_g=self.model_g),histos_names,
-        dir=self.dir,model_g=self.model_g)
+      printMultiFrame(w,'score',histos, makePlotName('dec0','all',type='hist',dir=self.dir,c1_g=self.c1_g,model_g=self.model_g),histos_names,
+        dir=self.dir,model_g=self.model_g,y_text='score(x)',pdf=True,title='Pairwise score 
+        distributions')
 
     # Full model
     traindata, targetdata = loadData(data_file,'F0','F1',dir=self.dir,c1_g=self.c1_g)

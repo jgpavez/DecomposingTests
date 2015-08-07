@@ -46,7 +46,7 @@ def loadData(type,k,j,folder=None,dir='',c1_g=''):
 
 def printMultiFrame(w,obs,all_pdfs,name,legends,
               dir='/afs/cern.ch/user/j/jpavezse/systematics',
-              model_g='mlp',setLog=False):
+              model_g='mlp',setLog=False,y_text='',pdf=False,title=''):
   '''
     This just print a bunch of pdfs 
     in a Canvas
@@ -54,22 +54,30 @@ def printMultiFrame(w,obs,all_pdfs,name,legends,
 
   # Preliminaries
   ROOT.gROOT.SetStyle('Plain')
-  ROOT.gStyle.SetOptTitle(0)
+  #ROOT.gStyle.SetOptTitle(0)
   ROOT.gStyle.SetOptStat(0)
   ROOT.gStyle.SetOptFit(1)
-  ROOT.gStyle.SetStatX(.89)
-  ROOT.gStyle.SetStatY(.89)
-  ROOT.gStyle.SetStatBorderSize(0)
+  ROOT.gStyle.SetPalette(1)
 
   # Hope I don't need more colors ...
-  colors = [ROOT.kBlack,ROOT.kRed,ROOT.kBlue,ROOT.kGreen,
+  colors = [ROOT.kBlue,ROOT.kRed,ROOT.kBlack,ROOT.kGreen,
     ROOT.kYellow]
   style = [ROOT.kSolid,ROOT.kSolid,ROOT.kDashed,ROOT.kDashed]
   can = ROOT.TCanvas('c1')
   can.Divide(1,len(all_pdfs))
   x = w.var(obs)
+  legs = []
+  frames = []
   for curr,pdf in enumerate(all_pdfs): 
     can.cd(curr+1)
+    if curr <> len(pdf) - 1:
+      #ROOT.gPad.SetBottomMargin(0.01)
+      ROOT.gPad.SetTopMargin(0.01)
+      ROOT.gPad.SetRightMargin(0.01)
+    else:
+      ROOT.gPad.SetTopMargin(0.01)
+      ROOT.gPad.SetRightMargin(0.01)
+    ROOT.gPad.SetLeftMargin(0.04)
     if setLog == True:
       ROOT.gPad.SetLogy(1)
     funcs = []
@@ -79,38 +87,52 @@ def printMultiFrame(w,obs,all_pdfs,name,legends,
       funcs.append(p)
       line_colors.append(ROOT.RooFit.LineColor(colors[i]))
       line_styles.append(ROOT.RooFit.LineStyle(style[i]))
-    frame = x.frame(ROOT.RooFit.Name(legends[curr][0]),ROOT.RooFit.
-        Title(legends[curr][0].split('_')[0]))
+    frames.append(x.frame(ROOT.RooFit.Name(legends[curr][0]),ROOT.RooFit.
+        Title(legends[curr][0].split('_')[0])))
     for i,f in enumerate(funcs):
       if isinstance(f,str):
-        funcs[0].plotOn(frame, ROOT.RooFit.Components(f),ROOT.RooFit.Name(legends[curr][i]), line_colors[i],
+        funcs[0].plotOn(frames[-1], ROOT.RooFit.Components(f),ROOT.RooFit.Name(legends[curr][i]), line_colors[i],
         line_styles[i])
       else:
-        f.plotOn(frame,ROOT.RooFit.Name(legends[curr][i]),line_colors[i],line_styles[i])
-    leg = ROOT.TLegend(0.65, 0.73, 0.86, 0.87)
+        f.plotOn(frames[-1],ROOT.RooFit.Name(legends[curr][i]),line_colors[i],line_styles[i])
+    legs.append(ROOT.TLegend(0.79, 0.73, 0.90, 0.87))
     #leg.SetFillColor(ROOT.kWhite)
     #leg.SetLineColor(ROOT.kWhite)
     # TODO This is just a quick fix because is now working how it should
     for i,l in enumerate(legends[curr]):
       if i == 0:
-        leg.AddEntry(frame.findObject(legends[curr][i]), l.split('_')[1], 'l')
+        legs[-1].AddEntry(frames[-1].findObject(legends[curr][i]), l.split('_')[1], 'l')
       else:
-        leg.AddEntry(frame.findObject(legends[curr][i]), l.split('_')[1], 'l')
-    
-    leg.SetFillColor(0)
-    leg.SetBorderSize(0)
-    leg.SetTextSize(0.45)
-
-    frame.Draw()
-    leg.Draw()
+        legs[-1].AddEntry(frames[-1].findObject(legends[curr][i]), l.split('_')[1], 'l')
+    legs[-1].SetFillColor(0)
+    legs[-1].SetBorderSize(0)
+    legs[-1].SetTextSize(0.08)
+    legs[-1].SetFillColor(0)
+    legs[-1].SetBorderSize(0)
+    frames[-1].SetTitleSize(0.08,"Y")
+    frames[-1].SetTitleSize(0.08,"X")
+    frames[-1].GetYaxis().CenterTitle(1)
+    frames[-1].GetYaxis().SetTitleOffset(0.25)
+    if curr == 0:
+      frames[-1].SetTitle("{0};;{1}".format(title,y_text))
+    elif curr == len(all_pdfs)-1:
+      frames[-1].SetTitle(";{0};{1}".format('x',y_text))
+      frames[-1].GetXaxis().SetTitleOffset(0.25)
+    else:
+      frames[-1].SetTitle(";;{0}".format(y_text))
+        
+    frames[-1].Draw()
+    legs[-1].Draw()
     ROOT.gPad.Update()
     can.Modified()
     can.Update()
   can.SaveAs('{0}/plots/{1}/{2}.png'.format(dir,model_g,name))
+  if pdf == True:
+    can.SaveAs('{0}/plots/{1}/{2}.pdf'.format(dir,model_g,name))
 
 def printFrame(w,obs,pdf,name,legends,
               dir='/afs/cern.ch/user/j/jpavezse/systematics',model_g='mlp',
-              title='',y_text='',x_text='',range=None
+              title='',y_text='',x_text='',range=None,pdf=False
       ):
   '''
     This just print a bunch of pdfs 
@@ -179,6 +201,8 @@ def printFrame(w,obs,pdf,name,legends,
     fra.Draw()
     leg.Draw()
   can.SaveAs('{0}/plots/{1}/{2}.png'.format(dir,model_g,name))
+  if pdf == True:
+    can.SaveAs('{0}/plots/{1}/{2}.png'.format(dir,model_g,name))
 
 def saveFig(x,y,file,labels=None,scatter=False,contour=False,axis=None, 
             dir='/afs/cern.ch/user/j/jpavezse/systematics',
