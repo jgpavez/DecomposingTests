@@ -52,6 +52,15 @@ def printMultiFrame(w,obs,all_pdfs,name,legends,
     in a Canvas
   ''' 
 
+  # Preliminaries
+  ROOT.gROOT.SetStyle('Plain')
+  ROOT.gStyle.SetOptTitle(0)
+  ROOT.gStyle.SetOptStat(0)
+  ROOT.gStyle.SetOptFit(1)
+  ROOT.gStyle.SetStatX(.89)
+  ROOT.gStyle.SetStatY(.89)
+  ROOT.gStyle.SetStatBorderSize(0)
+
   # Hope I don't need more colors ...
   colors = [ROOT.kBlack,ROOT.kRed,ROOT.kBlue,ROOT.kGreen,
     ROOT.kYellow]
@@ -88,6 +97,10 @@ def printMultiFrame(w,obs,all_pdfs,name,legends,
       else:
         leg.AddEntry(frame.findObject(legends[curr][i]), l.split('_')[1], 'l')
     
+    leg.SetFillColor(0)
+    leg.SetBorderSize(0)
+    leg.SetTextSize(0.45)
+
     frame.Draw()
     leg.Draw()
     ROOT.gPad.Update()
@@ -97,14 +110,22 @@ def printMultiFrame(w,obs,all_pdfs,name,legends,
 
 def printFrame(w,obs,pdf,name,legends,
               dir='/afs/cern.ch/user/j/jpavezse/systematics',model_g='mlp',
+              title='',y_text='',x_text='',range=None
       ):
   '''
     This just print a bunch of pdfs 
     in a Canvas
   ''' 
+  # Preliminaries
+  ROOT.gROOT.SetStyle('Plain')
+  if len(obs) > 1:
+    ROOT.gStyle.SetOptTitle(0)
+  ROOT.gStyle.SetOptStat(0)
+  ROOT.gStyle.SetOptFit(1)
+  ROOT.gStyle.SetPalette(1)
 
   # Hope I don't need more colors ...
-  colors = [ROOT.kBlack,ROOT.kRed,ROOT.kGreen,ROOT.kBlue,
+  colors = [ROOT.kBlue,ROOT.kRed,ROOT.kGreen,ROOT.kBlack,
     ROOT.kYellow]
   x = []
   for var in obs:
@@ -122,12 +143,22 @@ def printFrame(w,obs,pdf,name,legends,
     frame.append(var.frame())
   for j,fra in enumerate(frame):    
     can.cd(j+1)
+    if len(obs) == 1:
+      ROOT.gPad.SetRightMargin(0.01)
+    else:
+      if j <> len(obs) - 1:
+        ROOT.gPad.SetBottomMargin(0.001)
+        ROOT.gPad.SetTopMargin(0.01)
+        ROOT.gPad.SetRightMargin(0.01)
+      else:
+        ROOT.gPad.SetTopMargin(0.01)
+        ROOT.gPad.SetRightMargin(0.01)
     for i,f in enumerate(funcs):
         if isinstance(f,str):
           funcs[0].plotOn(fra, ROOT.RooFit.Components(f),ROOT.RooFit.Name(legends[i]), line_colors[i])
         else:
           f.plotOn(fra,ROOT.RooFit.Name(legends[i]),line_colors[i])
-    leg = ROOT.TLegend(0.65, 0.73, 0.86, 0.87)
+    leg = ROOT.TLegend(0.79, 0.73, 0.99, 0.87)
     #leg.SetFillColor(ROOT.kWhite)
     #leg.SetLineColor(ROOT.kWhite)
     for i,l in enumerate(legends):
@@ -135,6 +166,16 @@ def printFrame(w,obs,pdf,name,legends,
         leg.AddEntry(fra.findObject(legends[i]), l, 'l')
       else:
         leg.AddEntry(fra.findObject(legends[i]), l, 'l')
+    leg.SetFillColor(0)
+    leg.SetBorderSize(0)
+    fra.SetTitleSize(0.04,"Y")
+    fra.SetTitleSize(0.04,"X")
+    if len(obs) == 1:
+      fra.SetTitle("{0};{1};{2}".format(title,x_text,y_text))
+    else:
+      fra.SetTitle(";;{0}".format(y_text))
+    if range <> None:
+      fra.GetXaxis().SetRangeUser(range[0],range[1])
     fra.Draw()
     leg.Draw()
   can.SaveAs('{0}/plots/{1}/{2}.png'.format(dir,model_g,name))

@@ -12,6 +12,9 @@ import pdb
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
+from utils import printMultiFrame, printFrame, saveFig, loadData,\
+              makeROC, makeSigBkg, makePlotName
+
 '''
   Functions to make model and data for the decomposed training 
   method
@@ -27,34 +30,35 @@ cov_g = []
 mu_g.append([5.,5.,4.,3.,5.,5.,4.5,2.5,4.,3.5])
 mu_g.append([2.,4.5,0.6,5.,6.,4.5,4.2,0.2,4.1,3.3])
 mu_g.append([1.,0.5,0.3,0.5,0.6,0.4,0.1,0.2,0.1,0.3])
+meansum = [[7.6,10.,-9.],[5.,-6.,7.5],[8.2,12.2,-4.3]]
 
-cov_g.append([[3.,0.,0.,0.,0.,0.,0.,0.,0.,0.],
+cov_g.append([[3.,0.,5.,0.,0.,0.,0.,1.,0.,5.],
          [0.,2.,0.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,14.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,0.,6.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,17.,0.,0.,0.,0.,0.],
+         [0.,0.,14.,0.,0.,0.,4.2,0.,5.,0.],
+         [0.,0.,0.,6.,0.,0.,0.,3.,0.,0.],
+         [0.,0.,0.,0.,17.,0.,0.,2.,0.,0.],
          [0.,0.,0.,0.,0.,10.,0.,0.,0.,0.],
          [0.,0.,0.,0.,0.,0.,5.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,1.3,0.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,1.3,1.,0.],
          [0.,0.,0.,0.,0.,0.,0.,0.,1.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,0.,0.,0.3]])
-cov_g.append([[3.5,0.,0.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,0.,0.,9.3]])
+cov_g.append([[3.5,0.,0.,4.,0.,0.,0.,0.,5.,0.],
          [0.,3.5,0.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,3.5,0.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,0.,7.2,0.,0.,0.,0.,0.,0.],
+         [0.,0.,9.5,0.,0.,2.,0.,0.5,0.,0.],
+         [0.,0.,0.,7.2,0.,0.,0.,0.,2.,0.],
          [0.,0.,0.,0.,4.5,0.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,3.5,0.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,0.,8.2,0.,0.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,9.5,0.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,0.,0.5,0.],
-         [0.,0.,0.,0.,0.,0.,0.,0.,0.,0.5]])
+         [0.,0.,0.,0.,0.,4.5,0.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,0.,8.2,0.,0.,0.2],
+         [0.,0.,0.,0.,0.,0.,0.,9.5,3.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,0.,3.5,0.],
+         [0.,0.,0.,0.,0.,0.,0.,0.,0.,4.5]])
 cov_g.append([[13.,0.,0.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,12.,0.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,14.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,12.,0.,0.,0.,0.2,0.,4.,0.,0.],
+         [0.,0.,14.,0.,0.5,0.,0.,0.,0.,3.],
          [0.,0.,0.,6.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,1.,0.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,10.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,0.,15.,0.,0.,0.],
+         [0.,0.,0.,0.,1.,2.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,10.,0.,3.,0.,0.],
+         [0.,0.,0.,0.,0.,0.,15.,0.,0.,4.],
          [0.,0.,0.,0.,0.,0.,0.,6.3,0.,0.],
          [0.,0.,0.,0.,0.,0.,0.,0.,11.,0.],
          [0.,0.,0.,0.,0.,0.,0.,0.,0.,1.3]])
@@ -62,8 +66,8 @@ cov_g.append([[13.,0.,0.,0.,0.,0.,0.,0.,0.,0.],
 
 def makeModelPrivateND(vars_g,c0, c1, n_private=3, coeffs=coeffs_g,cov_l=cov_g, mu_l=mu_g, 
     workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root', 
-    dir='/afs/cern.ch/user/j/jpavezse/systematics', 
-    verbose_printing=False):
+    dir='/afs/cern.ch/user/j/jpavezse/systematics',model_g='mlp',
+    c1_g='',verbose_printing=False,load_cov=False):
   '''
   RooFit statistical model for the data
   
@@ -77,21 +81,34 @@ def makeModelPrivateND(vars_g,c0, c1, n_private=3, coeffs=coeffs_g,cov_l=cov_g, 
   mu_str = []
   cov_root = []
   vec = []
-  argus = ROOT.RooArgList() 
+  argus = ROOT.RooArgList()     
 
   # features
   for i,var in enumerate(vars_g):
     w.factory('{0}[{1},{2}]'.format(var,-25,30))
     argus.add(w.var(var))
-
+  n = len(cov_l[0][0])
   for glob in range(3):
     for priv in range(n_private):
+      if load_cov == False: 
+        cov_i = np.random.random((n,n))
+        cov_i = cov_i + cov_i.transpose() 
+        cov_i = cov_i + n*np.eye(n)
+        np.savetxt('{0}/covariance_{1}_{2}.txt'.format(dir,glob,priv),
+            cov_i,fmt='%f')
+      else:
+        cov_i = np.matrix(np.loadtxt('{0}/covariance_{1}_{2}.txt'.format(
+                    dir,glob,priv)))
+      print cov_i
       # generate covriance matrix
-      cov_m.append(np.matrix(cov_l[glob]))
+      cov_m.append(cov_i)
       cov_root.append(ROOT.TMatrixDSym(len(vars_g)))
       for i,var1 in enumerate(vars_g):
         for j,var2 in enumerate(vars_g):
-          cov_root[-1][i][j] = cov_m[-1][i,j]
+          if i <= j:
+            cov_root[-1][i][j] = cov_m[-1][i,j]
+          else:
+            cov_root[-1][i][j] = cov_m[-1][j,i]
       getattr(w,'import')(cov_root[-1],'cov{0}'.format(glob*3 + priv))
       # generate mu vectors
       mu_m.append(np.array(mu_l[glob]) + meansum[glob][priv])
@@ -117,16 +134,19 @@ def makeModelPrivateND(vars_g,c0, c1, n_private=3, coeffs=coeffs_g,cov_l=cov_g, 
 
   w.writeToFile('{0}/{1}'.format(dir,workspace))
   if verbose_printing == True:
-    printFrame(w,vars_g,[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']) 
-    printFrame(w,vars_g,[w.pdf('F0'),w.pdf('F1')],'full_model',['F0','F1'])
-    printFrame(w,vars_g,[w.pdf('F1'),'f0'],'full_signal', ['F1','f0'])
+    printFrame(w,['x0'],[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']
+    ,dir=dir,model_g=model_g,range=[-15,20],title='Single distributions',x_text='x0',y_text='p(x)')
+    printFrame(w,['x0'],[w.pdf('F0'),w.pdf('F1')],'full_model',['Bkg+Signal','Bkg'],
+    dir=dir,model_g=model_g,range=[-15,20],title='Composed model',x_text='x0',y_text='p(x)')
+    printFrame(w,['x0'],[w.pdf('F1'),'f0'],'full_signal', ['Bkg','Signal'],
+    dir=dir,model_g=model_g,range=[-15,20],title='Background and signal',x_text='x0',y_text='p(x)')
 
   return w
 
 def makeModelND(vars_g,c0,c1,cov_l=cov_g,mu_l=mu_g,
     workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root', 
-    dir='/afs/cern.ch/user/j/jpavezse/systematics',
-    verbose_printing=False):
+    dir='/afs/cern.ch/user/j/jpavezse/systematics',model_g='mlp',
+    c1_g='',verbose_printing=False):
   '''
   RooFit statistical model for the data
   
@@ -173,9 +193,13 @@ def makeModelND(vars_g,c0,c1,cov_l=cov_g,mu_l=mu_g,
 
   w.writeToFile('{0}/{1}'.format(dir,workspace))
   if verbose_printing == True:
-    printFrame(w,vars_g,[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']) 
-    printFrame(w,vars_g,[w.pdf('F0'),w.pdf('F1')],'full_model',['F0','F1'])
-    printFrame(w,vars_g,[w.pdf('F1'),'f0'],'full_signal', ['F1','f0'])
+  if verbose_printing == True:
+    printFrame(w,['x0'],[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']
+    ,dir=dir,model_g=model_g,range=[-15,20],title='Single distributions',x_text='x0',y_text='p(x)')
+    printFrame(w,['x0'],[w.pdf('F0'),w.pdf('F1')],'full_model',['Bkg+Signal','Bkg'],
+    dir=dir,model_g=model_g,range=[-15,20],title='Composed model',x_text='x0',y_text='p(x)')
+    printFrame(w,['x0'],[w.pdf('F1'),'f0'],'full_signal', ['Bkg','Signal'],
+    dir=dir,model_g=model_g,range=[-15,20],title='Background and signal',x_text='x0',y_text='p(x)')
 
   return w
 
