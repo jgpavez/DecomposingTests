@@ -243,12 +243,7 @@ It can be seen that both methods obtain unbiased estimators of the true values.
 We will check the composition method in a N-dim mixture model. But this time each pdf is also a sum of gaussians with fixed coefficients. 
 We want to see how the method works in this harder case.
 
-![decomposed model](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.10/decomposed_model.png)
-
-Both distributions for coefficients **c0 = [ 0.,0.3,0.7]** and **c1 = [0.10,0.27,0.63**
-are shown in the next image.
-
-![decomposed model](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.10/full_model.png)
+Both distributions are defined by the coefficients **c0 = [ 0.,0.3,0.7]** and **c1 = [0.10,0.27,0.63**.
 
 The following images show scatter plots between a subset of features for the pairwise combinations 1-2, 1-3 and 2-3
 the number of the feature is indicated in the columns and rows of the grid of plots.
@@ -283,9 +278,9 @@ and background is shown, notice that only histograms for k < j is shown
 
  0.10                   | 0.05
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.10/decomp_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.05/decomp_all_mlp_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.10/dec0_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.05/dec0_all_mlp_hist.png" width="350" >
  0.01                   | 0.005
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.01/decomp_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.005/decomp_all_mlp_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.01/dec0_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.005/dec0_all_mlp_hist.png" width="350" >
 
 The ratio histograms for the composite, full trained and true cases is shown in the next image, those histograms are constructed over data sampled from the distribution of F0 background and f0 signal.
 
@@ -300,9 +295,9 @@ Finally, in the next image the Signal Efficiency - Background Rejection curves f
 
  0.10                   | 0.05
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.10/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.05/full_comparison_mlp_sigbkg.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.10/comp_all_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.05/comp_all_mlp_sigbkg.png" width="350" >
  0.01                   | 0.005
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.01/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.005/full_comparison_mlp_sigbkg.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.01/comp_all_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.005/comp_all_mlp_sigbkg.png" width="350" >
 
 It can be seen that even with this harder model where each single distribution is a sum of gaussians the composed ratios are working quite well even for small signal 
 coefficients.
