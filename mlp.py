@@ -228,11 +228,15 @@ def shared_dataset(data_xy, borrow=True):
     return shared_x, T.cast(shared_y, 'int32')
 
 def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=10,
-              batch_size=20, n_hidden=20,in_size=1,out_size=2,
+              batch_size=20, n_hidden=10,in_size=1,out_size=2,
               model_file='model/mlp/adaptive_0_1.pkl'):
 
     test_set_x = dataset
-    in_size = test_set_x.shape[1]
+    in_size = test_set_x.shape[1] if len(test_set_x.shape) > 1 else 1
+    if in_size == 1:
+      test_set_x = test_set_x.reshape(test_set_x.shape[0],1)
+    else:
+      test_set_x = test_set_x.reshape(test_set_x.shape[0],in_size)
     # quick fix to avoid more change of code, have to change it
     test_set_y = numpy.ones(test_set_x.shape[0])
     test_set_x, test_set_y = shared_dataset((test_set_x, test_set_y))
@@ -266,7 +270,7 @@ def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_
     return probs
 
 def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100,
-             dir='data/mlp',datatype='train',kpos=0,jpos=0, batch_size=20, n_hidden=20,in_size=1,out_size=2,
+             dir='data/mlp',datatype='train',kpos=0,jpos=0, batch_size=20, n_hidden=10,in_size=1,out_size=2,
               save_file='model/mlp/adaptive_0_1.pkl'):
 
 
@@ -299,11 +303,14 @@ def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100,
    """
     datasets = loadData(datatype,kpos,jpos,folder=dir)
     train_set_x, train_set_y = datasets
-    in_size = train_set_x.shape[1] 
+    in_size = train_set_x.shape[1] if len(train_set_x.shape) > 1 else 1
     indices = numpy.random.permutation(train_set_x.shape[0])
     train_set_x = train_set_x[indices]
     train_set_y = train_set_y[indices]
-    train_set_x = train_set_x.reshape(train_set_x.shape[0],train_set_x.shape[1])
+    if in_size == 1:
+      train_set_x = train_set_x.reshape(train_set_x.shape[0],1)
+    else:
+      train_set_x = train_set_x.reshape(train_set_x.shape[0],in_size)
     train_set_x , train_set_y = shared_dataset((train_set_x, train_set_y))
 
     # compute number of minibatches for training, validation and testing

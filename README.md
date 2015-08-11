@@ -1,31 +1,42 @@
 ## Decomposing tests between mixture models into their components 
-## Multidimensional case
+## Simple Case
 
 This work is based on the section **5.4 Decomposing tests between mixture models into their components** 
 of the paper [Approximating Likelihood Ratios with Calibrated Discriminative Classifiers]
 (http://arxiv.org/abs/1506.02169) by Kyle Cranmer.
 
-We will check the composition method in a 2-dim mixture model. The pdfs conforming the mixture model 
-are shown next
+We start with a simple model composed of three 1-Dim pdfs. This allow us to check visually the quallity of the 
+Ratios. The pdfs are shown next
 
-![decomposed model](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.10/decomposed_model.png)
+![decomposed model](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.10/decomposed_model.png)
 
 Those pdfs forms two mixture models, as shown in formula (21) of the paper of reference.
 The first distribution correspond to the null signal hypothesis, meanwhile the second one 
 correspond to the mixture model including the signal (in this case the signal corresponds to f0). 
-Both distributions for coefficients **c0 = [ 0.,0.3,0.7]** and **c1 = [0.09090909,0.27272727,0.63636364]**
+Both distributions for coefficients **c0 = [ 0.,0.3,0.7]** and **c1 = [ 0.1,0.27,0.63]**
 are shown in the next image.
 
-![decomposed model](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.10/full_model.png)
+![Full Model](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.10/full_model.png)
 
-First, the ROC curves obtained by varying the threshold on the trained and true ratios on each pair of 
-functions are shown in the next image.
+We will use a simple *MLP* as the classifier. The *MLP* have shown good results in previous experiments 
+([Link](https://github.com/jgpavez/systematics/blob/master/plots/comp_train_all_ratio.png).
 
-![Decomposed ROC](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/dec_comparison_mlp_roc.png)
+We will compare each ratio obtained by training pair-wise to the real ratio of each pair of functions.
+
+![Decomposed Ratios](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.10/all_dec_train_mlp_ratio.png)
+
+The ROC curves obtained by varying the threshold on the trained and true ratios of each pair of functions are shown in the next image.
+
+![Decomposed ROC](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.10/all_comparison_mlp_roc.png)
+
+In the next image the composed ratio using the formula (24) is compared to the ratio obtained by training the classifier 
+in the full model and to the true ratio.
+
+![All Ratios](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.10/all_train_mlp_ratio.png)
 
 Next, the Signal Efficiency - Background Rejection curves of each one of the ratios (composed, full trained and full truth) is shown.
 
-![All ROC](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.10/full_comparison_mlp_sigbkg.png)
+![All ROC](https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.10/comp_all_mlp_sigbkg.png)
 
 # Varying the signal presence 
 
@@ -37,38 +48,86 @@ shown
 
  0.10                   | 0.05
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.10/full_model.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/full_model.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.10/full_model.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.05/full_model.png" width="350" >
  0.01                   | 0.005
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.01/full_model.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.005/full_model.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.01/full_model.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.005/full_model.png" width="350" >
+
+Now, we compare the real ratios, the composed ratios and the full trained ratios for each 
+one of the cases
+
+ 0.10                   | 0.05
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.10/all_train_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.05/all_train_mlp_ratio.png" width="350" >
+ 0.01                   | 0.005
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.01/all_train_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.005/all_train_mlp_ratio.png" width="350" >
 
 Next, the score histogram for each one of the pair-wise trained classifiers for signal 
 and background is shown, notice that only histograms for k < j is shown
 
  0.10                   | 0.05
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.10/decomp_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/decomp_all_mlp_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.10/dec0_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.05/dec0_all_mlp_hist.png" width="350" >
  0.01                   | 0.005
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.01/decomp_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.005/decomp_all_mlp_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.01/dec0_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.005/dec0_all_mlp_hist.png" width="350" >
 
 The ratio histograms for the composite, full trained and true cases is shown in the next image, those histograms are constructed over data sampled from the distribution of F0 background and f0 signal.
 
  0.10                   | 0.05
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.10/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/ratio_comparison_mlp_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.10/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.05/ratio_comparison_mlp_hist.png" width="350" >
  0.01                   | 0.005
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.01/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.005/ratio_comparison_mlp_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.01/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.005/ratio_comparison_mlp_hist.png" width="350" >
 
 
 Finally, in the next image the Signal Efficiency - Background Rejection curves for the composed, full trained and true ratio are shown for each one of the cases
 
  0.10                   | 0.05
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.10/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/full_comparison_mlp_sigbkg.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.10/comp_all_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.05/comp_all_mlp_sigbkg.png" width="350" >
  0.01                   | 0.005
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.01/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.005/full_comparison_mlp_sigbkg.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.01/comp_all_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/1Dim/0.005/comp_all_mlp_sigbkg.png" width="350" >
 
-It can be seen that for this 2-dim case and very low signal presence the composed ratios are still working perfectly, on the other hand the full trained MLP is not able to 
-reproduce the ratio at all.
+It can be seen that for very low signal presence the composed ratios are still working perfectly, on the other hand the full trained MLP is not able to reproduce the ratio at all.
+
+## Identifying the signal coefficient by fitting
+
+What we want to check now if it is possible to identify the signal coefficient 
+**c1[0]**, leaving the c1[1]/c1[2] ratio constant, by using the likelihood of the ratios.
+To do this we first train the decomposed model on data with a defined c1[0].
+After doing this we use this model and compute the composed likelihood ratio for different 
+values of c1[0] and the data obtained using the previously fixed c1[0]. It will be expected
+ that the minimum corresponds to the real c1[0]. 
+
+The next image shows the plot for the likelihood ratio given values of various fixed c1[0] values. 
+It can be seen that the trained method correctly identify the correct c1[0].
+
+ 0.09                   | 0.047
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/comp_train_mlp_likelihood.png" width="350" >
+ 0.0099                   | 0.0049
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.005/comp_train_mlp_likelihood.png" width="350" >
+
+Next, We will check how the likelihood are affected by the number of data generated to compute the likelihoods, for the case c1[0] = 0.05.
+
+ 100                   | 500
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/100/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/500/comp_train_mlp_likelihood.png" width="350" >
+ 1000                   | 5000
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/1000/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/5000/comp_train_mlp_likelihood.png" width="350" >
+
+
+Now, we will check if it is possible to identify both, the signal coefficient c1[0] and the 
+background coefficient c1[1] (using c1[2] = 1.-c1[0]-c1[1]). In this case we are using 100,500,1000 and 5000 samples to compute the likelihood and values for the coefficients of c1[0] = 0.05 and c1[1] = 0.285. Truth likelihoods are compared to trained Likelihoods.
+
+ 100                  | 500 
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/100/comp_train_mlp_multilikelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/500/comp_train_mlp_multilikelihood.png" width="350" >
+ 1000                   | 5000 
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/1000/comp_train_mlp_multilikelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/5000/comp_train_mlp_multilikelihood.png" width="350" >
+
+It can be seen that again the method do a very good job on identifying the correct values for the coefficients.
+
+
 
 #N-dimensions
 

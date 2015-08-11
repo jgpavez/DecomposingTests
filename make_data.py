@@ -193,7 +193,6 @@ def makeModelND(vars_g,c0,c1,cov_l=cov_g,mu_l=mu_g,
 
   w.writeToFile('{0}/{1}'.format(dir,workspace))
   if verbose_printing == True:
-  if verbose_printing == True:
     printFrame(w,['x0'],[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']
     ,dir=dir,model_g=model_g,range=[-15,20],title='Single distributions',x_text='x0',y_text='p(x)')
     printFrame(w,['x0'],[w.pdf('F0'),w.pdf('F1')],'full_model',['Bkg+Signal','Bkg'],
@@ -202,6 +201,37 @@ def makeModelND(vars_g,c0,c1,cov_l=cov_g,mu_l=mu_g,
     dir=dir,model_g=model_g,range=[-15,20],title='Background and signal',x_text='x0',y_text='p(x)')
 
   return w
+
+
+def makeModel(c0,c1,cov_l=cov_g,mu_l=mu_g,
+    workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root', 
+    dir='/afs/cern.ch/user/j/jpavezse/systematics',model_g='mlp',
+    c1_g='',verbose_printing=False):
+  '''
+  RooFit statistical model for the data
+  
+  '''  
+  # Statistical model
+  w = ROOT.RooWorkspace('w')
+  #w.factory("EXPR::f1('cos(x)**2 + .01',x)")
+  w.factory("EXPR::f2('exp(x*-1)',x[0,5])")
+  w.factory("EXPR::f1('0.3 + exp(-(x-5)**2/5.)',x)")
+  w.factory("EXPR::f0('exp(-(x-2.5)**2/1.)',x)")
+  #w.factory("EXPR::f2('exp(-(x-2)**2/2)',x)")
+  w.factory("SUM::F0(c00[{0}]*f0,c01[{1}]*f1,f2)".format(c0[0],c0[1]))
+  w.factory("SUM::F1(c10[{0}]*f0,c11[{1}]*f1,f2)".format(c1[0],c1[1]))
+  
+  # Check Model
+  w.Print()
+  w.writeToFile('{0}/workspace_DecomposingTestOfMixtureModelsClassifiers.root'.format(dir))
+  if verbose_printing == True:
+    printFrame(w,['x'],[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']
+    ,dir=dir,model_g=model_g,range=[-15,20],title='Single distributions',x_text='x0',y_text='p(x)')
+    printFrame(w,['x'],[w.pdf('F0'),w.pdf('F1')],'full_model',['Bkg+Signal','Bkg'],
+    dir=dir,model_g=model_g,range=[-15,20],title='Composed model',x_text='x0',y_text='p(x)')
+    printFrame(w,['x'],[w.pdf('F1'),'f0'],'full_signal', ['Bkg','Signal'],
+    dir=dir,model_g=model_g,range=[-15,20],title='Background and signal',x_text='x0',y_text='p(x)')
+
 
 def makeData(vars_g,c0,c1, num_train=500,num_test=100,no_train=False,
   workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root',

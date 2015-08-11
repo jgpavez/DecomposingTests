@@ -19,7 +19,8 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from mlp import make_predictions, train_mlp
 
-from make_data import makeData, makeModelND, makeModelPrivateND
+from make_data import makeData, makeModelND, makeModelPrivateND,\
+              makeModel
 from utils import printMultiFrame, printFrame, saveFig, loadData,\
               makeROC, makeSigBkg, makePlotName
 
@@ -219,32 +220,7 @@ def fitCValues(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
     fil2.write('{0} {1} {2} {3}\n'.format(c1_true, c1_dec, c2_true, c2_dec))
   #fil1.close()  
   fil2.close()
-  '''
-  #c1_1 = np.loadtxt('{0}/fitting_values_c1.txt'.format(dir))  
-  #c1_['true'] = c1_1[:,0]
-  #c1_['dec'] = c1_1[:,1]
-  c1_2 = np.loadtxt('{0}/fitting_values_c1c2.txt'.format(dir))
-  c1_values['true'] = c1_2[:,0]
-  c1_values['dec'] = c1_2[:,1]
-  c2_values['true'] = c1_2[:,2]
-  c2_values['dec'] = c1_2[:,3]
-  
-  #saveFig([],[c1_['true'],c1_['dec']], 
-  #    makePlotName('c1','train',type='hist'),hist=True, 
-  #    axis=['c1[0]'],marker=True,marker_value=c1[0],
-  #    labels=['true','composed'],x_range=[0.,0.1],dir=dir,
-  #    model_g=model_g)
-  saveFig([],[c1_values['true'],c1_values['dec']], 
-      makePlotName('c1c2','train',type='c1_hist'),hist=True, 
-      axis=['c1[0]'],marker=True,marker_value=c1[0],
-      labels=['true','composed'],x_range=[0.,0.1],dir=dir,
-      model_g=model_g)
-  saveFig([],[c2_values['true'],c2_values['dec']], 
-      makePlotName('c1c2','train',type='c2_hist'),hist=True, 
-      axis=['c1[1]'],marker=True,marker_value=c1[1],
-      labels=['true','composed'],x_range=[0.2,0.4],dir=dir,
-      model_g=model_g)
- ''' 
+
 def plotCValues(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
             c1_g='',model_g='mlp',true_dist=False,vars_g=None,
             workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root'):
@@ -272,12 +248,12 @@ def plotCValues(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
       makePlotName('c1c2','train',type='c1_hist'),hist=True, 
       axis=['c1[0]'],marker=True,marker_value=c1[0],
       labels=['true','composed'],x_range=[0.,0.2],dir=dir,
-      model_g=model_g)
+      model_g=model_g,title='Histogram for fitted values c1[0]')
   saveFig([],[c2_values['true'],c2_values['dec']], 
       makePlotName('c1c2','train',type='c2_hist'),hist=True, 
       axis=['c1[1]'],marker=True,marker_value=c1[1],
       labels=['true','composed'],x_range=[0.1,0.4],dir=dir,
-      model_g=model_g)
+      model_g=model_g,title='Histogram for fitted values c1[1]')
 
 
 if __name__ == '__main__':
@@ -303,7 +279,10 @@ if __name__ == '__main__':
   c1_g = ''
 
   c1[0] = sys.argv[2]
-  c1_g = "%.2f"%c1[0]
+  if c1[0] < 0.01:
+    c1_g = "%.3f"%c1[0]
+  else:
+    c1_g = "%.2f"%c1[0]
   c1[0] = (c1[0]*(c1[1]+c1[2]))/(1.-c1[0])
   c1 = c1 / c1.sum()
   print c0
@@ -326,26 +305,30 @@ if __name__ == '__main__':
   if (len(sys.argv) > 3):
     print 'Setting seed: {0} '.format(sys.argv[3])
     ROOT.RooRandom.randomGenerator().SetSeed(int(sys.argv[3])) 
+
+  makeModel(c0=c0,c1=c1,workspace=workspace_file,dir=dir,verbose_printing=
+    verbose_printing)
+  vars_g = ['x']
   # make private mixture model
-  makeModelPrivateND(vars_g=vars_g,c0=c0,c1=c1,workspace=workspace_file,dir=dir,
-                    model_g=model_g,verbose_printing=verbose_printing,load_cov=True)
+  #makeModelPrivateND(vars_g=vars_g,c0=c0,c1=c1,workspace=workspace_file,dir=dir,
+  #                  model_g=model_g,verbose_printing=verbose_printing,load_cov=True)
 
   # make mixture model
   #makeModelND(vars_g=vars_g,c0=c0,c1=c1,workspace=workspace_file,dir=dir)
 
   # make sintetic data to train the classifiers
-  #makeData(vars_g=vars_g,c0=c0,c1=c1,num_train=1000,num_test=30000,
-  #  workspace=workspace_file,dir=dir, c1_g=c1_g, model_g=model_g) 
+  makeData(vars_g=vars_g,c0=c0,c1=c1,num_train=100000,num_test=30000,
+    workspace=workspace_file,dir=dir, c1_g=c1_g, model_g=model_g) 
     
   # train the pairwise classifiers
-  #trainClassifiers(clf,c0,c1,workspace=workspace_file,dir=dir, model_g=model_g,
-  #    c1_g=c1_g ,model_file='adaptive')
+  trainClassifiers(clf,c0,c1,workspace=workspace_file,dir=dir, model_g=model_g,
+      c1_g=c1_g ,model_file='adaptive')
 
   # class which implement the decomposed method
-  #test = DecomposedTest(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,
-  #        input_workspace=workspace_file, verbose_printing = verbose_printing)
-  #test.fit(data_file='test')
-  #test.computeRatios(true_dist=True,vars_g=vars_g) 
+  test = DecomposedTest(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,
+          input_workspace=workspace_file, verbose_printing = verbose_printing)
+  test.fit(data_file='test')
+  test.computeRatios(true_dist=True,vars_g=vars_g) 
 
   # compute likelihood for c0[0] and c0[1] values
   #fitCValues(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=True,vars_g=vars_g,
