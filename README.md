@@ -320,12 +320,12 @@ Again, the method works pretty good even with this harder model.
 # How training affect ratios
 
 Now, what we will study is how the quality of training affect the final ratios. We will keep a large amount of data to construct the likelihood ratios (30000 samples) but we will vary 
-the amount of data used to train the classiffier. We will use 0, 1000, 10000, and 1000000 samples to train the classifier.
+the amount of data used to train the classiffier. We will use 10, 1000, 10000, and 1000000 samples to train the classifier.
 
 The histograms for the values of the coefficients c1[0] and c2[0] obtained by maximizing the log-likelihood on a dataset in each one of the cases are shown. 
 
 
-c1[0] - 0                   | c1[0] - 1000
+c1[0] - 10                 | c1[0] - 1000
 :-------------------------:|:-------------------------:
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/0/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/1000/c1c2_train_mlp_c1_hist.png" width="350" >
 c1[0] - 10000                | c1[0] - 100000
