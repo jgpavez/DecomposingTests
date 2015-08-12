@@ -219,11 +219,9 @@ real values. In the next images histograms of the estimated values for the likel
 obtained by the true and composed methods and values of **c1[0] = 0.05** and **c1[1] = 0.285** 
  are shown. 
 
- c1                  | c1
+ c1                  | c2
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.005/c1c2_train_mlp_c1_hist.png" width="350" >
- c2                   | c2
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.005/5000/c1c2_train_mlp_c2_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/0.05/c1c2_train_mlp_c2_hist.png" width="350" >
 
 It can be seen that both methods obtain unbiased estimators of the true values.
 
@@ -329,15 +327,15 @@ The histograms for the values of the coefficients c1[0] and c2[0] obtained by ma
 
 c1[0] - 0                   | c1[0] - 1000
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/0/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/1000/c1c2_train_mlp_c1_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/0/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/1000/c1c2_train_mlp_c1_hist.png" width="350" >
 c1[0] - 10000                | c1[0] - 100000
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/10000/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/100000/c1c2_train_mlp_c1_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/10000/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/100000/c1c2_train_mlp_c1_hist.png" width="350" >
 
 c1[1] - 0                   | c1[1] - 1000
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/0/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/1000/c1c2_train_mlp_c2_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/0/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/1000/c1c2_train_mlp_c2_hist.png" width="350" >
 c1[1] - 10000                | c1[1] - 100000
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/10000/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/100000/c1c2_train_mlp_c2_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/10000/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/100000/c1c2_train_mlp_c2_hist.png" width="350" >
 
 With a relatively small amount of samples, the trained likelihood is able to approximate closely the true value of the coefficients **c1[0]** and **c1[1]** with only a small bias. 
 With more data the approximation is very good.
