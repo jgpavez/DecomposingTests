@@ -231,10 +231,9 @@ def saveFig(x,y,file,labels=None,scatter=False,contour=False,axis=None,
     ax.set_title('Likelihood ratio values for c1[0]-c1[1]')
     ax.set_xlabel('c1[0]',fontsize=11) 
     ax.set_ylabel('c1[1]',fontsize=11)
-    print 'c1s: {0} {1}'.format(c1[0],c1[1])
     if marker == True: 
-      plt.axvline(c1[0], color='black')
-      plt.axhline(c1[1], color='black')
+      plt.axvline(marker_value[0], color='black')
+      plt.axhline(marker_value[1], color='black')
     #ax.plot([c1[0]],[c1[1]],'o')
     #ax.annotate('min',xy=(c1[0],c1[1]),xytext=(0.,0.))
   else:
@@ -280,7 +279,7 @@ def saveFig(x,y,file,labels=None,scatter=False,contour=False,axis=None,
           ax.set_ylabel('LR')
           ax.set_xlabel('x')
         if marker == True:
-          plt.axvline(c1[0], color='black')
+          plt.axvline(marker_value, color='black')
     ax.set_title(title)
     if (len(y) > 1):
       # This breaks the naming convention for plots, I will solve

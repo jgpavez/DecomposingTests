@@ -98,22 +98,13 @@ After doing this we use this model and compute the composed likelihood ratio for
 values of c1[0] and the data obtained using the previously fixed c1[0]. It will be expected
  that the minimum corresponds to the real c1[0]. 
 
-The next image shows the plot for the likelihood ratio given values of various fixed c1[0] values. 
-It can be seen that the trained method correctly identify the correct c1[0].
-
- 0.09                   | 0.047
-:-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/comp_train_mlp_likelihood.png" width="350" >
- 0.0099                   | 0.0049
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.01/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.005/comp_train_mlp_likelihood.png" width="350" >
-
-Next, We will check how the likelihood are affected by the number of data generated to compute the likelihoods, for the case c1[0] = 0.05.
+First, We will check how the likelihood are affected by the number of data generated to compute the likelihoods, for the case c1[0] = 0.05.
 
  100                   | 500
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/100/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/500/comp_train_mlp_likelihood.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/1Dim/0.05/100/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/1Dim/0.05/500/comp_train_mlp_likelihood.png" width="350" >
  1000                   | 5000
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/1000/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/5000/comp_train_mlp_likelihood.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/1Dim/0.05/1000/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/1Dim/0.05/5000/comp_train_mlp_likelihood.png" width="350" >
 
 
 Now, we will check if it is possible to identify both, the signal coefficient c1[0] and the 
@@ -121,9 +112,9 @@ background coefficient c1[1] (using c1[2] = 1.-c1[0]-c1[1]). In this case we are
 
  100                  | 500 
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/100/comp_train_mlp_multilikelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/500/comp_train_mlp_multilikelihood.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/1Dim/0.05/100/comp_train_mlp_multilikelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/1Dim/0.05/500/comp_train_mlp_multilikelihood.png" width="350" >
  1000                   | 5000 
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/1000/comp_train_mlp_multilikelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.05/5000/comp_train_mlp_multilikelihood.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/1Dim/0.05/1000/comp_train_mlp_multilikelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/1Dim/0.05/5000/comp_train_mlp_multilikelihood.png" width="350" >
 
 It can be seen that again the method do a very good job on identifying the correct values for the coefficients.
 
@@ -265,7 +256,7 @@ Now we will to check how the composed and the full strategy are affected when th
 signal coefficient become smaller for this *private* model.
 
 In the next image the mixture models for coefficients for signal of **[0.1,0.05,0.01,0.005]** are 
-shown
+shown for one of the features (this allow to see the amount of signal in each model).
 
  0.10                   | 0.05
 :-------------------------:|:-------------------------:
@@ -312,9 +303,9 @@ First, We will check how the likelihood are affected by the number of data gener
 
  100                   | 500
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/100/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/500/comp_train_mlp_likelihood.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.05/100/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.05/500/comp_train_mlp_likelihood.png" width="350" >
  1000                   | 5000
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/1000/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/5000/comp_train_mlp_likelihood.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.05/1000/comp_train_mlp_likelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.05/5000/comp_train_mlp_likelihood.png" width="350" >
 
 
 Now, we will check if it is possible to identify both, the signal coefficient **c1[0]** and the 
@@ -322,9 +313,9 @@ background coefficient **c1[1]** (using c1[2] = 1.-c1[0]-c1[1]). In this case we
 
  100                  | 500 
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/100/comp_train_mlp_multilikelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/500/comp_train_mlp_multilikelihood.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.05/100/comp_train_mlp_multilikelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.05/500/comp_train_mlp_multilikelihood.png" width="350" >
  1000                   | 5000 
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/1000/comp_train_mlp_multilikelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/5000/comp_train_mlp_multilikelihood.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.05/1000/comp_train_mlp_multilikelihood.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/private/0.05/5000/comp_train_mlp_multilikelihood.png" width="350" >
 
 Again, the method works pretty good even with this harder model.
 
@@ -332,25 +323,8 @@ Again, the method works pretty good even with this harder model.
 
 Now, what we will study is how the quality of training affect the final ratios. We will keep a large amount of data to construct the likelihood ratios (30000 samples) but we will vary 
 the amount of data used to train the classiffier. We will use 0, 1000, 10000, and 1000000 samples to train the classifier.
-The Likelihood ratios histograms are shown in the next image for each one of the cases and for a signal coefficient of **0.05**.
 
- 0                   | 1000
-:-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/0/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/1000/ratio_comparison_mlp_hist.png" width="350" >
- 10000                   | 100000
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/10000/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/100000/ratio_comparison_mlp_hist.png" width="350" >
-
-
-The signal efficiency - background rejection curves are shown next for each one of the cases.
-
-
- 0                   | 1000
-:-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/0/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/1000/full_comparison_mlp_sigbkg.png" width="350" >
- 10000                   | 100000
-<img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/10000/full_comparison_mlp_sigbkg.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/multidim/plots/mlp/training/harder/100000/full_comparison_mlp_sigbkg.png" width="350" >
-
-Finally, the histograms for the values of the coefficients c1[0] and c2[0] obtained by maximizing the log-likelihood on a dataset in each one of the cases are shown. 
+The histograms for the values of the coefficients c1[0] and c2[0] obtained by maximizing the log-likelihood on a dataset in each one of the cases are shown. 
 
 
 c1[0] - 0                   | c1[0] - 1000

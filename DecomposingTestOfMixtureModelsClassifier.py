@@ -82,7 +82,10 @@ def evalC1Likelihood(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
       if true_dist == True:          
         f0 = w.pdf('f{0}'.format(k))
         f1 = w.pdf('f{0}'.format(j))
-        ratios = np.array([test.singleRatio(x,f0,f1,xs) for xs in testdata])
+        if len(testdata.shape) > 1:
+          ratios = np.array([test.singleRatio(x,f0,f1,xs) for xs in testdata])
+        else:
+          ratios = np.array([test.singleRatio(x,f0,f1,[xs]) for xs in testdata])
         pre_ratios[k].append(ratios) 
   for i,cs in enumerate(csarray):
     c1s[:] = c1[:]
@@ -101,10 +104,11 @@ def evalC1Likelihood(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
   decomposedLikelihood = decomposedLikelihood - decomposedLikelihood.min()
   if true_dist == True:
     trueLikelihood = trueLikelihood - trueLikelihood.min() 
+    saveFig(csarray,[decomposedLikelihood,trueLikelihood],makePlotName('comp','train',type=post+'likelihood'),labels=['decomposed','true'],axis=['c1[0]','-ln(L)'],marker=True,dir=dir,
+        marker_value=c1[0],title='c1[0] Fitting',print_pdf=True)
     return (csarray[trueLikelihood.argmin()], csarray[decomposedLikelihood.argmin()])
   else:
     return (0.,csarray[decomposedLikelihood.argmin()])
-  #saveFig(csarray,[decomposedLikelihood,trueLikelihood],makePlotName('comp','train',type=post+'likelihood'),labels=['decomposed','true'],axis=['c1[0]','-ln(L)'],marker=True)
 
 def evalC1C2Likelihood(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
             workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root',
@@ -131,7 +135,7 @@ def evalC1C2Likelihood(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics'
     post = ''
 
   npoints = 25
-  csarray = np.linspace(0.01,0.2,npoints)
+  csarray = np.linspace(0.01,0.1,npoints)
   cs2array = np.linspace(0.1,0.4,npoints)
   testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,'test','F1'))
   decomposedLikelihood = np.zeros((npoints,npoints))
@@ -157,7 +161,10 @@ def evalC1C2Likelihood(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics'
       if true_dist == True:          
         f0 = w.pdf('f{0}'.format(k))
         f1 = w.pdf('f{0}'.format(j))
-        ratios = np.array([test.singleRatio(x,f0,f1,xs) for xs in testdata])
+        if len(testdata.shape) > 1:
+          ratios = np.array([test.singleRatio(x,f0,f1,xs) for xs in testdata])
+        else:
+          ratios = np.array([test.singleRatio(x,f0,f1,[xs]) for xs in testdata])
         pre_ratios[k].append(ratios) 
   # Evaluate Likelihood in different c1[0] and c1[1] values
   for i,cs in enumerate(csarray):
@@ -178,8 +185,8 @@ def evalC1C2Likelihood(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics'
         trueLikelihood[i,j] = trueRatios.sum()
 
   decomposedLikelihood = decomposedLikelihood - decomposedLikelihood.min()
-  #X,Y = np.meshgrid(csarray, cs2array)
-  #saveFig(X,[Y,decomposedLikelihood,trueLikelihood],makePlotName('comp','train',type='multilikelihood'),labels=['composed','true'],contour=True,marker=True)
+  X,Y = np.meshgrid(csarray, cs2array)
+  saveFig(X,[Y,decomposedLikelihood,trueLikelihood],makePlotName('comp','train',type='multilikelihood'),labels=['composed','true'],contour=True,marker=True,dir=dir,marker_value=(c1[0],c1[1]),print_pdf=True)
 
   decMin = np.unravel_index(decomposedLikelihood.argmin(), decomposedLikelihood.shape)
   if true_dist == True:
@@ -194,7 +201,7 @@ def fitCValues(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
             c1_g='',model_g='mlp',true_dist=False,vars_g=None,
             workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root'):
 
-  n_hist_c = 500
+  n_hist_c = 1
   keys = ['true','dec']
   c1_ = dict((key,np.zeros(n_hist_c)) for key in keys)
   c1_values = dict((key,np.zeros(n_hist_c)) for key in keys)
@@ -202,21 +209,21 @@ def fitCValues(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
   #c1_ = {key:np.zeros(n_hist_c) for key in keys}
   #c1_values = {key:np.zeros(n_hist_c) for key in keys}
   #c2_values =  {key:np.zeros(n_hist_c) for key in keys}
-  #fil1 = open('{0}/fitting_values_c1.txt'.format(dir),'a')
+  fil1 = open('{0}/fitting_values_c1.txt'.format(dir),'a')
   fil2 = open('{0}/fitting_values_c1c2.txt'.format(dir),'a')
 
   for i in range(n_hist_c):
-    makeData(vars_g, c0,c1, num_train=200000,num_test=500,no_train=True,
+    makeData(vars_g, c0,c1, num_train=200000,num_test=5000,no_train=True,
           workspace=workspace,dir=dir,c1_g=c1_g,model_g=model_g) 
 
-    #(c1_true_1, c1_dec_1) = evalC1Likelihood(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,
-    #          true_dist=true_dist,vars_g=vars_g,workspace=workspace)  
+    (c1_true_1, c1_dec_1) = evalC1Likelihood(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,
+              true_dist=true_dist,vars_g=vars_g,workspace=workspace)  
     ((c1_true,c2_true),(c1_dec,c2_dec)) = evalC1C2Likelihood(test,c0,c1,dir=dir,
               c1_g=c1_g,model_g=model_g, true_dist=true_dist,vars_g=vars_g,
               workspace=workspace)   
     #print '1: {0} {1}'.format(c1_true_1, c1_dec_1)
     print '2: {0} {1} {2} {3}'.format(c1_true, c1_dec, c2_true, c2_dec)
-    #fil1.write('{0} {1}\n'.format(c1_true_1, c1_dec_1))
+    fil1.write('{0} {1}\n'.format(c1_true_1, c1_dec_1))
     fil2.write('{0} {1} {2} {3}\n'.format(c1_true, c1_dec, c2_true, c2_dec))
   #fil1.close()  
   fil2.close()
@@ -306,9 +313,9 @@ if __name__ == '__main__':
     print 'Setting seed: {0} '.format(sys.argv[3])
     ROOT.RooRandom.randomGenerator().SetSeed(int(sys.argv[3])) 
 
-  makeModel(c0=c0,c1=c1,workspace=workspace_file,dir=dir,verbose_printing=
-    verbose_printing)
-  vars_g = ['x']
+  #makeModel(c0=c0,c1=c1,workspace=workspace_file,dir=dir,verbose_printing=
+  #  verbose_printing)
+  #vars_g = ['x']
   # make private mixture model
   #makeModelPrivateND(vars_g=vars_g,c0=c0,c1=c1,workspace=workspace_file,dir=dir,
   #                  model_g=model_g,verbose_printing=verbose_printing,load_cov=True)
@@ -317,22 +324,22 @@ if __name__ == '__main__':
   #makeModelND(vars_g=vars_g,c0=c0,c1=c1,workspace=workspace_file,dir=dir)
 
   # make sintetic data to train the classifiers
-  makeData(vars_g=vars_g,c0=c0,c1=c1,num_train=100000,num_test=30000,
-    workspace=workspace_file,dir=dir, c1_g=c1_g, model_g=model_g) 
+  #makeData(vars_g=vars_g,c0=c0,c1=c1,num_train=150000,num_test=30000,
+  #  workspace=workspace_file,dir=dir, c1_g=c1_g, model_g=model_g) 
     
   # train the pairwise classifiers
-  trainClassifiers(clf,c0,c1,workspace=workspace_file,dir=dir, model_g=model_g,
-      c1_g=c1_g ,model_file='adaptive')
+  #trainClassifiers(clf,c0,c1,workspace=workspace_file,dir=dir, model_g=model_g,
+  #    c1_g=c1_g ,model_file='adaptive')
 
   # class which implement the decomposed method
   test = DecomposedTest(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,
           input_workspace=workspace_file, verbose_printing = verbose_printing)
-  test.fit(data_file='test')
-  test.computeRatios(true_dist=True,vars_g=vars_g) 
+  #test.fit(data_file='test')
+  #test.computeRatios(true_dist=True,vars_g=vars_g) 
 
   # compute likelihood for c0[0] and c0[1] values
-  #fitCValues(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=True,vars_g=vars_g,
-  #      workspace=workspace_file)
+  fitCValues(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=True,vars_g=vars_g,
+        workspace=workspace_file)
 
   #plotCValues(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=True,vars_g=vars_g,
   #      workspace=workspace_file)

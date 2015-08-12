@@ -152,7 +152,7 @@ class DecomposedTest:
     w.writeToFile('{0}/{1}'.format(self.dir,self.workspace))
       
   # To calculate the ratio between single functions
-  def __singleRatio(self,x,f0,f1,val):
+  def singleRatio(self,x,f0,f1,val):
     iter = x.createIterator()
     v = iter.Next()
     i = 0
@@ -188,7 +188,7 @@ class DecomposedTest:
       return 0.
     return f1.getVal(x) / (f0.getVal(x) + f1.getVal(x))
 
-  def evaluateDecomposedRatio(self,w,evalData,x=None,plotting=True, roc=False,gridsize=None,c0arr=None, c1arr=None, true_dist=False):
+  def evaluateDecomposedRatio(self,w,evalData,x=None,plotting=True, roc=False,gridsize=None,c0arr=None, c1arr=None,true_dist=False,pre_pdfratios=None,pre_ratios=None):
     # pair-wise ratios
     # and decomposition computation
     #f = ROOT.TFile('{0}/{1}'.format(self.dir,self.workspace))
@@ -214,20 +214,27 @@ class DecomposedTest:
         f0pdf = w.pdf('bkghistpdf_{0}_{1}'.format(k,j))
         f1pdf = w.pdf('sighistpdf_{0}_{1}'.format(k,j))
         if k<>j:
-          outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file,k,j),evalData,model_g=self.model_g)
-          pdfratios = [self.__singleRatio(score,f0pdf,f1pdf,[xs]) for xs in outputs]
-          pdfratios = np.array(pdfratios)
+          if pre_pdfratios == None:
+            outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file,k,j),evalData,model_g=self.model_g)
+            pdfratios = [self.singleRatio(score,f0pdf,f1pdf,[xs]) for xs in outputs]
+            pdfratios = np.array(pdfratios)
+          else:
+            pdfratios = pre_pdfratios[k][j]
         else:
           pdfratios = np.ones(npoints)
         innerRatios += (c_/c) * pdfratios
 
         if true_dist == True:
-          f0 = w.pdf('f{0}'.format(k))
-          f1 = w.pdf('f{0}'.format(j))
-          if len(evalData.shape) > 1:
-            ratios = np.array([self.__singleRatio(x,f0,f1,xs) for xs in evalData])
+          if pre_ratios == None:
+            f0 = w.pdf('f{0}'.format(k))
+            f1 = w.pdf('f{0}'.format(j))
+            if len(evalData.shape) > 1:
+                ratios = np.array([self.singleRatio(x,f0,f1,xs) for xs in evalData])
+            else:
+                ratios = np.array([self.singleRatio(x,f0,f1,[xs]) for xs in evalData])
           else:
-            ratios = np.array([self.__singleRatio(x,f0,f1,[xs]) for xs in evalData])
+            ratios = pre_ratios[k][j]
+ 
           innerTrueRatios += (c_/c) * ratios
 
         # ROC curves for pair-wise ratios
@@ -240,7 +247,7 @@ class DecomposedTest:
           outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,
                     self.c1_g,self.model_file,k,j),
                     testdata.reshape(testdata.shape[0],size2),model_g=self.model_g)
-          clfRatios = np.array([self.__singleRatio(score,f0pdf,f1pdf,[xs]) for xs in outputs])
+          clfRatios = np.array([self.singleRatio(score,f0pdf,f1pdf,[xs]) for xs in outputs])
           train_score.append(clfRatios)
           if roc == True:
             all_targets.append(testtarget)
@@ -249,9 +256,9 @@ class DecomposedTest:
           #model_g=self.model_g,c1_g=self.c1_g),dir=self.dir,model_g=self.model_g)
           if true_dist == True:
             if len(testdata.shape) > 1:
-              trRatios = np.array([self.__singleRatio(x,f0,f1,xs) for xs in testdata])
+              trRatios = np.array([self.singleRatio(x,f0,f1,xs) for xs in testdata])
             else:
-              trRatios = np.array([self.__singleRatio(x,f0,f1,[xs]) for xs in testdata])
+              trRatios = np.array([self.singleRatio(x,f0,f1,[xs]) for xs in testdata])
 
             true_score.append(trRatios)
           #  makeROC(trRatios, testtarget, makePlotName('dec','truth',k,j,type='roc',
@@ -288,7 +295,8 @@ class DecomposedTest:
           print_pdf=True,title='ROC for pairwise trained classifier',pos=[(0,1),(0,2),(1,2)])
 
     if plotting == True:
-      saveMultiFig(evalData,[x for x in zip(train_score,true_score)], makePlotName('all_dec','train',type='ratio'),labels=[['f0-f1(trained)','f0-f1(truth)'],['f0-f2(trained)','f0-f2(truth)'],['f1-f2(trained)','f1-f2(truth)']],title='Pairwise Ratios',print_pdf=True)
+      saveMultiFig(evalData,[x for x in zip(train_score,true_score)],
+      makePlotName('all_dec','train',type='ratio'),labels=[['f0-f1(trained)','f0-f1(truth)'],['f0-f2(trained)','f0-f2(truth)'],['f1-f2(trained)','f1-f2(truth)']],title='Pairwise Ratios',print_pdf=True,dir=self.dir)
 
 
     return fullRatios,fullRatiosReal
@@ -330,7 +338,7 @@ class DecomposedTest:
     if use_log == True:
       getRatio = singleLogRatio
     else:
-      getRatio = self.__singleRatio
+      getRatio = self.singleRatio
    
     # NN trained on complete model
     F0pdf = w.pdf('bkghistpdf_F0_F1')
@@ -348,7 +356,7 @@ class DecomposedTest:
      
       pdfratios = [getRatio(scoref,F1pdf,F0pdf,[xs]) for xs in outputs]
       pdfratios = np.array(pdfratios)
-      saveFig(xarray, [fullRatios, y2, pdfratios], makePlotName('all','train',type='ratio'+post),title='Likelihood Ratios',labels=['Composed trained', 'Truth', 'Full Trained'],print_pdf=True)
+      saveFig(xarray, [fullRatios, y2, pdfratios], makePlotName('all','train',type='ratio'+post),title='Likelihood Ratios',labels=['Composed trained', 'Truth', 'Full Trained'],print_pdf=True,dir=self.dir)
       
     if true_dist == True:
       decomposedRatio,_ = self.evaluateDecomposedRatio(w,testdata,x=x,plotting=False,roc=self.verbose_printing,true_dist=True)
