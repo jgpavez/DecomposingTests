@@ -298,7 +298,6 @@ class DecomposedTest:
       saveMultiFig(evalData,[x for x in zip(train_score,true_score)],
       makePlotName('all_dec','train',type='ratio'),labels=[['f0-f1(trained)','f0-f1(truth)'],['f0-f2(trained)','f0-f2(truth)'],['f1-f2(trained)','f1-f2(truth)']],title='Pairwise Ratios',print_pdf=True,dir=self.dir)
 
-
     return fullRatios,fullRatiosReal
 
   def computeRatios(self,true_dist=False, vars_g=None,

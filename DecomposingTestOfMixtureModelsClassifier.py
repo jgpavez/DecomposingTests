@@ -187,7 +187,6 @@ def evalC1C2Likelihood(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics'
   decomposedLikelihood = decomposedLikelihood - decomposedLikelihood.min()
   X,Y = np.meshgrid(csarray, cs2array)
   saveFig(X,[Y,decomposedLikelihood,trueLikelihood],makePlotName('comp','train',type='multilikelihood'),labels=['composed','true'],contour=True,marker=True,dir=dir,marker_value=(c1[0],c1[1]),print_pdf=True)
-
   decMin = np.unravel_index(decomposedLikelihood.argmin(), decomposedLikelihood.shape)
   if true_dist == True:
     trueLikelihood = trueLikelihood - trueLikelihood.min() 
@@ -201,7 +200,7 @@ def fitCValues(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
             c1_g='',model_g='mlp',true_dist=False,vars_g=None,
             workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root'):
 
-  n_hist_c = 1
+  n_hist_c = 150
   keys = ['true','dec']
   c1_ = dict((key,np.zeros(n_hist_c)) for key in keys)
   c1_values = dict((key,np.zeros(n_hist_c)) for key in keys)
@@ -209,21 +208,21 @@ def fitCValues(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
   #c1_ = {key:np.zeros(n_hist_c) for key in keys}
   #c1_values = {key:np.zeros(n_hist_c) for key in keys}
   #c2_values =  {key:np.zeros(n_hist_c) for key in keys}
-  fil1 = open('{0}/fitting_values_c1.txt'.format(dir),'a')
+  #fil1 = open('{0}/fitting_values_c1.txt'.format(dir),'a')
   fil2 = open('{0}/fitting_values_c1c2.txt'.format(dir),'a')
 
   for i in range(n_hist_c):
-    makeData(vars_g, c0,c1, num_train=200000,num_test=5000,no_train=True,
+    makeData(vars_g, c0,c1, num_train=200000,num_test=500,no_train=True,
           workspace=workspace,dir=dir,c1_g=c1_g,model_g=model_g) 
 
-    (c1_true_1, c1_dec_1) = evalC1Likelihood(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,
-              true_dist=true_dist,vars_g=vars_g,workspace=workspace)  
+    #(c1_true_1, c1_dec_1) = evalC1Likelihood(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,
+    #          true_dist=true_dist,vars_g=vars_g,workspace=workspace)  
     ((c1_true,c2_true),(c1_dec,c2_dec)) = evalC1C2Likelihood(test,c0,c1,dir=dir,
               c1_g=c1_g,model_g=model_g, true_dist=true_dist,vars_g=vars_g,
               workspace=workspace)   
     #print '1: {0} {1}'.format(c1_true_1, c1_dec_1)
     print '2: {0} {1} {2} {3}'.format(c1_true, c1_dec, c2_true, c2_dec)
-    fil1.write('{0} {1}\n'.format(c1_true_1, c1_dec_1))
+    #fil1.write('{0} {1}\n'.format(c1_true_1, c1_dec_1))
     fil2.write('{0} {1} {2} {3}\n'.format(c1_true, c1_dec, c2_true, c2_dec))
   #fil1.close()  
   fil2.close()
@@ -255,12 +254,12 @@ def plotCValues(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
       makePlotName('c1c2','train',type='c1_hist'),hist=True, 
       axis=['c1[0]'],marker=True,marker_value=c1[0],
       labels=['true','composed'],x_range=[0.,0.2],dir=dir,
-      model_g=model_g,title='Histogram for fitted values c1[0]')
+      model_g=model_g,title='Histogram for fitted values c1[0]',print_pdf=True)
   saveFig([],[c2_values['true'],c2_values['dec']], 
       makePlotName('c1c2','train',type='c2_hist'),hist=True, 
       axis=['c1[1]'],marker=True,marker_value=c1[1],
       labels=['true','composed'],x_range=[0.1,0.4],dir=dir,
-      model_g=model_g,title='Histogram for fitted values c1[1]')
+      model_g=model_g,title='Histogram for fitted values c1[1]',print_pdf=True)
 
 
 if __name__ == '__main__':
@@ -324,7 +323,7 @@ if __name__ == '__main__':
   #makeModelND(vars_g=vars_g,c0=c0,c1=c1,workspace=workspace_file,dir=dir)
 
   # make sintetic data to train the classifiers
-  #makeData(vars_g=vars_g,c0=c0,c1=c1,num_train=150000,num_test=30000,
+  #makeData(vars_g=vars_g,c0=c0,c1=c1,num_train=100000,num_test=30000,
   #  workspace=workspace_file,dir=dir, c1_g=c1_g, model_g=model_g) 
     
   # train the pairwise classifiers
@@ -338,10 +337,10 @@ if __name__ == '__main__':
   #test.computeRatios(true_dist=True,vars_g=vars_g) 
 
   # compute likelihood for c0[0] and c0[1] values
-  fitCValues(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=True,vars_g=vars_g,
-        workspace=workspace_file)
-
-  #plotCValues(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=True,vars_g=vars_g,
+  #fitCValues(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=True,vars_g=vars_g,
   #      workspace=workspace_file)
+
+  plotCValues(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=True,vars_g=vars_g,
+        workspace=workspace_file)
 
 
