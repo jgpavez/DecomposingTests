@@ -124,8 +124,21 @@ Now, we will check the composition method in a 10-dim mixture model.
 The pdfs forms two mixture models, as shown in formula (21) of the paper of reference.
 The first distribution correspond to the null signal hypothesis, meanwhile the second one 
 correspond to the mixture model including the signal (in this case the signal corresponds to f0). 
-Both distributions for coefficients **c0 = [ 0.,0.3,0.7]** and **c1 = [0.1,0.27,0.63]** are represented with 
-scatter plots for a subset of features (indicated in the columns and rows of the grids of plots) and for each 
+In this case each pdf is a multivariate gaussian, the first three features of this gaussians are shown in the next
+image
+ 
+![decomposed model](https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/decomposed_model.png)
+
+Those pdfs forms two mixture models, as shown in formula (21) of the paper of reference.
+The first distribution correspond to the null signal hypothesis, meanwhile the second one 
+correspond to the mixture model including the signal (in this case the signal corresponds to f0). 
+Both distributions for coefficients **c0 = [ 0.,0.3,0.7]** and **c1 = [ 0.1,0.27,0.63]**
+are shown in the next image.
+
+![Full Model](https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/full_model.png)
+
+
+Both distributions are represented with scatter plots for a subset of features (indicated in the columns and rows of the grids of plots) and for each 
 one of the pairwise combinations (1-2,1-3 and 2-3).
 
 
@@ -232,7 +245,20 @@ It can be seen that both methods obtain unbiased estimators of the true values.
 We will check the composition method in a N-dim mixture model. But this time each pdf is also a sum of gaussians with fixed coefficients. 
 We want to see how the method works in this harder case.
 
-Both distributions are defined by the coefficients **c0 = [ 0.,0.3,0.7]** and **c1 = [0.10,0.27,0.63**.
+In this case each pdf is a sum of three different multivariate gaussians, the first three features of this model are shown in the next
+image
+ 
+![decomposed model](https://github.com/jgpavez/systematics/blob/master/plots/mlp/private/0.10/decomposed_model.png)
+
+Those pdfs forms two mixture models, as shown in formula (21) of the paper of reference.
+The first distribution correspond to the null signal hypothesis, meanwhile the second one 
+correspond to the mixture model including the signal (in this case the signal corresponds to f0). 
+Both distributions for coefficients **c0 = [ 0.,0.3,0.7]** and **c1 = [ 0.1,0.27,0.63]**
+are shown in the next image.
+
+![Full Model](https://github.com/jgpavez/systematics/blob/master/plots/mlp/private/0.10/full_model.png)
+
+
 
 The following images show scatter plots between a subset of features for the pairwise combinations 1-2, 1-3 and 2-3
 the number of the feature is indicated in the columns and rows of the grid of plots.
