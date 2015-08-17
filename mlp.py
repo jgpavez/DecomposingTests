@@ -228,7 +228,7 @@ def shared_dataset(data_xy, borrow=True):
     return shared_x, T.cast(shared_y, 'int32')
 
 def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=10,
-              batch_size=20, n_hidden=10,in_size=1,out_size=2,
+              batch_size=20, n_hidden=40,in_size=1,out_size=2,
               model_file='model/mlp/adaptive_0_1.pkl'):
 
     test_set_x = dataset
@@ -270,7 +270,7 @@ def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_
     return probs
 
 def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100,
-             dir='data/mlp',datatype='train',kpos=0,jpos=0, batch_size=20, n_hidden=10,in_size=1,out_size=2,
+             dir='data/mlp',datatype='train',kpos=0,jpos=0, batch_size=20, n_hidden=40,in_size=1,out_size=2,
               save_file='model/mlp/adaptive_0_1.pkl'):
 
 
@@ -304,7 +304,8 @@ def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100,
     datasets = loadData(datatype,kpos,jpos,folder=dir)
     train_set_x, train_set_y = datasets
     in_size = train_set_x.shape[1] if len(train_set_x.shape) > 1 else 1
-    indices = numpy.random.permutation(train_set_x.shape[0])
+    rng = numpy.random.RandomState(1234)
+    indices = rng.permutation(train_set_x.shape[0])
     train_set_x = train_set_x[indices]
     train_set_y = train_set_y[indices]
     if in_size == 1:
@@ -327,7 +328,6 @@ def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100,
     y = T.ivector('y')  # the labels are presented as 1D vector of
                         # [int] labels
 
-    rng = numpy.random.RandomState(1234)
 
     # construct the MLP class
     classifier = MLP(rng=rng, input=x, n_in=in_size,
