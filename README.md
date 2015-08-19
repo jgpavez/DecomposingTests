@@ -62,13 +62,9 @@ one of the cases
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/1Dim/0.01/all_train_mlp_ratio.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/1Dim/0.005/all_train_mlp_ratio.png" width="350" >
 
 Next, the score histogram for each one of the pair-wise trained classifiers for signal 
-and background is shown, notice that only histograms for k < j is shown
+and background is shown, notice that only histograms for k < j is shown (those plots are independant of the signal ratio)
 
- 0.10                   | 0.05
-:-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/1Dim/0.10/dec0_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/1Dim/0.05/dec0_all_mlp_hist.png" width="350" >
- 0.01                   | 0.005
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/1Dim/0.01/dec0_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/1Dim/0.005/dec0_all_mlp_hist.png" width="350" >
+[Scores 1Dim](https://github.com/jgpavez/systematics/blob/master/plots/mlp/1Dim/0.10/dec0_all_mlp_hist.png)
 
 The ratio histograms for the composite, full trained and true cases is shown in the next image, those histograms are constructed over data sampled from the distribution of F0 background and f0 signal.
 
@@ -170,7 +166,9 @@ We want to check how the composed and the full strategy are affected when the va
 signal coefficient become smaller.
 
 First, the score histogram for each one of the pair-wise trained classifiers for signal 
-and background is shown for each one of the signal coefficient values *(0.10,0.05,0.01,0.005)*, notice that only histograms for k < j is shown
+and background is shown, notice that only histograms for k < j is shown
+
+[Scores 10Dim](https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/dec0_all_mlp_hist.png)
 
  0.10                   | 0.05
 :-------------------------:|:-------------------------:
@@ -291,11 +289,8 @@ shown for one of the features (this allow to see the amount of signal in each mo
 Next, the score histogram for each one of the pair-wise trained classifiers for signal 
 and background is shown, notice that only histograms for k < j is shown
 
- 0.10                   | 0.05
-:-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/private/0.10/dec0_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/private/0.05/dec0_all_mlp_hist.png" width="350" >
- 0.01                   | 0.005
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/private/0.01/dec0_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/private/0.005/dec0_all_mlp_hist.png" width="350" >
+[Scores private](https://github.com/jgpavez/systematics/blob/master/plots/mlp/private/0.10/dec0_all_mlp_hist.png)
+
 
 The ratio histograms for the composite, full trained and true cases is shown in the next image, those histograms are constructed over data sampled from the distribution of F0 background and f0 signal.
 
@@ -362,6 +357,24 @@ c1[1] - 0                   | c1[1] - 1000
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/0/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/1000/c1c2_train_mlp_c2_hist.png" width="350" >
 c1[1] - 10000                | c1[1] - 100000
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/10000/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/100000/c1c2_train_mlp_c2_hist.png" width="350" >
+
+For each one of the cases, the pairwise score distributions are shown next
+
+ 10                 | 1000
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/0/dec0_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/1000/dec0_all_mlp_hist.png" width="350" >
+ 10000                | 100000
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/10000/dec0_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/100000/dec0_all_mlp_hist.png" width="350" >
+
+And the ratio histograms are shown next,
+
+ 0                   | 1000
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/0/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/1000/ratio_comparison_mlp_hist.png" width="350" >
+ 10000                | 100000
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/10000/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/100000/ratio_comparison_mlp_hist.png" width="350" >
+
+
 
 With a relatively small amount of samples, the trained likelihood is able to approximate closely the true value of the coefficients **c1[0]** and **c1[1]** with only a small bias. 
 With more data the approximation is very good.
