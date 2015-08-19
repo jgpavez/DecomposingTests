@@ -64,7 +64,7 @@ one of the cases
 Next, the score histogram for each one of the pair-wise trained classifiers for signal 
 and background is shown, notice that only histograms for k < j is shown (those plots are independant of the signal ratio)
 
-[Scores 1Dim](https://github.com/jgpavez/systematics/blob/master/plots/mlp/1Dim/0.10/dec0_all_mlp_hist.png)
+![Scores 1Dim](https://github.com/jgpavez/systematics/blob/master/plots/mlp/1Dim/0.10/dec0_all_mlp_hist.png)
 
 The ratio histograms for the composite, full trained and true cases is shown in the next image, those histograms are constructed over data sampled from the distribution of F0 background and f0 signal.
 
@@ -168,7 +168,7 @@ signal coefficient become smaller.
 First, the score histogram for each one of the pair-wise trained classifiers for signal 
 and background is shown, notice that only histograms for k < j is shown
 
-[Scores 10Dim](https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/dec0_all_mlp_hist.png)
+![Scores 10Dim](https://github.com/jgpavez/systematics/blob/master/plots/mlp/0.10/dec0_all_mlp_hist.png)
 
  0.10                   | 0.05
 :-------------------------:|:-------------------------:
@@ -289,7 +289,7 @@ shown for one of the features (this allow to see the amount of signal in each mo
 Next, the score histogram for each one of the pair-wise trained classifiers for signal 
 and background is shown, notice that only histograms for k < j is shown
 
-[Scores private](https://github.com/jgpavez/systematics/blob/master/plots/mlp/private/0.10/dec0_all_mlp_hist.png)
+![Scores private](https://github.com/jgpavez/systematics/blob/master/plots/mlp/private/0.10/dec0_all_mlp_hist.png)
 
 
 The ratio histograms for the composite, full trained and true cases is shown in the next image, those histograms are constructed over data sampled from the distribution of F0 background and f0 signal.
