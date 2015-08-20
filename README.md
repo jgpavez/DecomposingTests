@@ -379,3 +379,37 @@ And the ratio histograms are shown next,
 With a relatively small amount of samples, the trained likelihood is able to approximate closely the true value of the coefficients **c1[0]** and **c1[1]** with only a small bias. 
 With more data the approximation is very good.
 
+Now we will check a sighly easier model, just moving a little the signal distribution in a way that the NN can recognize it easier.
+
+c1[0] - 100                 | c1[0] - 500
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/100/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/500/c1c2_train_mlp_c1_hist.png" width="350" >
+c1[0] - 1000                | c1[0] - 10000
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/1000/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/10000/c1c2_train_mlp_c1_hist.png" width="350" >
+
+c1[1] - 100                   | c1[1] - 500
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/100/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/500/c1c2_train_mlp_c2_hist.png" width="350" >
+c1[1] - 1000                | c1[1] - 10000
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/1000/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/10000/c1c2_train_mlp_c2_hist.png" width="350" >
+
+Also, for each one of the cases, the pairwise score distributions are shown next
+
+100                   | 500
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/100/dec0_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/500/dec0_all_mlp_hist.png" width="350" >
+1000                | 10000
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/1000/dec0_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/10000/dec0_all_mlp_hist.png" width="350" >
+
+
+Finally the ratio histograms for this model are shown next,
+ 
+100                   | 500
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/100/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/500/ratio_comparison_mlp_hist.png" width="350" >
+1000                | 10000
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/1000/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/10000/ratio_comparison_mlp_hist.png" width="350" >
+
+
+
+
