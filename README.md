@@ -366,6 +366,15 @@ For each one of the cases, the pairwise score distributions are shown next
  10000                | 100000
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/10000/dec0_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/100000/dec0_all_mlp_hist.png" width="350" >
 
+Also, the ROC curve for each pairwise case are shown next
+
+ 10                 | 1000
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/0/all_comparison_mlp_roc.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/1000/all_comparison_mlp_roc.png" width="350" >
+ 10000                | 100000
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/10000/all_comparison_mlp_roc.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/100000/all_comparison_mlp_roc.png" width="350" >
+
+
 And the ratio histograms are shown next,
 
  0                   | 1000
@@ -400,6 +409,14 @@ Also, for each one of the cases, the pairwise score distributions are shown next
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/100/dec0_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/500/dec0_all_mlp_hist.png" width="350" >
 1000                | 10000
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/1000/dec0_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/10000/dec0_all_mlp_hist.png" width="350" >
+
+The ROC curves for each one of the cases: 
+
+100                   | 500
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/100/all_comparison_mlp_roc.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/500/all_comparison_mlp_roc.png" width="350" >
+1000                | 10000
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/1000/all_comparison_mlp_roc.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/10000/all_comparison_mlp_roc.png" width="350" >
 
 
 Finally the ratio histograms for this model are shown next,
