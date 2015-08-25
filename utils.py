@@ -71,10 +71,10 @@ def printMultiFrame(w,obs,all_pdfs,name,legends,
   style = [ROOT.kSolid,ROOT.kSolid,ROOT.kDashed,ROOT.kDashed]
   can = ROOT.TCanvas('c1')
   can.Divide(1,len(all_pdfs))
-  x = w.var(obs)
   legs = []
   frames = []
   for curr,pdf in enumerate(all_pdfs): 
+    x = w.var(obs[curr])
     can.cd(curr+1)
     if curr <> len(pdf) - 1:
       #ROOT.gPad.SetBottomMargin(0.01)
@@ -176,35 +176,45 @@ def printFrame(w,obs,pdf,name,legends,
   frame = []
   for var in x:
     frame.append(var.frame())
+  legs = []
   for j,fra in enumerate(frame):    
     can.cd(j+1)
     if len(obs) == 1:
       ROOT.gPad.SetRightMargin(0.01)
     else:
       if j <> len(obs) - 1:
-        ROOT.gPad.SetBottomMargin(0.001)
-        ROOT.gPad.SetTopMargin(0.01)
+        #ROOT.gPad.SetBottomMargin(0.01)
+        if j == 0:
+          ROOT.gPad.SetTopMargin(0.09)
+        else:
+          ROOT.gPad.SetTopMargin(0.01)
         ROOT.gPad.SetRightMargin(0.01)
       else:
         ROOT.gPad.SetTopMargin(0.01)
         ROOT.gPad.SetRightMargin(0.01)
+      ROOT.gPad.SetLeftMargin(0.04)
     for i,f in enumerate(funcs):
         if isinstance(f,str):
           funcs[0].plotOn(fra, ROOT.RooFit.Components(f),ROOT.RooFit.Name(legends[i]), line_colors[i])
         else:
           f.plotOn(fra,ROOT.RooFit.Name(legends[i]),line_colors[i])
-    leg = ROOT.TLegend(0.79, 0.73, 0.99, 0.87)
+    legs.append(ROOT.TLegend(0.79, 0.73, 0.99, 0.87))
     #leg.SetFillColor(ROOT.kWhite)
     #leg.SetLineColor(ROOT.kWhite)
     for i,l in enumerate(legends):
       if i == 0:
-        leg.AddEntry(fra.findObject(legends[i]), l, 'l')
+        legs[-1].AddEntry(fra.findObject(legends[i]), l, 'l')
       else:
-        leg.AddEntry(fra.findObject(legends[i]), l, 'l')
-    leg.SetFillColor(0)
-    leg.SetBorderSize(0)
-    fra.SetTitleSize(0.04,"Y")
-    fra.SetTitleSize(0.04,"X")
+        legs[-1].AddEntry(fra.findObject(legends[i]), l, 'l')
+    legs[-1].SetFillColor(0)
+    legs[-1].SetBorderSize(0)
+    legs[-1].SetTextSize(0.06)
+    legs[-1].SetFillColor(0)
+    legs[-1].SetBorderSize(0)
+    fra.SetTitleSize(0.06,"Y")
+    fra.SetTitleSize(0.06,"X")
+    fra.GetYaxis().CenterTitle(1)
+    fra.GetYaxis().SetTitleOffset(0.35)
     if len(obs) == 1:
       fra.SetTitle("{0};{1};{2}".format(title,x_text,y_text))
     else:
@@ -212,7 +222,7 @@ def printFrame(w,obs,pdf,name,legends,
     if range <> None:
       fra.GetXaxis().SetRangeUser(range[0],range[1])
     fra.Draw()
-    leg.Draw()
+    legs[-1].Draw()
   can.SaveAs('{0}/plots/{1}/{2}.png'.format(dir,model_g,name))
   if print_pdf == True:
     can.SaveAs('{0}/plots/{1}/{2}.png'.format(dir,model_g,name))
@@ -222,6 +232,7 @@ def saveFig(x,y,file,labels=None,scatter=False,contour=False,axis=None,
             model_g='mlp',marker=False, hist=False, marker_value=None, x_range=None,title='',multi=False,print_pdf=False):
   fig,ax = plt.subplots()
   colors = ['b-','r-','k-']
+  colors_rgb = ['blue','red','black']
   if contour == True: 
     cs1 = plt.contour(x,y[0],y[1],[0.,0.1,0.5,1.,5.,10.,50.,100.])
     cs2 = plt.contour(x,y[0],y[2],[0.,0.1,0.5,1.,5.,10.,50.,100.],linestyles="dashed")
@@ -251,11 +262,15 @@ def saveFig(x,y,file,labels=None,scatter=False,contour=False,axis=None,
     else:
       if hist == True:
         if len(y) == 1:
-          ax.hist(y[0],color='black')
+          ax.hist(y[0],color='blue', bins=60)
         else:
           #Just supporting two plots for now
-          ax.hist(y[0],color='blue',label=labels[0],bins=15, range=[x_range[0],x_range[1]],histtype='step',normed=1, alpha=0.5) 
-          ax.hist(y[1],color='red',label=labels[1],bins=15, range=[x_range[0],x_range[1]],histtype='step',normed=1,alpha=0.5)
+          if x_range <> None:
+            for i,ys in enumerate(y): 
+              ax.hist(ys,color=colors_rgb[i],label=labels[i],bins=15, range=[x_range[0],x_range[1]],histtype='step',normed=1, alpha=0.5) 
+          else:
+            for i,ys in enumerate(y): 
+              ax.hist(ys,color=colors_rgb[i],label=labels[i],bins=15,histtype='step',normed=1, alpha=0.5) 
           ax.legend(frameon=False,fontsize=11)
         if axis <> None:
           ax.set_xlabel(axis[0]) 
@@ -433,7 +448,7 @@ def makeROC(outputs, target, label,
 
 
 
-def makeSigBkg(all_outputs, target, label,
+def makeSigBkg(all_outputs, targets, label,
               dir='/afs/cern.ch/user/j/jpavezse/systematics',model_g='mlp',
               print_pdf=False,legends=None, title=''):
   '''
@@ -445,7 +460,7 @@ def makeSigBkg(all_outputs, target, label,
   aucs = []
   thresholds = np.linspace(0,1.0,150) 
   fig = plt.figure()
-  for k,outputs in enumerate(all_outputs):
+  for k,(outputs,target) in enumerate(zip(all_outputs,targets)):
     fnrs.append(np.array([float(np.sum((outputs > tr) * (target == 0)))/float(np.sum(target == 0)) for tr in thresholds]))
     fnrs[-1] = fnrs[-1].ravel()
     tprs.append(np.array([float(np.sum((outputs < tr) * (target == 1)))/float(np.sum(target == 1)) for tr in thresholds]))

@@ -435,15 +435,15 @@ if __name__ == '__main__':
   # class which implement the decomposed method
   test = DecomposedTest(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,
           input_workspace=workspace_file, verbose_printing = verbose_printing)
-  #test.fit(data_file='test')
+  #test.fit(data_file='test',importance_sampling=True, true_dist=True,vars_g=vars_g)
   #test.computeRatios(true_dist=True,vars_g=vars_g,use_log=True) 
   #test.computeRatios(true_dist=True,vars_g=vars_g,use_log=False) 
 
   # compute likelihood for c0[0] and c0[1] values
-  fitCValues(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=True,vars_g=vars_g,
-        workspace=workspace_file,use_log=True)
+  #fitCValues(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=True,vars_g=vars_g,
+  #      workspace=workspace_file,use_log=False)
 
-  #plotCValues(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=True,vars_g=vars_g,
-  #      workspace=workspace_file,use_log=True)
+  plotCValues(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=True,vars_g=vars_g,
+        workspace=workspace_file,use_log=False)
 
 

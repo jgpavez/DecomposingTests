@@ -47,7 +47,7 @@ class DecomposedTest:
     self.verbose_printing=verbose_printing
       
 
-  def fit(self, data_file='test'):
+  def fit(self, data_file='test',importance_sampling=False, true_dist=True,vars_g=None):
 
     ''' 
       Create pdfs for the classifier 
@@ -74,6 +74,15 @@ class DecomposedTest:
     w.factory('score[{0},{1}]'.format(low,high))
     s = w.var('score')
     
+    if importance_sampling == True:
+      if true_dist == True:
+        vars = ROOT.TList()
+        for var in vars_g:
+          vars.Add(w.var(var))
+        x = ROOT.RooArgSet(vars)
+      else:
+        x = None
+
     #This is because most of the data of the full model concentrate around 0 
     bins_full = 40
     low_full = 0.
@@ -83,7 +92,7 @@ class DecomposedTest:
     histos = []
     histos_names = []
     sums_histos = []
-    def saveHistos(w,ouputs,s,bins,low,high,pos=None):
+    def saveHistos(w,ouputs,s,bins,low,high,pos=None, testdata=None, importance_sampling=False):
       numtrain = outputs.shape[0]
       if pos <> None:
         k,j = pos
@@ -93,10 +102,23 @@ class DecomposedTest:
         data = ROOT.RooDataSet('{0}data_{1}_{2}'.format(name,k,j),"data",
             ROOT.RooArgSet(s))
         hist = ROOT.TH1F('{0}hist_{1}_{2}'.format(name,k,j),'hist',bins,low,high)
-        for val in outputs[l*numtrain/2:(l+1)*numtrain/2]:
+        values = outputs[l*numtrain/2:(l+1)*numtrain/2]
+        values = values[self.findOutliers(values)]
+        for val in values:
           hist.Fill(val)
           s.setVal(val)
           data.add(ROOT.RooArgSet(s))
+        if importance_sampling == True:
+          fvalues = []
+          new_values =  outputs[(1-l)*numtrain/2:(2-l)*numtrain/2]
+          new_data = testdata[(1-l)*numtrain/2:(2-l)*numtrain/2]
+          fvalues.append(np.array([self.evalDist(x,w.pdf('f{0}'.format(j)),xs) for xs in new_data])) 
+          fvalues.append(np.array([self.evalDist(x,w.pdf('f{0}'.format(k)),xs) for xs in new_data]))
+          weights = self.singleRatio(fvalues[1-l],fvalues[l])
+          for ind,new_val in enumerate(new_values):
+            hist.Fill(new_val,weights[ind])
+            s.setVal(new_val)
+            data.add(ROOT.RooArgSet(s),weights[ind])
         
         datahist = ROOT.RooDataHist('{0}datahist_{1}_{2}'.format(name,k,j),'hist',
               ROOT.RooArgList(s),hist)
@@ -160,10 +182,10 @@ class DecomposedTest:
         # Should I be using test data here?
         size2 = traindata.shape[1] if len(traindata.shape) > 1 else 1
         outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file,k,j),traindata.reshape(traindata.shape[0],size2),model_g=self.model_g)
-        saveHistos(w,outputs,s,bins,low,high,(k,j))
+        saveHistos(w,outputs,s,bins,low,high,(k,j),testdata=traindata,importance_sampling=importance_sampling)
 
     if self.verbose_printing==True:
-      printMultiFrame(w,'score',histos, makePlotName('dec0','all',type='hist',dir=self.dir,c1_g=self.c1_g,model_g=self.model_g),histos_names,
+      printMultiFrame(w,['score','score','score'],histos, makePlotName('dec0','all',type='hist',dir=self.dir,c1_g=self.c1_g,model_g=self.model_g),histos_names,
         dir=self.dir,model_g=self.model_g,y_text='score(x)',print_pdf=True,title='Pairwise score distributions')
       '''
       printFrame(w,['score'],sums_histos[0], makePlotName('dec','sum',1,0,type='hist',dir=self.dir,c1_g=self.c1_g,model_g=self.model_g),['f2'],
@@ -179,7 +201,7 @@ class DecomposedTest:
     numtrain = traindata.shape[0]       
     size2 = traindata.shape[1] if len(traindata.shape) > 1 else 1
     outputs = predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),traindata.reshape(traindata.shape[0],size2),model_g=self.model_g)
-    saveHistos(w,outputs,s_full, bins_full, low_full, high_full)
+    saveHistos(w,outputs,s_full, bins_full, low_full, high_full,importance_sampling=False)
        
     w.Print()
 
@@ -217,6 +239,7 @@ class DecomposedTest:
   # Log Ratios functions
   def computeLogKi(self, f0, f1, c0, c1):
     k_ij = np.log(c1*f1) - np.log(c0*f0)
+    k_ij[np.abs(k_ij) == np.inf] = 0
     return k_ij
   # ki is a vector
   def computeAi(self,k0, ki):
@@ -224,8 +247,7 @@ class DecomposedTest:
     return ai
   def singleLogRatio(self, f0, f1):
     rat = np.log(f1) - np.log(f0)
-    rat[rat == np.inf] = 0
-    rat[rat == -np.inf] = 0
+    rat[np.abs(rat) == np.inf] = 0
     return rat
 
   def evaluateLogDecomposedRatio(self, w, evalData, x=None, plotting=True,roc=False, gridsize=None,
@@ -320,6 +342,7 @@ class DecomposedTest:
           saveFig(evalDist, [ks[k-1][j],ksTrained[k-1][j]], makePlotName('decomposed','trained',k,j,type='ratio_log',dir=self.dir,model_g=self.model_g,c1_g=self.c1_g),labels=['trained','truth'],model_g=self.model_g,dir=self.dir)
 
       #check this
+
       kSortedTrained = np.sort(ksTrained[k-1],0)
       kSorted = np.sort(ks[k-1],0)
       ai[k-1] = self.computeAi(kSorted[0],kSorted[1:])
@@ -560,9 +583,21 @@ class DecomposedTest:
       realRatio = getRatio(F1dist,F0dist)
 
     # Remove outliers
-    decomposed_outliers = self.findOutliers(decomposedRatio)
-    complete_outliers = self.findOutliers(completeRatio)
-    real_outliers = self.findOutliers(realRatio)
+    numtest = realRatio.shape[0]
+    decomposed_outliers = np.zeros(numtest,dtype=bool)
+    complete_outliers = np.zeros(numtest,dtype=bool)
+    real_outliers = np.zeros(numtest,dtype=bool)
+    decomposed_outliers[:numtest/2] = self.findOutliers(decomposedRatio[:numtest/2])
+    decomposed_outliers[numtest/2:] = self.findOutliers(decomposedRatio[numtest/2:])
+    complete_outliers[:numtest/2] = self.findOutliers(completeRatio[:numtest/2])
+    complete_outliers[numtest/2:] = self.findOutliers(completeRatio[numtest/2:])
+    real_outliers[:numtest/2] = self.findOutliers(realRatio[:numtest/2])
+    real_outliers[numtest/2:] = self.findOutliers(realRatio[numtest/2:])
+
+    decomposed_target = testtarget[decomposed_outliers] 
+    complete_target = testtarget[complete_outliers] 
+    real_target = testtarget[real_outliers] 
+
     decomposedRatio = decomposedRatio[decomposed_outliers]
     completeRatio = completeRatio[complete_outliers]
     realRatio = realRatio[real_outliers]
@@ -575,33 +610,45 @@ class DecomposedTest:
     if use_log == True:
       low = -1.0
       high = 1.0
-    
-    if true_dist == True:
-      ratios_names = ['truth','full','composed']
-      ratios_vec = [realRatio, completeRatio, decomposedRatio]
-      minimum = min([realRatio.min(), completeRatio.min(), decomposedRatio.min()])
-      maximum = max([realRatio.max(), completeRatio.max(), decomposedRatio.max()]) 
-    else:
-      ratios_names = ['full','composed']
-      ratios_vec = [completeRatio, decomposedRatio]
-      minimum = min([completeRatio.min(), decomposedRatio.min()])
-      maximum = max([completeRatio.max(), decomposedRatio.max()]) 
+    low = []
+    high = []
+    low = []
+    high = []
+    ratios_vars = []
+    for l,name in enumerate(['sig','bkg']):
+      if true_dist == True:
+        ratios_names = ['truth','full','composed']
+        ratios_vec = [realRatio, completeRatio, decomposedRatio]
+        minimum = min([realRatio[real_target == 1-l].min(), 
+              completeRatio[complete_target == 1-l].min(), 
+              decomposedRatio[decomposed_target == 1-l].min()])
+        maximum = max([realRatio[real_target == 1-l].max(), 
+              completeRatio[complete_target == 1-l].max(), 
+              decomposedRatio[decomposed_target == 1-l].max()])
 
-    low = minimum - ((maximum - minimum) / bins)*10
-    high = maximum + ((maximum - minimum) / bins)*10
-    w.factory('ratio[{0},{1}]'.format(low, high))
-    ratio = w.var('ratio')
+      else:
+        ratios_names = ['full','composed']
+        ratios_vec = [completeRatio, decomposedRatio]
+        minimum = min([completeRatio[complete_target == 1-l].min(), 
+              decomposedRatio[decomposed_target == 1-l].min()])
+        maximum = max([completeRatio[complete_target == 1-l].max(), 
+              decomposedRatio[decomposed_target == 1-l].max()])
+
+      low.append(minimum - ((maximum - minimum) / bins)*10)
+      high.append(maximum + ((maximum - minimum) / bins)*10)
+      w.factory('ratio{0}[{1},{2}]'.format(name, low[l], high[l]))
+      ratios_vars.append(w.var('ratio{0}'.format(name)))
     for curr, curr_ratios in zip(ratios_names,ratios_vec):
       numtest = curr_ratios.shape[0] 
       for l,name in enumerate(['sig','bkg']):
-        hist = ROOT.TH1F('{0}_{1}hist_F0_f0'.format(curr,name),'hist',bins,low,high)
+        hist = ROOT.TH1F('{0}_{1}hist_F0_f0'.format(curr,name),'hist',bins,low[l],high[l])
         for val in curr_ratios[l*numtest/2:(l+1)*numtest/2]:
           hist.Fill(val)
         datahist = ROOT.RooDataHist('{0}_{1}datahist_F0_f0'.format(curr,name),'hist',
-              ROOT.RooArgList(ratio),hist)
-        ratio.setBins(bins)
+              ROOT.RooArgList(ratios_vars[l]),hist)
+        ratios_vars[l].setBins(bins)
         histpdf = ROOT.RooHistFunc('{0}_{1}histpdf_F0_f0'.format(curr,name),'hist',
-              ROOT.RooArgSet(ratio), datahist, 0)
+              ROOT.RooArgSet(ratios_vars[l]), datahist, 0)
 
         histpdf.specialIntegratorConfig(ROOT.kTRUE).method1D().setLabel('RooBinIntegrator')
         getattr(w,'import')(hist)
@@ -618,7 +665,7 @@ class DecomposedTest:
     all_names_plots = [[all_names_plots[j][i] for j,_ in enumerate(all_names_plots)] 
                 for i,_ in enumerate(all_names_plots[0])]
 
-    printMultiFrame(w,'ratio',all_ratios_plots, makePlotName('ratio','comparison',type='hist'+post,dir=self.dir,model_g=self.model_g,c1_g=self.c1_g),all_names_plots,setLog=True,dir=self.dir,model_g=self.model_g,y_text='Count',title='Histograms for ratios',x_text='ratio value',print_pdf=True)
+    printMultiFrame(w,['ratiosig','ratiobkg'],all_ratios_plots, makePlotName('ratio','comparison',type='hist'+post,dir=self.dir,model_g=self.model_g,c1_g=self.c1_g),all_names_plots,setLog=True,dir=self.dir,model_g=self.model_g,y_text='Count',title='Histograms for ratios',x_text='ratio value',print_pdf=True)
 
     # scatter plot true ratio - composed - full ratio
     '''
@@ -635,7 +682,7 @@ class DecomposedTest:
     ratios_list = [decomposedRatio/decomposedRatio.max(), 
                     completeRatio/completeRatio.max(),
                     realRatio/realRatio.max()]
-    makeSigBkg(ratios_list,[testtarget[decomposed_outliers],testtarget[complete_outliers],testtarget[real_outliers]],makePlotName('comp','all',type='sigbkg'+post,dir=self.dir,model_g=self.model_g,c1_g=self.c1_g),dir=self.dir,model_g=self.model_g,print_pdf=True,legends=['composed','full','truth'],title='Signal-Background rejection curves')
+    makeSigBkg(ratios_list,[decomposed_target,complete_target,real_target],makePlotName('comp','all',type='sigbkg'+post,dir=self.dir,model_g=self.model_g,c1_g=self.c1_g),dir=self.dir,model_g=self.model_g,print_pdf=True,legends=['composed','full','truth'],title='Signal-Background rejection curves')
 
     # Scatter plot to compare regression function and classifier score
     if self.verbose_printing == True and true_dist == True:
