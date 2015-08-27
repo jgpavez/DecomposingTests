@@ -348,7 +348,7 @@ The histograms for the values of the coefficients c1[0] and c2[0] obtained by ma
 
 c1[0] - 10                 | c1[0] - 1000
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/0/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/1000/c1c2_train_mlp_c1_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/0/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/1000/c1_train_mlp_hist.png" width="350" >
 c1[0] - 10000                | c1[0] - 100000
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/10000/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/100000/c1c2_train_mlp_c1_hist.png" width="350" >
 
