@@ -346,33 +346,33 @@ the amount of data used to train the classiffier. We will use 10, 1000, 10000, a
 The histograms for the values of the coefficients c1[0] and c2[0] obtained by maximizing the log-likelihood on a dataset in each one of the cases are shown. 
 
 
-c1[0] - 10                 | c1[0] - 1000
+c1[0] - 100                 | c1[0] - 1000
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/0/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/1000/c1_train_mlp_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/regularized/100/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/regularized/1000/c1c2_train_mlp_c1_hist.png" width="350" >
 c1[0] - 10000                | c1[0] - 100000
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/10000/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/100000/c1c2_train_mlp_c1_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/regularized/10000/c1c2_train_mlp_c1_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/regularized/100000/c1c2_train_mlp_c1_hist.png" width="350" >
 
 c1[1] - 0                   | c1[1] - 1000
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/0/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/1000/c1c2_train_mlp_c2_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/regularized/100/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/regularized/1000/c1c2_train_mlp_c2_hist.png" width="350" >
 c1[1] - 10000                | c1[1] - 100000
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/10000/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/100000/c1c2_train_mlp_c2_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/regularized/10000/c1c2_train_mlp_c2_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/regularized/100000/c1c2_train_mlp_c2_hist.png" width="350" >
 
 For each one of the cases, the pairwise score distributions are shown next
 
  10                 | 1000
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/0/dec0_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/1000/dec0_all_mlp_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/regularized/100/dec0_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/regularized/1000/dec0_all_mlp_hist.png" width="350" >
  10000                | 100000
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/10000/dec0_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/100000/dec0_all_mlp_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/regularized/10000/dec0_all_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/regularized/100000/dec0_all_mlp_hist.png" width="350" >
 
 Also, the ROC curve for each pairwise case are shown next
 
  10                 | 1000
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/0/all_comparison_mlp_roc.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/1000/all_comparison_mlp_roc.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/regularized/100/all_comparison_mlp_roc.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/regularized/1000/all_comparison_mlp_roc.png" width="350" >
  10000                | 100000
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/10000/all_comparison_mlp_roc.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/100000/all_comparison_mlp_roc.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/regularized/10000/all_comparison_mlp_roc.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/regularized/100000/all_comparison_mlp_roc.png" width="350" >
 
 
 And the ratio histograms are shown next,
