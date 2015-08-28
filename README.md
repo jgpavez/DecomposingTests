@@ -341,7 +341,7 @@ Again, the method works pretty good even with this harder model.
 # How training affect ratios
 
 Now, what we will study is how the quality of training affect the final ratios. We will keep a large amount of data to construct the likelihood ratios (30000 samples) but we will vary 
-the amount of data used to train the classiffier. We will use 10, 1000, 10000, and 1000000 samples to train the classifier.
+the amount of data used to train the classiffier. We will use 100, 1000, 10000, and 1000000 samples to train the classifier.
 
 The histograms for the values of the coefficients c1[0] and c2[0] obtained by maximizing the log-likelihood on a dataset in each one of the cases are shown. 
 
