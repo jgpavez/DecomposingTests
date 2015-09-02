@@ -1,0 +1,171 @@
+\documentclass[11pt, oneside]{article}   	% use "amsart" instead of "article" for AMSLaTeX format
+
+\usepackage{jmlr2e}
+\usepackage{lineno}
+\linenumbers
+%\jmlrheading{1}{2014}{X-XX}{4/00}{10/00}{Authors}
+
+%\ShortHeadings{Title}{Authors}
+
+
+\usepackage{geometry}                		% See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   		% ... or a4paper or a5paper or ... 
+%\geometry{landscape}                		% Activate for for rotated page geometry
+%\usepackage[parfill]{parskip}    		% Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}				% Use pdf, png, jpg, or eps§ with pdflatex; use eps in DVI mode
+								% TeX will automatically convert eps --> pdf in pdflatex		
+\usepackage{amssymb, amsmath}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{xfrac}
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\title{Title}
+\author{Authors}
+\date{}							% Activate to display a given date or no date
+
+\begin{document}
+
+
+%\author{\name Authots \email Address \\
+%      \addr Address\\
+%}
+
+\editor{}
+
+\maketitle
+
+\begin{abstract}%   <- trailing '%' for backward compatibility of .sty file
+Abstract
+  
+\end{abstract}
+%
+%\begin{keywords}
+%  Bayesian Networks, Mixture Models, Chow-Liu Trees
+%\end{keywords}
+
+
+\maketitle
+
+\section{Introduction}
+%\subsection{}
+
+In High Energy Physics (HEP) and many other fields hypothesis testing is a key tool when reporting results from an experiment. Likelihood ratio test are 
+the main technique for hypothesis testing and they are the most powerful statistic for simple hypothesis testing. For composite hypothesis 
+testing the profile or generalized likelihood ratio test is commonly used. When computing the likelihood ratio the data distribution $p(x|\theta)$ must 
+be evaluated, where $\theta$ are parameters of the probability distribution. However, it is common in HEP to have simulations that describe the distribution $p(x|\theta)$ while not having a description that can be directly evaluated. This simulations are used to obtain a high dimensional observation $x$ by emulating the underlying physics of the process. Commonly it is impossible or computationally expensive to evaluate the likelihood ratio in this setting.
+
+It has been recently proved that discriminative classifiers can be used to solve this problem by constructing an equivalent version of the likelihood ratio in this likelihood-free setting~\citep{Cranmer2015}.
+
+In this work we show how this results can be used to approximate the likelihood ratio when the underlying distribution is a weighted sum of probability distributions (mixture model). This case is common in physics when identifying a signal process over one or more background process. We also show 
+that by training a set of classifiers in a pairwise manner on the components of the mixture model it is possible to considerably improve the results of the approximation. Finally, we demonstrate how this technique can also be used to estimate the unknown weights coefficients in the mixture model or equivalently the signal and background respective contributions.
+
+This note is organized as follows. Section~\ref{S:ALR} gives a brief overview of how likelihood ratios are used at the LHC and how this ratios can be approximated by 
+using supervised learning techniques. In Section~\ref{S:DLR} the method to approximate likelihood ratios on mixture models is explained and in Section 4 a complete study of the results obtained by the algorithm for several toy distributions is presented.
+
+\section{Approximating Likelihood Ratios using Discriminative Classifiers}\label{S:ALR}
+%\subsection{}
+
+A common use of likelihood ratios in HEP is signal process identification. In this task the hypothesis testing procedure is used to evaluate the signal process significance by contrasting the only background (null) hypothesis versus the signal plus background (alternative) hypothesis. In this setting, the underlying distribution can be seen as a signal and background mixture model defined as
+\begin{equation}\label{eq:sigbkg}
+p( x \,|\, \mu, \nu) =  \mu p_s( x \, |\,  \nu)  + (1-\mu)\, p_b( x \,|\, \nu) ,
+\end{equation}
+where $p_x(x \, |\, \nu)$ correspond to the signal distribution and $p_b(x \, |\, \nu)$ is the background distribution, both parametrized by nuisance parameters $\nu$ which describe uncertainties in underlying physics predictions or response of measurement devices. The parameter $\mu$ is the mixture coefficient corresponding to the signal component of the distribution. In this case the generalized likelihood ratio test takes the form of 
+\begin{equation}
+T(D) = \prod_{e=1}^n \frac{ p(x_e|\mu=0,\hat{\hat{\nu}})}{ p(x_e|\hat \mu, \hat \nu)},
+\end{equation}
+where $D$ is a data set of i.i.d observations $x_e$, $\hat {\hat \nu}$ is the conditional maximum likelihood estimator for $\nu$ under the null hypothesis $\theta_0$ ($\mu = 0$) and $\hat{\nu}, \hat{\mu}$ are the maximum likelihood estimators for $\nu$ and $\mu$. This approach has been used extensively to assert the discovery of new particles in HEP~\citep{Cowan:2010js}, such as in the discovery of the Higgs boson~\citep{Aad:2012tfa,Chatrchyan:2012ufa}.
+
+As previously mentioned, the original distributions for signal and background can only be approximated by forward simulations. Most of the likelihood ratio tests at the LHC are made on the distribution of a single feature that discriminate between signal and background observations. For this, the simulated data is used together with interpolations algorithms in order to approximate the parametrized model and then use it in the hypothesis testing procedure~\citep{Cranmer:2012sba}.
+
+To obtain a discriminative feature between signal and background various experiments use supervised learning methods by training a discriminative classifier which can learn to classify between signal and background given the original high-dimensional simulated data. In HEP methods like boosted decision trees and multilayer perceptron has been implemented in libraries such as TMVA and used extensively~\citep{Hocker:2007ht}.
+
+Noticeably, it has been shown that a discriminative classifier trained to classify between signal and background can be used to obtain an equivalent likelihood ratio test~\citep{Cranmer2015}. Let  $s(x;\theta_0, \theta_1)$ to represent the classification score learned by the classifier, parametrized by $\theta_0$ and $\theta_1$ the parameters of the statistical model, let $p( s({x; \theta_0, \theta_1}) | \theta )$ the probability distribution of the score on the data from the original distribution $p(x | \theta)$. Then, the likelihood ratio test
+\begin{equation}
+T(D) = \prod_{e=1}^n \frac{ p(x_e | \theta_0)}{ p(x_e | \theta_1)},
+\end{equation}
+is equivalent to the test 
+\begin{equation}\label{eq:lrtest}
+T'(D) = \prod_{e=1}^n \frac{ p(s(x_e; \theta_0, \theta_1) | \theta_0)}{ p(s(x_e; \theta_0, \theta_1) | \theta_1)},
+\end{equation}
+where $\theta_0$ correspond to the null hypothesis and $\theta_1$ to the alternative hypothesis. The only requirement is that the discriminative classifier learn a monotonic function of the per event ratio $p(x_e | \theta_0) / p(x_e | \theta_1)$~\citep{Cranmer2015}. This is the usual case since many of the commonly used classifiers learn to approximate some monotonic function of the regression function $s(x) \sim p(y|x) = p(x|\theta_1) / (p(x|\theta_0) + p(x|\theta_1))$ which is monotonic to the desired ratio. %[Tishbshirani].
+ 
+ In the next section we show how this result can be used to decompose a likelihood ratio for mixture models into the likelihood ratio of its components obtained by training a set of classifiers pairwise.
+ 
+\section{Decomposed Likelihood Ratio Test for Mixture Models}\label{S:DLR}
+A generalized version of the signal and background mixture  model of Eq.~\ref{eq:sigbkg} for several components is 
+\begin{equation}
+p(x|\theta)=\sum_{i=1}^k w_i(\theta) p_i(x|\theta),  
+\end{equation}
+where $w_i(\theta)$ are the mixture coefficients for each one of the components parametrized by $\theta$. In~\citep{Cranmer2015} it is shown that the likelihood ratio between two mixture models
+\begin{equation}
+\frac{p(x|\theta_0)}{p(x|\theta_1)}= \frac{ \sum_{i=1}^k  w_i(\theta_0) p_i(x|\theta_0)}{\sum_{j=1}^{k'} w_{j}(\theta_1) p_{j}(x| \theta_1)}, 
+\end{equation}
+is equivalent to the composition of pairwise ratios for each one of the components
+\begin{equation}
+\sum_{i=1}^k \left[ \sum_{j=1}^{k'} \frac{ w_{j}(\theta_1)}{w_i(\theta_0)} \frac{ p_{j}(x|\theta_1)}{  p_i(x| \theta_0)}  \right]^{-1},
+\end{equation}
+and by Eq.~\ref{eq:lrtest} this is equivalent to the composition of ratios on the score distribution of pairwise trained classifiers
+\begin{equation}
+\sum_{i=1}^k \left[ \sum_{j=1}^{k'} \frac{ w_{j}(\theta_1)}{w_i(\theta_0)} \frac{ p_{j}(s_{i,j}(x;\theta_0, \theta_1)|\theta_1)}{  p_i(s_{i,j}(x;\theta_0, \theta_1)| \theta_0)}  \right]^{-1}.
+\end{equation}
+
+In the case that the only free parameters of the mixture model are the coefficients $w_i(\theta)$, then each distribution $p_i(s_{i,j}(x;\theta_0, \theta_1)|\theta)$ is independent of $\theta$ and can be pre-computed and used after in the evaluation of the likelihood ratio. Moreover, in this case each ratio $p_{j}(s_{i,j}(x;\theta_0, \theta_1)|\theta_1)/ p_i(s_{i,j}(x;\theta_0, \theta_1)| \theta_0)$ with $i=j$ can be replaced by $1$. Also, for a two-class classifier the values of $s_{j,i}(x;\theta_0,\theta_1)$ for one of the classes can be replaced by the values of $s_{i,j}(x;\theta_0,\theta_1)$ for the opposing class, then it is only necessary to train the classifiers for $i < j$. This saves a lot of computation time and avoid possible variance that can be introduced by differences between $s_{i,j}(x;\theta_0, \theta_1)$ and $s_{j,i}(x;\theta_0, \theta_1)$ due to imperfect training.
+
+In the common case of only background null hypothesis versus signal plus background alternate hypothesis, the coefficient $w_{i}(\theta_0)$ corresponding to the signal component will be equal to zero under the null hypothesis, while the coefficients on the alternate hypothesis will be all bigger than zero. Additionally, it is common for the signal coefficient $w_{j}(\theta_1)$ to be a very small number compared to the background coefficients under the alternate hypothesis. In this conditions a classifier trained in data from the full mixture model will have a lot of problems to identify the signal since most of the useful discriminative data will lay in a small region of the feature space.
+
+It is possible to estimate the signal and background coefficients by using maximum likelihood estimation on the ratios, let $W(\theta_1)$ be the vector of coefficients under the alternate hypothesis, then for the pseudo data $D=\{x_i, \dots, x_n\}$ generated from $p(x| \theta_1)$ and for a fixed value of $\theta_0$ 
+\begin{equation}
+\hat{W}(\theta_1) = \argmax_{W(\theta_1)} \prod_{e=1}^n \frac{p(x_e | \theta_1)}{p(x_e| \theta_0)} ,
+\end{equation}
+equivalently, the decomposed ratio can be used
+\begin{equation}\label{eq:fitting}
+\hat{W}(\theta_1) = \argmax_{W(\theta_0)} \prod_{e=1}^n \left[ \sum_{j=1}^{k'} \left[ \sum_{i=1}^k \frac{ w_{j}(\theta_0)}{w_i(\theta_1)} \frac{ p_{j}(s_{j,i}(x_e;\theta_0, \theta_1)|\theta_0)}{  p_i(s_{j,i}(x_e;\theta_0, \theta_1)| \theta_1)}  \right]^{-1}\right].
+\end{equation}
+
+The complete algorithm to estimate the likelihood ratio using pairwise trained classifiers can be separated into three stages, classifier training, score distribution estimation and composition formula computation. 
+
+First, given some data sets $X_i, \dots X_l$ generated from the component distributions 
+$p_i(x), \dots, p_l(x)$ (possibly by simulations), a set of classifiers is trained in each pair $[X_i, X_j]$ with $i < j$ where samples from $X_i$ are labeled as signal and samples from $X_j$ are labeled as background. It should be noted that the selection of classifiers and the training of this classifiers factorizes from the score distribution estimation and the computation of the composed ratio. The only requirement is that the trained classifier approximates to some degree a monotonic function of the regression function. 
+
+Each classifier $s_{i,j}(x;\theta_0, \theta_1)$ is used to estimate the score distribution $p(s_{i,j}(x;\theta_0, \theta_1)|\theta_0)$ and $p(s_{i,j}(x;\theta_0, \theta_1)|\theta_1)$ with x belonging to $X_i'$($X_j'$) a dataset generated from $p_i(x)$ ($p_j(x)$) (possibly different from the one used in the training stage), by using an univariate density estimation technique such as histograms or kernel density estimation~\citep{Verkerke:2003ir,Cranmer:2000du}. 
+
+Finally, the estimated distributions $p(s_{i,j}(x;\theta_0, \theta_1)|\theta)$ are used in the composition formula and the values of the coefficients can be estimated using Eq.~\ref{eq:fitting}.
+
+%The complete method for decomposing the likelihood ratio between mixture models using pairwise trained classifiers is resumed in the following algorithm.
+
+%\begin{algorithm}[ht]
+%\caption{Decomposing likelihood ratios between mixture models.}\label{alg:training}
+%\begin{algorithmic}
+%\STATE initialize trainingData = \{\}
+%\FOR{ $\theta_0$ in $\Theta$ }
+%	\FOR{ $\theta_1$ in $\Theta$ }
+%		\STATE generate $x_i^0 \sim p(x|\theta_0)$
+%		\STATE append $\{ (x_i^0, \theta_0, \theta_1, y=0) \}$ to trainingData
+%		\STATE generate $x_i^1 \sim p(x|\theta_1)$
+%		\STATE append $\{ (x_i^1, \theta_0, \theta_1, y=1) \}$ to trainingData
+%	\ENDFOR
+%\ENDFOR
+%\STATE use trainingData to learn $\hat{s}(x; \theta_0, \theta_1)$
+%\end{algorithmic}
+%\end{algorithm}%\vspace{-1.5em}
+
+In the next section we will show how the method works in toy data, for a simple one-dimensional case and a harder multidimensional case, very similar to what can be found in real physics experiments.
+
+\section{Experiments}
+ 
+\subsection{Univariate Case}
+
+\subsection{Multivariate Case}
+
+
+
+\bibliographystyle{natbib}
+\bibliography{learning.bib}
+%\begin{thebibliography}
+%\parametrized-learning}
+%\end{thebibliography
+
+\end{document} 
