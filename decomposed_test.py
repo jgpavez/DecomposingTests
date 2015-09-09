@@ -35,7 +35,10 @@ class DecomposedTest:
             output_workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root',
             dir='/afs/cern.ch/user/j/jpavezse/systematics',
             c1_g='',model_g='mlp',
-            verbose_printing=False):
+            verbose_printing=False,
+            dataset_names=None,
+            preprocessing=False,
+            scaler=None):
     self.input_workspace = input_workspace
     self.workspace = output_workspace
     self.c0 = c0
@@ -45,10 +48,12 @@ class DecomposedTest:
     self.c1_g = c1_g
     self.model_g = model_g
     self.verbose_printing=verbose_printing
+    self.dataset_names=dataset_names
+    self.preprocessing = preprocessing
+    self.scaler = scaler
       
 
   def fit(self, data_file='test',importance_sampling=False, true_dist=True,vars_g=None):
-
     ''' 
       Create pdfs for the classifier 
       score to be used later on the ratio 
@@ -65,6 +70,8 @@ class DecomposedTest:
     if self.input_workspace <> None:
       f = ROOT.TFile('{0}/{1}'.format(self.dir,self.input_workspace))
       w = f.Get('w')
+      # TODO test this when workspace is present
+      w = ROOT.RooWorkspace('w') if w == None else w
       f.Close()
     else: 
       w = ROOT.RooWorkspace('w')
@@ -91,9 +98,11 @@ class DecomposedTest:
     s_full = w.var('scoref')
     histos = []
     histos_names = []
+    inv_histos = []
+    inv_histos_names = []
     sums_histos = []
-    def saveHistos(w,ouputs,s,bins,low,high,pos=None, testdata=None, importance_sampling=False):
-      numtrain = outputs.shape[0]
+    def saveHistos(w,outputs,s,bins,low,high,pos=None,importance_sampling=False,importance_data=None,
+          importance_outputs=None):
       if pos <> None:
         k,j = pos
       else:
@@ -102,24 +111,33 @@ class DecomposedTest:
         data = ROOT.RooDataSet('{0}data_{1}_{2}'.format(name,k,j),"data",
             ROOT.RooArgSet(s))
         hist = ROOT.TH1F('{0}hist_{1}_{2}'.format(name,k,j),'hist',bins,low,high)
-        values = outputs[l*numtrain/2:(l+1)*numtrain/2]
-        values = values[self.findOutliers(values)]
+        values = outputs[l]
+        #values = values[self.findOutliers(values)]
         for val in values:
           hist.Fill(val)
           s.setVal(val)
           data.add(ROOT.RooArgSet(s))
         if importance_sampling == True:
-          fvalues = []
-          new_values =  outputs[(1-l)*numtrain/2:(2-l)*numtrain/2]
-          new_data = testdata[(1-l)*numtrain/2:(2-l)*numtrain/2]
-          fvalues.append(np.array([self.evalDist(x,w.pdf('f{0}'.format(j)),xs) for xs in new_data])) 
-          fvalues.append(np.array([self.evalDist(x,w.pdf('f{0}'.format(k)),xs) for xs in new_data]))
-          weights = self.singleRatio(fvalues[1-l],fvalues[l])
-          for ind,new_val in enumerate(new_values):
-            hist.Fill(new_val,weights[ind])
-            s.setVal(new_val)
-            data.add(ROOT.RooArgSet(s),weights[ind])
-        
+          actual = j if l == 0 else k
+          for par in [k,j]:
+            if par == actual:
+              continue
+            print '{0} , {1}'.format(actual,par)
+            fvalues = []
+            if l == 0:
+              new_values = importance_outputs[par][actual][1-l]
+              new_data = importance_data[par][actual][1-l]
+            else:
+              new_values = importance_outputs[actual][par][0] 
+              new_data = importance_data[actual][par][0] 
+            fvalues.append(np.array([self.evalDist(x,w.pdf('f{0}'.format(actual)),xs) for xs in new_data])) 
+            fvalues.append(np.array([self.evalDist(x,w.pdf('f{0}'.format(par)),xs) for xs in new_data]))
+            weights = self.singleRatio(fvalues[1],fvalues[0])
+            for ind,new_val in enumerate(new_values):
+              hist.Fill(new_val,weights[ind])
+              s.setVal(new_val)
+              data.add(ROOT.RooArgSet(s),weights[ind])
+          
         datahist = ROOT.RooDataHist('{0}datahist_{1}_{2}'.format(name,k,j),'hist',
               ROOT.RooArgList(s),hist)
         s.setBins(bins)
@@ -127,38 +145,12 @@ class DecomposedTest:
               ROOT.RooArgSet(s), datahist, 1)
       
         histpdf.specialIntegratorConfig(ROOT.kTRUE).method1D().setLabel('RooBinIntegrator')
+        #histpdf.specialIntegratorConfig(ROOT.kTRUE).method1D().setLabel('RooAdaptiveGaussKronrodIntegrator1D')
 
         getattr(w,'import')(hist)
         getattr(w,'import')(data)
         getattr(w,'import')(datahist) # work around for morph = w.import(morph)
         getattr(w,'import')(histpdf) # work around for morph = w.import(morph)
-        '''
-        if name=='sig':
-          if k == 0 or (j == 0 and k == 1):
-            print 'HIST {0} {1}'.format(k,j)
-            data = ROOT.RooDataSet('{0}data_{1}'.format('sig',j),"data",
-                ROOT.RooArgSet(s))
-            hist = ROOT.TH1F('{0}hist_{1}'.format('sig',j),'hist',bins,low,high)
-            for val in outputs[:numtrain/2]:
-              hist.Fill(val)
-              s.setVal(val)
-              data.add(ROOT.RooArgSet(s))
-            
-            datahist = ROOT.RooDataHist('{0}datahist_{1}'.format('sig',j),'hist',
-                ROOT.RooArgList(s),hist)
-            s.setBins(bins)
-            histpdf = ROOT.RooHistPdf('{0}histpdf_{1}'.format('sig',j),'hist',
-                ROOT.RooArgSet(s), datahist, 1)
-        
-            histpdf.specialIntegratorConfig(ROOT.kTRUE).method1D().setLabel('RooBinIntegrator')
-
-            getattr(w,'import')(hist)
-            getattr(w,'import')(data)
-            getattr(w,'import')(datahist) # work around for morph = w.import(morph)
-            getattr(w,'import')(histpdf) # work around for morph = w.import(morph)
-
-            sums_histos.append([w.pdf('sighistpdf_{0}'.format(j))])
-        '''
         score_str = 'scoref' if pos == None else 'score'
         # Calculate the density of the classifier output using kernel density 
         #w.factory('KeysPdf::{0}dist_{1}_{2}({3},{0}data_{1}_{2},RooKeysPdf::NoMirror,2)'.format(name,k,j,score_str))
@@ -166,27 +158,54 @@ class DecomposedTest:
         # Print histograms pdfs and estimated densities
         if self.verbose_printing == True and name == 'bkg' and k <> j:
           full = 'full' if pos == None else 'dec'
-          # print individual histograms
-          #printFrame(w,[score_str],[w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j))], makePlotName(full,'train',k,j,type='hist',dir=self.dir,model_g=self.model_g,c1_g=self.c1_g),['signal','bkg'],dir=self.dir, model_g=self.model_g)
           if k < j and k <> 'F0':
             histos.append([w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j))])
             histos_names.append(['f{0}-f{1}_f{1}(signal)'.format(k,j), 'f{0}-f{1}_f{0}(background)'.format(k,j)])
+          if j < k and k <> 'F0':
+            inv_histos.append([w.pdf('sighistpdf_{0}_{1}'.format(k,j)), w.pdf('bkghistpdf_{0}_{1}'.format(k,j))])
+            inv_histos_names.append(['f{0}-f{1}_f{1}(signal)'.format(k,j), 'f{0}-f{1}_f{0}(background)'.format(k,j)])
+
+    alltraindata = []
+    alloutputs = []
+    if self.scaler == None:
+      self.scaler = {}
 
     for k,c in enumerate(self.c0):
+      alltraindata.append([])
+      alloutputs.append([])
       for j,c_ in enumerate(self.c1):
+        if self.dataset_names <> None:
+          name_k, name_j = (self.dataset_names[k], self.dataset_names[j])
+        else:
+          name_k, name_j = (k,j)
         if k == j: 
+          alltraindata[-1].append(None)
+          alloutputs[-1].append(None)
           continue
-        traindata, targetdata = loadData(data_file,k,j,dir=self.dir,c1_g=self.c1_g)
+  
+        traindata, targetdata = loadData(data_file,name_k,name_j,dir=self.dir,c1_g=self.c1_g,
+            preprocessing=self.preprocessing,scaler=self.scaler)
+       
+        alltraindata[-1].append(traindata.copy()) 
         numtrain = traindata.shape[0]       
-
-        # Should I be using test data here?
         size2 = traindata.shape[1] if len(traindata.shape) > 1 else 1
-        outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file,k,j),traindata.reshape(traindata.shape[0],size2),model_g=self.model_g)
-        saveHistos(w,outputs,s,bins,low,high,(k,j),testdata=traindata,importance_sampling=importance_sampling)
+        alloutputs[-1].append([predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file,k,j),traindata[targetdata == 1],model_g=self.model_g),
+        predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file,k,j),traindata[targetdata == 0],model_g=self.model_g)])
+    for k,c in enumerate(self.c0):
+      for j,c_ in enumerate(self.c1):
+        if k == j:
+          continue
+        saveHistos(w,alloutputs[k][j],s,bins,low,high,(k,j),importance_sampling=importance_sampling,importance_data=alltraindata, importance_outputs=alloutputs)
 
     if self.verbose_printing==True:
-      printMultiFrame(w,['score','score','score'],histos, makePlotName('dec0','all',type='hist',dir=self.dir,c1_g=self.c1_g,model_g=self.model_g),histos_names,
-        dir=self.dir,model_g=self.model_g,y_text='score(x)',print_pdf=True,title='Pairwise score distributions')
+      for ind in range((len(histos)/3)-1):
+        print_histos = histos[ind*3:ind*3+3]
+        print_histos_names = histos_names[ind*3:ind*3+3]
+        printMultiFrame(w,['score']*len(print_histos),print_histos, makePlotName('dec{0}'.format(ind),'all',type='hist',dir=self.dir,c1_g=self.c1_g,model_g=self.model_g),print_histos_names,
+          dir=self.dir,model_g=self.model_g,y_text='score(x)',print_pdf=True,title='Pairwise score distributions')
+        #printMultiFrame(w,['score']*len(inv_histos),inv_histos, makePlotName('dec1','all',type='hist',dir=self.dir,c1_g=self.c1_g,model_g=self.model_g),inv_histos_names,
+        #  dir=self.dir,model_g=self.model_g,y_text='score(x)',print_pdf=True,title='Pairwise score distributions')
+
       '''
       printFrame(w,['score'],sums_histos[0], makePlotName('dec','sum',1,0,type='hist',dir=self.dir,c1_g=self.c1_g,model_g=self.model_g),['f2'],
         dir=self.dir,model_g=self.model_g,y_text='score(x)',print_pdf=True,title='Pairwise score distributions')
@@ -197,10 +216,13 @@ class DecomposedTest:
       '''
 
     # Full model
-    traindata, targetdata = loadData(data_file,'F0','F1',dir=self.dir,c1_g=self.c1_g)
+    traindata, targetdata = loadData(data_file,'F0','F1',dir=self.dir,c1_g=self.c1_g,
+      preprocessing=self.preprocessing, scaler=self.scaler)
     numtrain = traindata.shape[0]       
     size2 = traindata.shape[1] if len(traindata.shape) > 1 else 1
-    outputs = predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),traindata.reshape(traindata.shape[0],size2),model_g=self.model_g)
+    outputs = [predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),traindata[targetdata==1],model_g=self.model_g),
+              predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),traindata[targetdata==0],model_g=self.model_g)]
+
     saveHistos(w,outputs,s_full, bins_full, low_full, high_full,importance_sampling=False)
        
     w.Print()
@@ -210,7 +232,7 @@ class DecomposedTest:
   # To calculate the ratio between single functions
   def singleRatio(self,f0,f1):
     ratio = f1 / f0
-    ratio[ratio == np.inf] = 0 
+    ratio[np.abs(ratio) == np.inf] = 0 
     return ratio
 
   def evalDist(self,x,f0,val):
@@ -367,7 +389,7 @@ class DecomposedTest:
     return pdfratios,ratios 
 
 
-  def evaluateDecomposedRatio(self,w,evalData,x=None,plotting=True, roc=False,gridsize=None,c0arr=None, c1arr=None,true_dist=False,pre_evaluation=None,pre_dist=None):
+  def evaluateDecomposedRatio(self,w,evalData,x=None,plotting=True, roc=False,gridsize=None,c0arr=None, c1arr=None,true_dist=False,pre_evaluation=None,pre_dist=None,debug=False):
     # pair-wise ratios
     # and decomposition computation
     #f = ROOT.TFile('{0}/{1}'.format(self.dir,self.workspace))
@@ -421,6 +443,8 @@ class DecomposedTest:
           ratios = self.singleRatio(f0dist, f1dist)
  
           innerTrueRatios += (c_/c) * ratios
+          if debug == True:
+            pdb.set_trace()
         # ROC curves for pair-wise ratios
         if (roc == True or plotting==True) and j < k:
           if roc == True:
@@ -469,11 +493,11 @@ class DecomposedTest:
           '''
 
       innerRatios = 1./innerRatios
-      innerRatios[innerRatios == np.inf] = 0.
+      innerRatios[np.abs(innerRatios) == np.inf] = 0.
       fullRatios += innerRatios
       if true_dist == True:
         innerTrueRatios = 1./innerTrueRatios
-        innerTrueRatios[innerTrueRatios == np.inf] = 0.
+        innerTrueRatios[np.abs(innerTrueRatios) == np.inf] = 0.
         fullRatiosReal += innerTrueRatios
     if roc == True:
       if true_dist == True:
@@ -486,7 +510,7 @@ class DecomposedTest:
           print_pdf=True,title='ROC for pairwise trained classifier',pos=[(0,1),(0,2),(1,2)])
 
     if plotting == True:
-      saveMultiFig(evalData,[x for x in zip(train_score,true_score)],
+      #saveMultiFig(evalData,[x for x in zip(train_score,true_score)],
       makePlotName('all_dec','train',type='ratio'),labels=[['f0-f1(trained)','f0-f1(truth)'],['f0-f2(trained)','f0-f2(truth)'],['f1-f2(trained)','f1-f2(truth)']],title='Pairwise Ratios',print_pdf=True,dir=self.dir)
 
     return fullRatios,fullRatiosReal
@@ -540,7 +564,8 @@ class DecomposedTest:
     F0pdf = w.pdf('bkghistpdf_F0_F1')
     F1pdf = w.pdf('sighistpdf_F0_F1')
 
-    testdata, testtarget = loadData(data_file,'F0',0,dir=self.dir,c1_g=self.c1_g) 
+    # TODO Here assuming that signal is first dataset  
+    testdata, testtarget = loadData(data_file,'F0',dataset_names[0],dir=self.dir,c1_g=self.c1_g,preprocessing=self.preprocessing, scaler = self.scaler) 
     if len(vars_g) == 1:
       xarray = np.linspace(0,5,npoints)
       fullRatios,_ = evaluateRatio(w,xarray,x=x,plotting=True,roc=False,true_dist=True)
@@ -564,7 +589,7 @@ class DecomposedTest:
       decomposedRatio,_ = evaluateRatio(w,testdata,plotting=False,roc=self.verbose_printing)
 
     if len(testdata.shape) > 1:
-      outputs = predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),testdata.reshape(testdata.shape[0],testdata.shape[1]),model_g=self.model_g)
+      outputs = predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),testdata,model_g=self.model_g)
     else:
       outputs = predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),testdata.reshape(testdata.shape[0],1),model_g=self.model_g)
 

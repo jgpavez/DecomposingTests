@@ -8,6 +8,7 @@ from sklearn import svm, linear_model
 from sklearn.externals import joblib
 from sklearn.metrics import roc_curve, auc
 from sklearn.ensemble import GradientBoostingClassifier
+from sklearn import cross_validation
 
 import sys
 
@@ -27,41 +28,58 @@ def trainClassifiers(clf,c0,c1,
       workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root', 
       model_g='mlp',c1_g='',
       dir='/afs/cern.ch/user/j/jpavezse/systematics',
-      model_file='adaptive'
+      model_file='adaptive',
+      dataset_names = None,
+      data_file='train',
+      preprocessing=False
     ):
   '''
     Train classifiers pair-wise on 
     datasets
   '''
   print 'Training classifier'
+  scaler=None
+  if preprocessing == True:
+    scaler = {}
 
   for k,c in enumerate(c0):
     for j,c_ in enumerate(c1):
       if k==j or k > j:
         continue
-      print " Training Classifier on f{0}/f{1}".format(k,j)
-      if model_g == 'mlp':
-        train_mlp(datatype='train',kpos=k,jpos=j,dir='{0}/data/{1}/{2}'.format(dir,'mlp',c1_g),
-          save_file='{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(dir,model_g,c1_g,model_file,k,j))
+      if dataset_names <> None:
+        name_k, name_j = (dataset_names[k], dataset_names[j])
       else:
-        traindata,targetdata = loadData('train',k,j,dir=dir,c1_g=c1_g) 
+        name_k, name_j = (k,j)
+      print " Training Classifier on f{0}/f{1}".format(k,j)
+      traindata,targetdata = loadData(data_file,name_k,name_j,dir=dir,c1_g=c1_g,
+            preprocessing=preprocessing, scaler=scaler) 
+      if model_g == 'mlp':
+        train_mlp((traindata,targetdata),save_file='{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(dir,model_g,c1_g,model_file,k,j))
+      else:
+        rng = np.random.RandomState(1234)
+        indices = rng.permutation(traindata.shape[0])
+        traindata = traindata[indices]
+        targetdata = targetdata[indices]
+        scores = cross_validation.cross_val_score(clf, traindata, targetdata)
+        print "Accuracy: {0} (+/- {1})".format(scores.mean(), scores.std() * 2)
         clf.fit(traindata.reshape(traindata.shape[0],traindata.shape[1])
             ,targetdata)
         joblib.dump(clf, '{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(dir,model_g,c1_g,model_file,k,j))
   
   print " Training Classifier on F0/F1"
   if model_g == 'mlp':
-    train_mlp(datatype='train',kpos='F0',jpos='F1',dir='{0}/data/{1}/{2}'.format(dir,'mlp',c1_g), 
+    train_mlp(datatype=data_file,kpos='F0',jpos='F1',dir='{0}/data/{1}/{2}'.format(dir,'mlp',c1_g), 
         save_file='{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(dir,model_g,c1_g,model_file))
   else:
-    traindata,targetdata = loadData('train','F0','F1',dir=dir,c1_g=c1_g) 
+    traindata,targetdata = loadData(data_file,'F0','F1',dir=dir,c1_g=c1_g) 
     #clf = svm.NuSVC(probability=True) #Why use a SVR??
-    clf.fit(traindata.reshape(traindata.shape[0],traindata.shape[1])
-        ,targetdata)
+    scores = cross_validation.cross_val_score(clf, traindata, targetdata)
+    print "Accuracy: {0} (+/- {1})".format(scores.mean(), scores.std() * 2)
+    clf.fit(traindata,targetdata)
     joblib.dump(clf, '{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(dir,model_g,c1_g,model_file))
+  return scaler
 
-def predict(filename, traindata,model_g='mlp'):
-  sig = 1
+def predict(filename, traindata,model_g='mlp', sig=1):
   sfilename,k,j = filename.split('_')
   j = j.split('.')[0]
   sig = 1
@@ -79,5 +97,4 @@ def predict(filename, traindata,model_g='mlp'):
       return np.clip(output,0.,1.)
     else:
       return clf.predict_proba(traindata)[:,sig]
-
 

@@ -13,6 +13,7 @@ import pdb
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from sklearn import preprocessing
 
 
 ''' 
@@ -27,21 +28,31 @@ def makePlotName(full, truth, f0 = None, f1 = None, type=None,
   else:
     return '{0}_{1}_{2}_{3}'.format(full, truth, model_g,type)
 
-def loadData(type,k,j,folder=None,dir='',c1_g=''):
+def preProcessing(traindata,k,j, scaler):
+  assert scaler <> None
+  if (k,j) not in scaler:
+    scaler[(k,j)] = preprocessing.StandardScaler().fit(traindata)
+  traindata = scaler[(k,j)].transform(traindata)
+  return traindata
+
+def loadData(type,k,j,folder=None,dir='',c1_g='',preprocessing=False,scaler=None):
   if folder <> None:
     fk = np.loadtxt('{0}/{1}_{2}.dat'.format(folder,type,k))
     fj = np.loadtxt('{0}/{1}_{2}.dat'.format(folder,type,j))
   else:
     fk = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,type,k))
     fj = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,type,j))
-  num = fk.shape[0]
-  traindata = np.zeros((num*2,fk.shape[1])) if len(fk.shape) > 1 else \
-                  np.zeros(num*2)
-  targetdata = np.zeros(num*2)
-  traindata[:num] = fj[:]
-  traindata[num:] = fk[:]
-  targetdata[:num].fill(1)
-  targetdata[num:].fill(0)
+  num0 = fk.shape[0]
+  num1 = fj.shape[0]
+  traindata = np.zeros((num0+num1,fk.shape[1])) if len(fk.shape) > 1 else \
+                  np.zeros(num0+num1)
+  targetdata = np.zeros(num0+num1)
+  traindata[:num1] = fj[:]
+  traindata[num1:] = fk[:]
+  targetdata[:num1].fill(1)
+  targetdata[num1:].fill(0)
+  if preprocessing == True:
+    traindata = preProcessing(traindata,k,j, scaler)
   return (traindata, targetdata)
 
 
@@ -198,7 +209,7 @@ def printFrame(w,obs,pdf,name,legends,
           funcs[0].plotOn(fra, ROOT.RooFit.Components(f),ROOT.RooFit.Name(legends[i]), line_colors[i])
         else:
           f.plotOn(fra,ROOT.RooFit.Name(legends[i]),line_colors[i])
-    legs.append(ROOT.TLegend(0.79, 0.73, 0.99, 0.87))
+    legs.append(ROOT.TLegend(0.69, 0.73, 0.89, 0.87))
     #leg.SetFillColor(ROOT.kWhite)
     #leg.SetLineColor(ROOT.kWhite)
     for i,l in enumerate(legends):
@@ -208,13 +219,13 @@ def printFrame(w,obs,pdf,name,legends,
         legs[-1].AddEntry(fra.findObject(legends[i]), l, 'l')
     legs[-1].SetFillColor(0)
     legs[-1].SetBorderSize(0)
-    legs[-1].SetTextSize(0.06)
+    #legs[-1].SetTextSize(0.06)
     legs[-1].SetFillColor(0)
     legs[-1].SetBorderSize(0)
-    fra.SetTitleSize(0.06,"Y")
-    fra.SetTitleSize(0.06,"X")
+    #fra.SetTitleSize(0.06,"Y")
+    #fra.SetTitleSize(0.06,"X")
     fra.GetYaxis().CenterTitle(1)
-    fra.GetYaxis().SetTitleOffset(0.35)
+    #fra.GetYaxis().SetTitleOffset(0.35)
     if len(obs) == 1:
       fra.SetTitle("{0};{1};{2}".format(title,x_text,y_text))
     else:
@@ -225,7 +236,7 @@ def printFrame(w,obs,pdf,name,legends,
     legs[-1].Draw()
   can.SaveAs('{0}/plots/{1}/{2}.png'.format(dir,model_g,name))
   if print_pdf == True:
-    can.SaveAs('{0}/plots/{1}/{2}.png'.format(dir,model_g,name))
+    can.SaveAs('{0}/plots/{1}/{2}.pdf'.format(dir,model_g,name))
 
 def saveFig(x,y,file,labels=None,scatter=False,contour=False,axis=None, 
             dir='/afs/cern.ch/user/j/jpavezse/systematics',

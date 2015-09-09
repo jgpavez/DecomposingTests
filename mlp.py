@@ -1,23 +1,3 @@
-"""
-This tutorial introduces the multilayer perceptron using Theano.
-
- A multilayer perceptron is a logistic regressor where
-instead of feeding the input to the logistic regression you insert a
-intermediate layer, called the hidden layer, that has a nonlinear
-activation function (usually tanh or sigmoid) . One can use many such
-hidden layers making the architecture deep. The tutorial will also tackle
-the problem of MNIST digit classification.
-
-.. math::
-
-    f(x) = G( b^{(2)} + W^{(2)}( s( b^{(1)} + W^{(1)} x))),
-
-References:
-
-    - textbooks: "Pattern Recognition and Machine Learning" -
-                 Christopher M. Bishop, section 5
-
-"""
 __docformat__ = 'restructedtext en'
 
 
@@ -227,8 +207,8 @@ def shared_dataset(data_xy, borrow=True):
     # lets ous get around this issue
     return shared_x, T.cast(shared_y, 'int32')
 
-def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=10,
-              batch_size=20, n_hidden=40,in_size=1,out_size=2,
+def make_predictions(dataset, learning_rate=0.01, L1_reg=0.01, L2_reg=0.0001, n_epochs=10,
+              batch_size=20, n_hidden=50,in_size=1,out_size=2,
               model_file='model/mlp/adaptive_0_1.pkl'):
 
     test_set_x = dataset
@@ -260,48 +240,19 @@ def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_
                      n_hidden=n_hidden, n_out=out_size)
 
 
+    classifier.load_model(filename=model_file)
     test_model = theano.function([], [classifier.predictions,classifier.y_out],
                             givens={x: test_set_x})
-
-    classifier.load_model(filename=model_file)
 
     predictions, probs = test_model()
 
     return probs
 
-def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100,
-             dir='data/mlp',datatype='train',kpos=0,jpos=0, batch_size=20, n_hidden=40,in_size=1,out_size=2,
+def train_mlp(datasets,learning_rate=0.01, L1_reg=0.001, L2_reg=0.0001, n_epochs=40,
+             batch_size=50, n_hidden=50,in_size=1,out_size=2,
               save_file='model/mlp/adaptive_0_1.pkl'):
 
 
-    """
-    Demonstrate stochastic gradient descent optimization for a multilayer
-    perceptron
-
-    This is demonstrated on MNIST.
-
-    :type learning_rate: float
-    :param learning_rate: learning rate used (factor for the stochastic
-    gradient
-
-    :type L1_reg: float
-    :param L1_reg: L1-norm's weight when added to the cost (see
-    regularization)
-
-    :type L2_reg: float
-    :param L2_reg: L2-norm's weight when added to the cost (see
-    regularization)
-
-    :type n_epochs: int
-    :param n_epochs: maximal number of epochs to run the optimizer
-
-    :type dataset: string
-    :param dataset: the path of the MNIST dataset file from
-                 http://www.iro.umontreal.ca/~lisa/deep/data/mnist/mnist.pkl.gz
-
-
-   """
-    datasets = loadData(datatype,kpos,jpos,folder=dir)
     train_set_x, train_set_y = datasets
     in_size = train_set_x.shape[1] if len(train_set_x.shape) > 1 else 1
     rng = numpy.random.RandomState(1234)
@@ -379,16 +330,17 @@ def train_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100,
 
     epoch = 0
     done_looping = False
-
+  
     while (epoch < n_epochs) and (not done_looping):
+        minibatch_avg_cost = 0.
         epoch = epoch + 1
         for minibatch_index in xrange(n_train_batches):
 
-            minibatch_avg_cost = train_model(minibatch_index)
+            minibatch_avg_cost += train_model(minibatch_index)/batch_size
             # iteration number
             iter = (epoch - 1) * n_train_batches + minibatch_index
-            #print 'Epoch: {0}, batch: {1}, cost: {2}'.format(
-            # epoch, minibatch_index, minibatch_avg_cost)  
+        print 'Epoch: {0}, cost: {1}'.format(
+             epoch, minibatch_avg_cost)  
 
     best_params = copy.deepcopy(classifier.params)
     classifier.save_model(best_params, save_file)
