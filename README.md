@@ -427,6 +427,45 @@ Finally the ratio histograms for this model are shown next,
 1000                | 10000
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/1000/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/10000/ratio_comparison_mlp_hist.png" width="350" >
 
+## A Real Case
 
+We will show how the method works in real physics data. For this we will use data from VBF with one BSM coupling. The samples used for this are **S(0,1), S(1,0), S(1,1), S(1,2), S(1,3),
+S(1,1.5)**. The full mixture model will be a weighted sum of those samples.  
 
+First, we will start with some random coefficient to check the algorithm performance. The coefficients used are *C0 = [.0,.2,.1,.3,.3,.1]* for the first mixture model and 
+*C1=[.1,.2,.1,.3,.3,.1]* for the second model (note that this coefficients does not have any physical meaning).
 
+A *boosted tree model* is trained in each pair of samples using the library *xgboost*. The score distribution obtained for each one of the pairs are shown in the next image 
+
+ S(0,1)-S(1,0),S(0,1)-S(1,1),S(0,1)-S(1,2) | S(0,1)-S(1,3),S(0,1)-S(1,1.5),S(1,0)-S(1,1)
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec0_all_xgboost_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec1_all_xgboost_hist.png" width="350" >
+ S(1,0)-S(1,2),S(1,0)-S(1,3),S(1,0)-S(1,1.5)  | S(1,1)-S(1,2),S(1,1)-S(1,3),S(1,1)-S(1,1.5)
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec2_all_xgboost_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec3_all_xgboost_hist.png" width="350" >
+ S(1,2)-S(1,3),S(1,2)-S(1,1.5),S(1,3)-S(1,1.5)  | 
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec4_all_xgboost_hist.png" width="350">  | 
+
+The ROC curves for each one of the pairwise trained classifiers, using the ratio as discriminative variable, are shown next.
+
+ S(0,1)-S(1,0),S(0,1)-S(1,1),S(0,1)-S(1,2) | S(0,1)-S(1,3),S(0,1)-S(1,1.5),S(1,0)-S(1,1)
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all0_comparison_xgboost_roc.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all1_comparison_xgboost_roc.png" width="350" >
+ S(1,0)-S(1,2),S(1,0)-S(1,3),S(1,0)-S(1,1.5)  | S(1,1)-S(1,2),S(1,1)-S(1,3),S(1,1)-S(1,1.5)
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all2_comparison_xgboost_roc.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all3_comparison_xgboost_roc.png" width="350" >
+ S(1,2)-S(1,3),S(1,2)-S(1,1.5),S(1,3)-S(1,1.5)  | 
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all4_comparison_xgboost_roc.png" width="350">  | 
+
+Next, the ratio histograms for the full model, for the ratio obtained using the composing formula and for the ratios obtained a *BDT* trained in the full models *F0, F1* are shown next.
+
+![All hist_ratio](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ratio_comparison_xgboost_hist.png)
+
+The Signal Efficiency - Background Rejection curves of each one of the ratios (composed, full trained) are shown in the following plot
+
+![All sigbkg](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_all_xgboost_sigbkg.png)
+
+Now, we will see if it is possible to identify the coefficient *C1[0]* for *S(0,1)* for the second mixture model by using maximum likelihood on the composed ratios. 
+The histogram for values obtained in 300 pseudo samples of size 2500 is shown next. 
+
+![hist c0](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/c1_train_mlp_hist.png)
+
+It is clear that the method is able to identify the correct value of *C[0]* even when the trainig is not perfect.
