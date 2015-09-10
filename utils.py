@@ -5,6 +5,7 @@ __author__ = "Pavez J. <juan.pavezs@alumnos.usm.cl>"
 import ROOT
 import numpy as np
 from sklearn.metrics import roc_curve, auc
+from sklearn.externals import joblib
 
 import sys
 
@@ -35,7 +36,7 @@ def preProcessing(traindata,k,j, scaler):
   traindata = scaler[(k,j)].transform(traindata)
   return traindata
 
-def loadData(type,k,j,folder=None,dir='',c1_g='',preprocessing=False,scaler=None):
+def loadData(type,k,j,folder=None,dir='',c1_g='',preprocessing=False,scaler=None, persist=False):
   if folder <> None:
     fk = np.loadtxt('{0}/{1}_{2}.dat'.format(folder,type,k))
     fj = np.loadtxt('{0}/{1}_{2}.dat'.format(folder,type,j))
@@ -53,6 +54,9 @@ def loadData(type,k,j,folder=None,dir='',c1_g='',preprocessing=False,scaler=None
   targetdata[num1:].fill(0)
   if preprocessing == True:
     traindata = preProcessing(traindata,k,j, scaler)
+    # this should be in the preProcessing?
+    if persist == True:
+      joblib.dump(scaler[(k,j)],'{0}/model/{1}/{2}/{3}_{4}_{5}.dat'.format(dir,'mlp',c1_g,'scaler',k,j))
   return (traindata, targetdata)
 
 

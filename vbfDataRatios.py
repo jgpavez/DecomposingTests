@@ -373,9 +373,9 @@ if __name__ == '__main__':
   test = DecomposedTest(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,
           input_workspace=workspace_file, verbose_printing = verbose_printing,
           dataset_names=data_files,model_file='model',preprocessing=True,scaler=scaler)
-  test.fit(data_file='data',importance_sampling=False, true_dist=False,vars_g=vars_g)
+  #test.fit(data_file='data',importance_sampling=False, true_dist=False,vars_g=vars_g)
   #test.computeRatios(true_dist=True,vars_g=vars_g,use_log=True) 
-  test.computeRatios(true_dist=False,vars_g=vars_g,use_log=False) 
+  test.computeRatios(data_file='data',true_dist=False,vars_g=vars_g,use_log=False) 
 
   # compute likelihood for c0[0] and c0[1] values
   #fitCValues(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=True,vars_g=vars_g,
