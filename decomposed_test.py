@@ -38,7 +38,8 @@ class DecomposedTest:
             verbose_printing=False,
             dataset_names=None,
             preprocessing=False,
-            scaler=None):
+            scaler=None,
+            seed=1234):
     self.input_workspace = input_workspace
     self.workspace = output_workspace
     self.c0 = c0
@@ -51,7 +52,7 @@ class DecomposedTest:
     self.dataset_names=dataset_names
     self.preprocessing = preprocessing
     self.scaler = scaler
-      
+    self.seed=seed
 
   def fit(self, data_file='test',importance_sampling=False, true_dist=True,vars_g=None):
     ''' 
@@ -232,7 +233,8 @@ class DecomposedTest:
   # To calculate the ratio between single functions
   def singleRatio(self,f0,f1):
     ratio = f1 / f0
-    ratio[np.abs(ratio) == np.inf or np.isnan(ratio)] = 0 
+    ratio[np.abs(ratio) == np.inf] = 0 
+    ratio[np.isnan(ratio)] = 0
     return ratio
 
   def evalDist(self,x,f0,val):
@@ -754,4 +756,128 @@ class DecomposedTest:
       else:
         outputs = predict('{0}/model/{1}/{2}/adaptive_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g),testdata.reshape(testdata.shape[0],1),model_g=self.model_g)
       #saveFig(outputs,[reg], makePlotName('full','train',type='scat',dir=self.dir,model_g=self.model_g,c1_g=self.c1_g),scatter=True,axis=['score','regression'],dir=self.dir,model_g=self.model_g)
+
+
+  def evalC1Likelihood(self,testdata,c0,c1,c_eval=0,c_min=0.01,c_max=0.2,use_log=False,true_dist=False, vars_g=None, npoints=25):
+
+    f = ROOT.TFile('{0}/{1}'.format(self.dir,self.workspace))
+    w = f.Get('w')
+    f.Close()
+    assert w 
+
+    if true_dist == True:
+      vars = ROOT.TList()
+      for var in vars_g:
+        vars.Add(w.var(var))
+      x = ROOT.RooArgSet(vars)
+    else:
+      x = None
+
+    score = ROOT.RooArgSet(w.var('score'))
+    if use_log == True:
+      evaluateRatio = self.evaluateLogDecomposedRatio
+      post = 'log'
+    else:
+      evaluateRatio = self.evaluateDecomposedRatio
+      post = ''
+
+    csarray = np.linspace(c_min,c_max,npoints)
+    decomposedLikelihood = np.zeros(npoints)
+    trueLikelihood = np.zeros(npoints)
+    c1s = np.zeros(c1.shape[0])
+    pre_pdf = []
+    pre_dist = []
+    pre_pdf.extend([[],[]])
+    pre_dist.extend([[],[]])
+    for k,c0_ in enumerate(c0):
+      pre_pdf[0].append([])
+      pre_pdf[1].append([])
+      pre_dist[0].append([])
+      pre_dist[1].append([])
+      for j,c1_ in enumerate(c1):
+        if k <> j:
+          f0pdf = w.pdf('bkghistpdf_{0}_{1}'.format(k,j))
+          f1pdf = w.pdf('sighistpdf_{0}_{1}'.format(k,j))
+          data = testdata
+          if self.preprocessing == True:
+            data = preProcessing(testdata,self.dataset_names[min(k,j)],
+            self.dataset_names[max(k,j)],self.scaler) 
+          outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,
+          self.c1_g,self.model_file,k,j),data,model_g=self.model_g)
+          f0pdfdist = np.array([self.evalDist(score,f0pdf,[xs]) for xs in outputs])
+          f1pdfdist = np.array([self.evalDist(score,f1pdf,[xs]) for xs in outputs])
+          pre_pdf[0][k].append(f0pdfdist)
+          pre_pdf[1][k].append(f1pdfdist)
+        else:
+          pre_pdf[0][k].append(None)
+          pre_pdf[1][k].append(None)
+        if true_dist == True:
+          f0 = w.pdf('f{0}'.format(k))
+          f1 = w.pdf('f{0}'.format(j))
+          if len(testdata.shape) > 1:
+            f0dist = np.array([self.evalDist(x,f0,xs) for xs in testdata])
+            f1dist = np.array([self.evalDist(x,f1,xs) for xs in testdata])
+          else:
+            f0dist = np.array([self.evalDist(x,f0,[xs]) for xs in testdata])
+            f1dist = np.array([self.evalDist(x,f1,[xs]) for xs in testdata])
+          pre_dist[0][k].append(f0dist)
+          pre_dist[1][k].append(f1dist)
+
+    for i,cs in enumerate(csarray):
+      c1s[:] = c1[:]
+      c1s[c_eval] = cs
+      #c1s[1:] = c1s[1:] - cs/(c1s.shape[0]-1)
+      c1s = c1s/c1s.sum()
+      debug = False
+      decomposedRatios,trueRatios = evaluateRatio(w,testdata,x=x,
+      plotting=False,roc=False,c0arr=c0,c1arr=c1s,true_dist=true_dist,pre_dist=pre_dist,
+      pre_evaluation=pre_pdf)
+      decomposedRatios = 1. / decomposedRatios
+      trueRatios = 1. / trueRatios
+      if use_log == False:
+        decomposedLikelihood[i] = -np.log(decomposedRatios).sum()
+        trueLikelihood[i] = -np.log(trueRatios).sum()
+      else:
+        decomposedLikelihood[i] = decomposedRatios.sum()
+        trueLikelihood[i] = trueRatios.sum()
+      #print '{0} {1} {2} {3}'.format(i,cs,trueLikelihood[i],decomposedLikelihood[i]) 
+
+    decomposedLikelihood = decomposedLikelihood - decomposedLikelihood.min()
+    if true_dist == True:
+      trueLikelihood = trueLikelihood - trueLikelihood.min()
+      saveFig(csarray,[decomposedLikelihood,trueLikelihood],makePlotName('comp','train',type=post+'likelihood_{0}'.format(n_sample)),labels=['decomposed','true'],axis=['c1[0]','-ln(L)'],marker=True,dir=self.dir,marker_value=c1[0],title='c1[0] Fitting',print_pdf=False)
+      return (csarray[trueLikelihood.argmin()], csarray[decomposedLikelihood.argmin()])
+    else:
+      return (0.,csarray[decomposedLikelihood.argmin()])
+
+  def fitCValues(self,c0,c1,data_file = 'test',true_dist=False,vars_g=None,use_log=False,n_hist=150,num_pseudodata=1000):
+    if use_log == True:
+      post = 'log'
+    else:
+      post = ''
+    c_eval = 0
+    c_min = 0.01
+    c_max = 0.2 
+
+    rng = np.random.RandomState(self.seed)
+    if self.preprocessing == True:
+      if self.scaler == None:
+        self.scaler = {}
+        for k,c in enumerate(self.c0):
+         for j,c_ in enumerate(self.c1):
+           if k < j:
+            self.scaler[(k,j)] = joblib.load('{0}/model/{1}/{2}/{3}_{4}_{5}.dat'.format(self.dir,'mlp',self.c1_g,'scaler',self.dataset_names[k],self.dataset_names[j]))
+
+    fil1 = open('{0}/fitting_values_c1.txt'.format(self.dir),'a')
+
+    testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(self.dir,'mlp',self.c1_g,data_file,'F1'))
+    for i in range(n_hist):
+      dataset = testdata[rng.choice(testdata.shape[0],num_pseudodata)]
+      (c1_true_1, c1_dec_1) = self.evalC1Likelihood(dataset, c0,c1,c_eval=c_eval,c_min=c_min,
+      c_max=c_max,true_dist=true_dist,vars_g=vars_g)  
+      print '1: {0} {1}'.format(c1_true_1, c1_dec_1)
+      fil1.write('{0} {1}\n'.format(c1_true_1, c1_dec_1))
+      #fil2.write('{0} {1} {2} {3}\n'.format(c1_true, c1_dec, c2_true, c2_dec))
+    fil1.close()  
+
 

@@ -31,7 +31,8 @@ def trainClassifiers(clf,c0,c1,
       model_file='adaptive',
       dataset_names = None,
       data_file='train',
-      preprocessing=False
+      preprocessing=False,
+      seed=1234
     ):
   '''
     Train classifiers pair-wise on 
@@ -56,7 +57,7 @@ def trainClassifiers(clf,c0,c1,
       if model_g == 'mlp':
         train_mlp((traindata,targetdata),save_file='{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(dir,model_g,c1_g,model_file,k,j))
       else:
-        rng = np.random.RandomState(1234)
+        rng = np.random.RandomState(seed)
         indices = rng.permutation(traindata.shape[0])
         traindata = traindata[indices]
         targetdata = targetdata[indices]

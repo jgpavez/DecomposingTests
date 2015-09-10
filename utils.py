@@ -277,7 +277,8 @@ def saveFig(x,y,file,labels=None,scatter=False,contour=False,axis=None,
     else:
       if hist == True:
         if len(y) == 1:
-          ax.hist(y[0],color='blue', bins=60)
+          ax.hist(y[0],color='blue', label=labels[0],bins=15, range=[x_range[0], x_range[1]],
+          histtype='step', normed=1, alpha=0.5)
         else:
           #Just supporting two plots for now
           if x_range <> None:

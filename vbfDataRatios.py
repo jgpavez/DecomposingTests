@@ -27,107 +27,6 @@ from decomposed_test import DecomposedTest
 
 from xgboost_wrapper import XGBoostClassifier
 
-def evalC1Likelihood(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
-            workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root',
-            c1_g='',model_g='mlp',use_log=False,true_dist=False, vars_g=None, n_sample=0):
-
-  f = ROOT.TFile('{0}/{1}'.format(dir,workspace))
-  w = f.Get('w')
-  f.Close()
-  
-  if true_dist == True:
-    vars = ROOT.TList()
-    for var in vars_g:
-      vars.Add(w.var(var))
-    x = ROOT.RooArgSet(vars)
-  else:
-    x = None
-
-  score = ROOT.RooArgSet(w.var('score'))
-  if use_log == True:
-    evaluateRatio = test.evaluateLogDecomposedRatio
-    post = 'log'
-  else:
-    evaluateRatio = test.evaluateDecomposedRatio
-    post = ''
-
-  npoints = 25
-  csarray = np.linspace(0.01,0.20,npoints)
-  testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,'test','F1'))
-  decomposedLikelihood = np.zeros(npoints)
-  trueLikelihood = np.zeros(npoints)
-  c1s = np.zeros(c1.shape[0])
-  pre_pdf = []
-  pre_dist = []
-  pre_pdf.extend([[],[]])
-  pre_dist.extend([[],[]])
-  for k,c0_ in enumerate(c0):
-    pre_pdf[0].append([])
-    pre_pdf[1].append([])
-    pre_dist[0].append([])
-    pre_dist[1].append([])
-    for j,c1_ in enumerate(c1):
-      if k <> j:
-        f0pdf = w.pdf('bkghistpdf_{0}_{1}'.format(k,j))
-        f1pdf = w.pdf('sighistpdf_{0}_{1}'.format(k,j))
-        outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(dir,model_g,c1_g,
-        'adaptive',k,j),testdata,model_g=model_g)
-        f0pdfdist = np.array([test.evalDist(score,f0pdf,[xs]) for xs in outputs])
-        f1pdfdist = np.array([test.evalDist(score,f1pdf,[xs]) for xs in outputs])
-        pre_pdf[0][k].append(f0pdfdist)
-        pre_pdf[1][k].append(f1pdfdist)
-      else:
-        pre_pdf[0][k].append(None)
-        pre_pdf[1][k].append(None)
-      if true_dist == True:
-        f0 = w.pdf('f{0}'.format(k))
-        f1 = w.pdf('f{0}'.format(j))
-        if len(testdata.shape) > 1:
-          f0dist = np.array([test.evalDist(x,f0,xs) for xs in testdata])
-          f1dist = np.array([test.evalDist(x,f1,xs) for xs in testdata])
-        else:
-          f0dist = np.array([test.evalDist(x,f0,[xs]) for xs in testdata])
-          f1dist = np.array([test.evalDist(x,f1,[xs]) for xs in testdata])
-        pre_dist[0][k].append(f0dist)
-        pre_dist[1][k].append(f1dist)
-
-  for i,cs in enumerate(csarray):
-    c1s[:] = c1[:]
-    c1s[0] = cs
-    c1s = c1s/c1s.sum()
-    #debug = True if i == 15 else False
-    debug = False
-    decomposedRatios,trueRatios = evaluateRatio(w,testdata,x=x,
-    plotting=False,roc=False,c0arr=c0,c1arr=c1s,true_dist=true_dist,pre_dist=pre_dist,
-    pre_evaluation=pre_pdf,debug=debug)
-    decomposedRatios = 1. / decomposedRatios
-    trueRatios = 1. / trueRatios
-    #if i > 45:
-    #  pdb.set_trace()
-    #saveFig([],[decomposedRatios,trueRatios], 
-    #  makePlotName('ratio','train',type='{0}_hist'.format(i)),hist=True, 
-    #  axis=['ratio'],
-    # labels=['composed','true'],dir=dir,x_range=(0.4,1.2),
-    #  model_g=model_g,title='Histogram for ratios',print_pdf=True)
-
-    #decomposedRatios = decomposedRatios[test.findOutliers(decomposedRatios)]
-    if use_log == False:
-      decomposedLikelihood[i] = -np.log(decomposedRatios).sum()
-      trueLikelihood[i] = -np.log(trueRatios).sum()
-    else:
-      decomposedLikelihood[i] = decomposedRatios.sum()
-      trueLikelihood[i] = trueRatios.sum()
-    #print '{0} {1} {2} {3}'.format(i,cs,trueLikelihood[i],decomposedLikelihood[i]) 
-
-  decomposedLikelihood = decomposedLikelihood - decomposedLikelihood.min()
-  if true_dist == True:
-    trueLikelihood = trueLikelihood - trueLikelihood.min()
-    saveFig(csarray,[decomposedLikelihood,trueLikelihood],makePlotName('comp','train',type=post+'likelihood_{0}'.format(n_sample)),labels=['decomposed','true'],axis=['c1[0]','-ln(L)'],marker=True,dir=dir,marker_value=c1[0],title='c1[0] Fitting',print_pdf=False)
-    return (csarray[trueLikelihood.argmin()], csarray[decomposedLikelihood.argmin()])
-  else:
-    return (0.,csarray[decomposedLikelihood.argmin()])
-
-
 def evalC1C2Likelihood(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
             workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root',
             c1_g='',model_g='mlp',use_log=False,true_dist=False,vars_g=None):
@@ -238,68 +137,33 @@ def evalC1C2Likelihood(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics'
     return [[0.,0.],[csarray[decMin[0]],cs2array[decMin[1]]]]
   
 
-def fitCValues(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
+def plotCValues(c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
             c1_g='',model_g='mlp',true_dist=False,vars_g=None,
             workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root',
-            use_log=False):
-  if use_log == True:
-    post = 'log'
-  else:
-    post = ''
-  n_hist_c = 150
-  keys = ['true','dec']
-  c1_ = dict((key,np.zeros(n_hist_c)) for key in keys)
-  c1_values = dict((key,np.zeros(n_hist_c)) for key in keys)
-  c2_values = dict((key,np.zeros(n_hist_c)) for key in keys)
-  #c1_ = {key:np.zeros(n_hist_c) for key in keys}
-  #c1_values = {key:np.zeros(n_hist_c) for key in keys}
-  #c2_values =  {key:np.zeros(n_hist_c) for key in keys}
-  fil1 = open('{0}/fitting_values_c1.txt'.format(dir),'a')
-  fil2 = open('{0}/fitting_values_c1c2{1}.txt'.format(dir,post),'a')
-
-  for i in range(n_hist_c):
-    #if i == 5:
-    makeData(vars_g, c0,c1, num_train=200000,num_test=500,no_train=True,
-          workspace=workspace,dir=dir,c1_g=c1_g,model_g=model_g) 
-    (c1_true_1, c1_dec_1) = evalC1Likelihood(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,
-             true_dist=true_dist,vars_g=vars_g,workspace=workspace)  
-    #((c1_true,c2_true),(c1_dec,c2_dec)) = evalC1C2Likelihood(test,c0,c1,dir=dir,
-    #          c1_g=c1_g,model_g=model_g, true_dist=true_dist,vars_g=vars_g,
-    #          workspace=workspace,use_log=use_log)   
-    #print '1: {0} {1}'.format(c1_true_1, c1_dec_1)
-    #print '2: {0} {1} {2} {3}'.format(c1_true, c1_dec, c2_true, c2_dec)
-    fil1.write('{0} {1}\n'.format(c1_true_1, c1_dec_1))
-    #fil2.write('{0} {1} {2} {3}\n'.format(c1_true, c1_dec, c2_true, c2_dec))
-  fil1.close()  
-  fil2.close()
-
-def plotCValues(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
-            c1_g='',model_g='mlp',true_dist=False,vars_g=None,
-            workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root',
-            use_log=False):
+            use_log=False, n_hist=150):
   if use_log == True:
     post = 'log'
   else:
     post = ''
 
-  n_hist_c = 600
   keys = ['true','dec']
-  c1_ = dict((key,np.zeros(n_hist_c)) for key in keys)
-  c1_values = dict((key,np.zeros(n_hist_c)) for key in keys)
-  c2_values = dict((key,np.zeros(n_hist_c)) for key in keys)
+  c1_ = dict((key,np.zeros(n_hist)) for key in keys)
+  c1_values = dict((key,np.zeros(n_hist)) for key in keys)
+  c2_values = dict((key,np.zeros(n_hist)) for key in keys)
   c1_1 = np.loadtxt('{0}/fitting_values_c1.txt'.format(dir))  
   c1_['true'] = c1_1[:,0]
   c1_['dec'] = c1_1[:,1]
-  #c1_2 = np.loadtxt('{0}/fitting_values_c1c2{1}.txt'.format(dir,post))
-  #c1_values['true'] = c1_2[:,0]
-  #c1_values['dec'] = c1_2[:,1]
-  #c2_values['true'] = c1_2[:,2]
-  #c2_values['dec'] = c1_2[:,3]
+  if true_dist == True:
+    vals = [c1_['true'],c1_['dec']]
+    labels = ['true','dec']
+  else:
+    vals = [c1_['dec']]
+    labels = ['dec']
   
-  saveFig([],[c1_['true'],c1_['dec']], 
+  saveFig([],vals, 
       makePlotName('c1','train',type='hist'),hist=True, 
       axis=['c1[0]'],marker=True,marker_value=c1[0],
-      labels=['true','composed'],x_range=[0.,0.2],dir=dir,
+      labels=labels,x_range=[0.,0.2],dir=dir,
       model_g=model_g,title='Histogram for fitted values c1[0]', print_pdf=True)
   #saveFig([],[c1_values['true'],c1_values['dec']], 
   #    makePlotName('c1c2','train',type='c1_hist{0}'.format(post)),hist=True, 
@@ -336,6 +200,8 @@ if __name__ == '__main__':
   c0 = np.array([.0,.2,.1,.3,.3,.1])
   c1 = np.array([.1,.2,.1,.3,.3,.1])
   c1_g = ''
+  #c0 = np.array([.0,.3, .7])
+  #c1 = np.array([.1,.3, .7])
 
   c1_g = 'vbf'
   #c1[0] = (c1[0]*(c1[1]+c1[2]))/(1.-c1[0])
@@ -349,6 +215,7 @@ if __name__ == '__main__':
   workspace_file = 'workspace_vbfDataRatios.root'
   
   data_files = ['S01','S10','S11','S12','S13','S1_1p5']
+  #data_files = ['S01', 'S10', 'S11']
   # features
   vars_g = ["mH", "Z1_m", "Z2_m", "Mjj", "DelEta_jj", "DelPhi_jj", "jet1_eta", "jet2_eta", 
           "jet1_pt", "jet2_pt", "ZeppetaZZ", "pT_Hjj", "pT_Hjj_bin_50"]
@@ -358,30 +225,34 @@ if __name__ == '__main__':
   ROOT.RooAbsPdf.defaultIntegratorConfig().setEpsAbs(1E-15)
   # Set this value to False if only final plots are needed
   verbose_printing = True
-  
+  random_seed = 1234
   if (len(sys.argv) > 3):
     print 'Setting seed: {0} '.format(sys.argv[3])
-    ROOT.RooRandom.randomGenerator().SetSeed(int(sys.argv[3])) 
+    random_seed = int(sys.argv[3])
+    ROOT.RooRandom.randomGenerator().SetSeed(random_seed) 
 
     
   scaler = None
   # train the pairwise classifiers
   #scaler = trainClassifiers(clf,c0,c1,workspace=workspace_file,dir=dir, model_g=model_g,
-  #    c1_g=c1_g ,model_file='model',data_file='data',dataset_names=data_files,preprocessing=True )
+  #    c1_g=c1_g ,model_file='model',data_file='data',dataset_names=data_files,preprocessing=False,
+  #    seed=random_seed)
 
   # class which implement the decomposed method
   test = DecomposedTest(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,
           input_workspace=workspace_file, verbose_printing = verbose_printing,
-          dataset_names=data_files,model_file='model',preprocessing=True,scaler=scaler)
+          dataset_names=data_files,model_file='model',preprocessing=False,scaler=scaler,
+          seed=random_seed)
   #test.fit(data_file='data',importance_sampling=False, true_dist=False,vars_g=vars_g)
   #test.computeRatios(true_dist=True,vars_g=vars_g,use_log=True) 
-  test.computeRatios(data_file='data',true_dist=False,vars_g=vars_g,use_log=False) 
+  ##test.computeRatios(data_file='data',true_dist=False,vars_g=vars_g,use_log=False) 
 
+  n_hist = 300
   # compute likelihood for c0[0] and c0[1] values
-  #fitCValues(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=True,vars_g=vars_g,
-  #     workspace=workspace_file,use_log=False)
+  #test.fitCValues(c0,c1,data_file='data', true_dist=False,vars_g=vars_g,use_log=False,
+  #          n_hist=n_hist, num_pseudodata=2500)
 
-  #plotCValues(test,c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=True,vars_g=vars_g,
-  #      workspace=workspace_file,use_log=False)
+  plotCValues(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=False,vars_g=vars_g,
+        workspace=workspace_file,use_log=False,n_hist=n_hist)
 
 
