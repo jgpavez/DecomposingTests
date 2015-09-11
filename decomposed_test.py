@@ -758,7 +758,7 @@ class DecomposedTest:
       #saveFig(outputs,[reg], makePlotName('full','train',type='scat',dir=self.dir,model_g=self.model_g,c1_g=self.c1_g),scatter=True,axis=['score','regression'],dir=self.dir,model_g=self.model_g)
 
 
-  def evalC1Likelihood(self,testdata,c0,c1,c_eval=0,c_min=0.01,c_max=0.2,use_log=False,true_dist=False, vars_g=None, npoints=25):
+  def evalC1Likelihood(self,testdata,c0,c1,c_eval=0,c_min=0.01,c_max=0.2,use_log=False,true_dist=False, vars_g=None, npoints=25,samples_ids=None):
 
     f = ROOT.TFile('{0}/{1}'.format(self.dir,self.workspace))
     w = f.Get('w')
@@ -835,7 +835,11 @@ class DecomposedTest:
       decomposedRatios = 1. / decomposedRatios
       trueRatios = 1. / trueRatios
       if use_log == False:
-        decomposedLikelihood[i] = -np.log(decomposedRatios).sum()
+        if samples_ids <> None:
+          decomposedLikelihood[i] = -(np.dot(np.log(decomposedRatios),
+              np.array([c1[x] for x in samples_ids]))).sum()
+        else:
+          decomposedLikelihood[i] = -np.log(decomposedRatios).sum()
         trueLikelihood[i] = -np.log(trueRatios).sum()
       else:
         decomposedLikelihood[i] = decomposedRatios.sum()
@@ -858,7 +862,7 @@ class DecomposedTest:
     c_eval = 0
     c_min = 0.01
     c_max = 0.2 
-
+    n_samples_dist = 15000
     rng = np.random.RandomState(self.seed)
     if self.preprocessing == True:
       if self.scaler == None:
@@ -869,12 +873,21 @@ class DecomposedTest:
             self.scaler[(k,j)] = joblib.load('{0}/model/{1}/{2}/{3}_{4}_{5}.dat'.format(self.dir,'mlp',self.c1_g,'scaler',self.dataset_names[k],self.dataset_names[j]))
 
     fil1 = open('{0}/fitting_values_c1.txt'.format(self.dir),'a')
-
-    testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(self.dir,'mlp',self.c1_g,data_file,'F1'))
+    samples_ids = np.zeros(n_samples_dist * len(self.dataset_names)) 
+    for i,set_name in enumerate(self.dataset_names):
+      data = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(self.dir,'mlp',self.c1_g,data_file,set_name))
+      data = data[rng.choice(data.shape[0], n_samples_dist)]
+      samples_ids[i*n_samples_dist:(i+1)*n_samples_dist].fill(i)
+      if i == 0:
+        testdata = data.copy()
+      else:
+        testdata = np.vstack((testdata, data)) 
     for i in range(n_hist):
-      dataset = testdata[rng.choice(testdata.shape[0],num_pseudodata)]
+      indices = rng.choice(testdata.shape[0], num_pseudodata) 
+      dataset = testdata[indices]
+      actual_ids = samples_ids[indices]
       (c1_true_1, c1_dec_1) = self.evalC1Likelihood(dataset, c0,c1,c_eval=c_eval,c_min=c_min,
-      c_max=c_max,true_dist=true_dist,vars_g=vars_g)  
+      c_max=c_max,true_dist=true_dist,vars_g=vars_g,samples_ids=actual_ids)  
       print '1: {0} {1}'.format(c1_true_1, c1_dec_1)
       fil1.write('{0} {1}\n'.format(c1_true_1, c1_dec_1))
       #fil2.write('{0} {1} {2} {3}\n'.format(c1_true, c1_dec, c2_true, c2_dec))
