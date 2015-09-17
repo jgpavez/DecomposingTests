@@ -835,6 +835,8 @@ class DecomposedTest:
             f1dist = np.array([self.evalDist(x,f1,[xs]) for xs in testdata])
           pre_dist[0][k].append(f0dist)
           pre_dist[1][k].append(f1dist)
+    indices = np.ones(testdata.shape[0], dtype=bool)
+    ratiosList = []
     for i,cs in enumerate(csarray):
       c1s[:] = c1[:]
       c1s[c_eval] = cs
@@ -848,22 +850,41 @@ class DecomposedTest:
       decomposedRatios,trueRatios = evaluateRatio(w,testdata,x=x,
       plotting=False,roc=False,c0arr=c0,c1arr=c1s,true_dist=true_dist,pre_dist=pre_dist,
       pre_evaluation=pre_pdf)
+      ratiosList.append(decomposedRatios)
+      indices = np.logical_and(indices, decomposedRatios > 0.)
       #decomposedRatios = 1. / decomposedRatios
       #trueRatios = 1. / trueRatios
+    for i,cs in enumerate(csarray):
+      c1s[:] = c1[:]
+      c1s[c_eval] = cs
+      #if self.cross_section <> None:
+      #  c1s[c_eval] = c1s[c_eval] * self.cross_section[c_eval]
+      if self.cross_section <> None:
+        c1s = np.multiply(c1s,self.cross_section)
+      #c1s[1:] = c1s[1:] - cs/(c1s.shape[0]-1)
+      c1s = c1s/c1s.sum()
+      debug = False
+      #decomposedRatios,trueRatios = evaluateRatio(w,testdata,x=x,
+      #plotting=False,roc=False,c0arr=c0,c1arr=c1s,true_dist=true_dist,pre_dist=pre_dist,
+      #pre_evaluation=pre_pdf)
+      decomposedRatios = ratiosList[i]
+      #decomposedRatios = 1. / decomposedRatios
+
       if use_log == False:
         if samples_ids <> None:
-          indices = decomposedRatios > 0.
           #print np.where(decomposedRatios < 0.)
           ratios = decomposedRatios[indices]
           ids = samples_ids[indices] 
+          #decomposedRatios[decomposedRatios <= 0.] = 10E-7
           #ratios = decomposedRatios
           #ids = samples_ids
           decomposedLikelihood[i] = (np.dot(np.log(ratios),
               np.array([c1[x] for x in ids]))).sum()
         else:
           #decomposedLikelihood[i] = -np.log(decomposedRatios).sum()
-          decomposedRatios = decomposedRatios[decomposedRatios > 0.]
+          #decomposedRatios = decomposedRatios[decomposedRatios > 0.]
           #decomposedLikelihood[i] = -decomposedRatios.prod()
+          decomposedRatios = decomposedRatios[indices]
           decomposedLikelihood[i] = np.log(decomposedRatios).sum()
           #decomposedLikelihood[i] = -decomposedRatios.prod()
         trueLikelihood[i] = -np.log(trueRatios).sum()
@@ -879,7 +900,6 @@ class DecomposedTest:
       return (csarray[trueLikelihood.argmin()], csarray[decomposedLikelihood.argmin()])
     else:
       #saveFig(csarray,[decomposedLikelihood],makePlotName('comp','train',type=post+'likelihood'),labels=['decomposed'],axis=['c1[0]','-ln(L)'],marker=True,dir=self.dir,marker_value=c1[0],title='c1[0] Fitting',print_pdf=True,model_g=self.model_g)
-      #pdb.set_trace()
       return (0.,csarray[decomposedLikelihood.argmin()])
 
   def fitCValues(self,c0,c1,data_file = 'test',true_dist=False,vars_g=None,use_log=False,n_hist=150,num_pseudodata=1000):
@@ -888,7 +908,7 @@ class DecomposedTest:
     else:
       post = ''
     c_eval = 0
-    c_min = -0.2
+    c_min = -0.1
     c_max = -0.01
     rng = np.random.RandomState(self.seed)
     if self.preprocessing == True:
@@ -901,6 +921,7 @@ class DecomposedTest:
   
     fil1 = open('{0}/fitting_values_c1.txt'.format(self.dir),'a')
 
+    '''
     n_samples_dist = 15000
     samples_ids = np.zeros(n_samples_dist * len(self.dataset_names)) 
     for i,set_name in enumerate(self.dataset_names):
@@ -912,12 +933,13 @@ class DecomposedTest:
         testdata = data.copy()
       else:
         testdata = np.vstack((testdata, data)) 
-
-    #testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(self.dir,'mlp',self.c1_g,data_file,self.F1_dist))
+    '''
+    testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(self.dir,'mlp',self.c1_g,data_file,self.F1_dist))
     for i in range(n_hist):
       indices = rng.choice(testdata.shape[0], num_pseudodata) 
       dataset = testdata[indices]
-      actual_ids = samples_ids[indices]
+      #actual_ids = samples_ids[indices]
+      actual_ids = None
       (c1_true_1, c1_dec_1) = self.evalC1Likelihood(dataset, c0,c1,c_eval=c_eval,c_min=c_min,
       c_max=c_max,true_dist=true_dist,vars_g=vars_g,samples_ids=actual_ids)  
       print '1: {0} {1}'.format(c1_true_1, c1_dec_1)

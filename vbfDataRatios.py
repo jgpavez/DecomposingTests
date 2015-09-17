@@ -200,17 +200,17 @@ if __name__ == '__main__':
   #c0 = np.array([0., .1,.2,.3,.4])
   #c1 = np.array([.1, .1,.2,.3,.4])
 
-  c0 = np.array([1.,0.,0.,0.,0.])
-  c1 = np.array([-0.1,.4,-0.1,.3,.4])
-  #c0 = np.array([-0.0625, 0.5625, 0.5625, -0.0625, 0.5625])
-  #c1 = np.array([-0.0625, 0.5625, 0.5625, -0.0625, 0.5625])
-  #cross_section = np.array([0.1149,8.469,1.635, 27.40, 0.1882])
-  cross_section=None
+  #c0 = np.array([1.,0.,0.,0.,0.])
+  #c1 = np.array([-0.1,.4,-0.1,.3,.4])
+  c0 = np.array([1., 0., 0., 0., 0.])
+  c1 = np.array([-0.0625, 0.5625, 0.5625, -0.0625, 0.5625])
+  cross_section = np.array([0.1149,8.469,1.635, 27.40, 0.1882])
+  #cross_section=None
   #TODO change this so both are threated equally
   #c0 = np.multiply(c0,cross_section)
   #c1 = np.multiply(c1,cross_section)
-  c0 = c0/c0.sum()
-  c1 = c1/c1.sum()
+  #c0 = c0/c0.sum()
+  #c1 = c1/c1.sum()
   print c0
   print c1
   c1_g = ''
@@ -222,7 +222,6 @@ if __name__ == '__main__':
   #c1 = c1 / c1.sum()
   #c0 = c0 / c0.sum()
   print c0
-  print c0.sum()
   print c1
   print c1_g
  
@@ -264,12 +263,12 @@ if __name__ == '__main__':
   #test.computeRatios(true_dist=True,vars_g=vars_g,use_log=True) 
   ##test.computeRatios(data_file='data',true_dist=False,vars_g=vars_g,use_log=False) 
 
-  n_hist = 50
+  n_hist = 300
   # compute likelihood for c0[0] and c0[1] values
-  test.fitCValues(c0,c1,data_file='data', true_dist=False,vars_g=vars_g,use_log=False,
-            n_hist=n_hist, num_pseudodata=2500)
+  #test.fitCValues(c0,c1,data_file='data', true_dist=False,vars_g=vars_g,use_log=False,
+  #          n_hist=n_hist, num_pseudodata=2500)
 
-  #plotCValues(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=False,vars_g=vars_g,
-  #      workspace=workspace_file,use_log=False,n_hist=n_hist)
+  plotCValues(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=False,vars_g=vars_g,
+       workspace=workspace_file,use_log=False,n_hist=n_hist)
 
 

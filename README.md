@@ -429,11 +429,11 @@ Finally the ratio histograms for this model are shown next,
 
 ## A Real Case
 
-We will show how the method works in real physics data. For this we will use data from VBF with one BSM coupling. The samples used for this are **S(0,1), S(1,0), S(1,1), S(1,2), S(1,3),
-S(1,1.5)**. The full mixture model will be a weighted sum of those samples.  
+We will show how the method works in real physics data. For this we will use data from VBF with one BSM coupling. The samples used for this are **S(1,0),S(1,2), S(1,1), S(1,3), S(0,1)**.  The full mixture model **S(1,1.5)** can be considered a weighted sum of those samples.  
 
-First, we will start with some random coefficient to check the algorithm performance. The coefficients used are *C0 = [.0,.2,.1,.3,.3,.1]* for the first mixture model and 
-*C1=[.1,.2,.1,.3,.3,.1]* for the second model (note that this coefficients does not have any physical meaning).
+First we will start by fitting the coefficients directly (in the real case each coefficient is a non-linear combination of two variables). We know that the coefficients are *C0 = [-0.0625, 0.5625, 0.5625, -0.0625, 0.5625]* for F1 and for background we will use an only standard model hypothesis (only the coefficient corresponing to S(1,0) is non zero). 
+Note that some of the coefficients are negative, that must be carefully considered in the algorithm to avoid negative probabilities. 
+We also know the cross section for each sample *xs = [0.1149,8.469,1.635, 27.40, 0.1882]* and we have data generated from **S(1,1.5)**.
 
 A *boosted tree model* is trained in each pair of samples using the library *xgboost*. The score distribution obtained for each one of the pairs are shown in the next image 
 
@@ -463,9 +463,8 @@ The Signal Efficiency - Background Rejection curves of each one of the ratios (c
 
 ![All sigbkg](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_all_xgboost_sigbkg.png)
 
-Now, we will see if it is possible to identify the coefficient *C1[0]* for *S(0,1)* for the second mixture model by using maximum likelihood on the composed ratios. 
-The histogram for values obtained in 300 pseudo samples of size 2500 is shown next. 
+Now, we will see if it is possible to identify the coefficient *C1[0]* for *S(1,0)* by using maximum likelihood on the composed ratios and assuming the other coefficients known. The histogram for values obtained in 300 pseudo samples of size 2500 is shown next. 
 
 ![hist c0](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/c1_train_mlp_hist.png)
 
-It is clear that the method is able to identify the correct value of *C[0]* even when the trainig is not perfect.
+It is clear that the method is able to identify with high sensitivity the correct value of *C1[0]*..
