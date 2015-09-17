@@ -39,7 +39,9 @@ class DecomposedTest:
             dataset_names=None,
             preprocessing=False,
             scaler=None,
-            seed=1234):
+            seed=1234,
+            F1_dist='F1',
+            cross_section=None):
     self.input_workspace = input_workspace
     self.workspace = output_workspace
     self.c0 = c0
@@ -53,6 +55,8 @@ class DecomposedTest:
     self.preprocessing = preprocessing
     self.scaler = scaler
     self.seed=seed
+    self.F1_dist=F1_dist
+    self.cross_section=cross_section
 
   def fit(self, data_file='test',importance_sampling=False, true_dist=True,vars_g=None):
     ''' 
@@ -64,9 +68,9 @@ class DecomposedTest:
       and the data files are ./data/{model_g}/{c1_g}/{data_file}_i_j.dat
     '''
 
-    bins = 40
-    low = 0.
-    high = 1.  
+    bins = 80
+    low = -0.5
+    high = 1.5  
     
     if self.input_workspace <> None:
       f = ROOT.TFile('{0}/{1}'.format(self.dir,self.input_workspace))
@@ -118,6 +122,8 @@ class DecomposedTest:
           hist.Fill(val)
           s.setVal(val)
           data.add(ROOT.RooArgSet(s))
+        norm = 1./hist.Integral()
+        hist.Scale(norm) 
         if importance_sampling == True:
           actual = j if l == 0 else k
           for par in [k,j]:
@@ -139,13 +145,20 @@ class DecomposedTest:
               s.setVal(new_val)
               data.add(ROOT.RooArgSet(s),weights[ind])
           
+        s.setBins(bins)
         datahist = ROOT.RooDataHist('{0}datahist_{1}_{2}'.format(name,k,j),'hist',
               ROOT.RooArgList(s),hist)
-        s.setBins(bins)
         histpdf = ROOT.RooHistPdf('{0}histpdf_{1}_{2}'.format(name,k,j),'hist',
               ROOT.RooArgSet(s), datahist, 1)
+        histpdf.setUnitNorm(True)
+        testvalues = np.array([self.evalDist(ROOT.RooArgSet(s), histpdf, [xs]) for xs in values])
+
+        #histpdf.specialIntegratorConfig(ROOT.kTRUE).method1D().setLabel('RooBinIntegrator')
+
+        #print 'INTEGRAL'
+        #print histpdf.createIntegral(ROOT.RooArgSet(s)).getVal()
+        #print histpdf.Integral()
       
-        histpdf.specialIntegratorConfig(ROOT.kTRUE).method1D().setLabel('RooBinIntegrator')
         #histpdf.specialIntegratorConfig(ROOT.kTRUE).method1D().setLabel('RooAdaptiveGaussKronrodIntegrator1D')
 
         getattr(w,'import')(hist)
@@ -822,36 +835,51 @@ class DecomposedTest:
             f1dist = np.array([self.evalDist(x,f1,[xs]) for xs in testdata])
           pre_dist[0][k].append(f0dist)
           pre_dist[1][k].append(f1dist)
-
     for i,cs in enumerate(csarray):
       c1s[:] = c1[:]
       c1s[c_eval] = cs
+      #if self.cross_section <> None:
+      #  c1s[c_eval] = c1s[c_eval] * self.cross_section[c_eval]
+      #if self.cross_section <> None:
+      #  c1s = np.multiply(c1s,self.cross_section)
       #c1s[1:] = c1s[1:] - cs/(c1s.shape[0]-1)
       c1s = c1s/c1s.sum()
       debug = False
       decomposedRatios,trueRatios = evaluateRatio(w,testdata,x=x,
       plotting=False,roc=False,c0arr=c0,c1arr=c1s,true_dist=true_dist,pre_dist=pre_dist,
       pre_evaluation=pre_pdf)
-      decomposedRatios = 1. / decomposedRatios
-      trueRatios = 1. / trueRatios
+      #decomposedRatios = 1. / decomposedRatios
+      #trueRatios = 1. / trueRatios
       if use_log == False:
         if samples_ids <> None:
-          decomposedLikelihood[i] = -(np.dot(np.log(decomposedRatios),
-              np.array([c1[x] for x in samples_ids]))).sum()
+          indices = decomposedRatios > 0.
+          #print np.where(decomposedRatios < 0.)
+          ratios = decomposedRatios[indices]
+          ids = samples_ids[indices] 
+          #ratios = decomposedRatios
+          #ids = samples_ids
+          decomposedLikelihood[i] = (np.dot(np.log(ratios),
+              np.array([c1[x] for x in ids]))).sum()
         else:
-          decomposedLikelihood[i] = -np.log(decomposedRatios).sum()
+          #decomposedLikelihood[i] = -np.log(decomposedRatios).sum()
+          decomposedRatios = decomposedRatios[decomposedRatios > 0.]
+          #decomposedLikelihood[i] = -decomposedRatios.prod()
+          decomposedLikelihood[i] = np.log(decomposedRatios).sum()
+          #decomposedLikelihood[i] = -decomposedRatios.prod()
         trueLikelihood[i] = -np.log(trueRatios).sum()
       else:
         decomposedLikelihood[i] = decomposedRatios.sum()
         trueLikelihood[i] = trueRatios.sum()
-      #print '{0} {1} {2} {3}'.format(i,cs,trueLikelihood[i],decomposedLikelihood[i]) 
-
+      #print '{0} {1} {2}'.format(i,cs,decomposedLikelihood[i]) 
+    decomposedLikelihood[np.isnan(decomposedLikelihood)] = np.inf
     decomposedLikelihood = decomposedLikelihood - decomposedLikelihood.min()
     if true_dist == True:
       trueLikelihood = trueLikelihood - trueLikelihood.min()
       saveFig(csarray,[decomposedLikelihood,trueLikelihood],makePlotName('comp','train',type=post+'likelihood_{0}'.format(n_sample)),labels=['decomposed','true'],axis=['c1[0]','-ln(L)'],marker=True,dir=self.dir,marker_value=c1[0],title='c1[0] Fitting',print_pdf=False)
       return (csarray[trueLikelihood.argmin()], csarray[decomposedLikelihood.argmin()])
     else:
+      #saveFig(csarray,[decomposedLikelihood],makePlotName('comp','train',type=post+'likelihood'),labels=['decomposed'],axis=['c1[0]','-ln(L)'],marker=True,dir=self.dir,marker_value=c1[0],title='c1[0] Fitting',print_pdf=True,model_g=self.model_g)
+      #pdb.set_trace()
       return (0.,csarray[decomposedLikelihood.argmin()])
 
   def fitCValues(self,c0,c1,data_file = 'test',true_dist=False,vars_g=None,use_log=False,n_hist=150,num_pseudodata=1000):
@@ -860,9 +888,8 @@ class DecomposedTest:
     else:
       post = ''
     c_eval = 0
-    c_min = 0.01
-    c_max = 0.2 
-    n_samples_dist = 15000
+    c_min = -0.2
+    c_max = -0.01
     rng = np.random.RandomState(self.seed)
     if self.preprocessing == True:
       if self.scaler == None:
@@ -871,17 +898,22 @@ class DecomposedTest:
          for j,c_ in enumerate(self.c1):
            if k < j:
             self.scaler[(k,j)] = joblib.load('{0}/model/{1}/{2}/{3}_{4}_{5}.dat'.format(self.dir,'mlp',self.c1_g,'scaler',self.dataset_names[k],self.dataset_names[j]))
-
+  
     fil1 = open('{0}/fitting_values_c1.txt'.format(self.dir),'a')
+
+    n_samples_dist = 15000
     samples_ids = np.zeros(n_samples_dist * len(self.dataset_names)) 
     for i,set_name in enumerate(self.dataset_names):
       data = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(self.dir,'mlp',self.c1_g,data_file,set_name))
+
       data = data[rng.choice(data.shape[0], n_samples_dist)]
       samples_ids[i*n_samples_dist:(i+1)*n_samples_dist].fill(i)
       if i == 0:
         testdata = data.copy()
       else:
         testdata = np.vstack((testdata, data)) 
+
+    #testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(self.dir,'mlp',self.c1_g,data_file,self.F1_dist))
     for i in range(n_hist):
       indices = rng.choice(testdata.shape[0], num_pseudodata) 
       dataset = testdata[indices]

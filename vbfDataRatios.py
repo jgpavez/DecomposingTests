@@ -163,7 +163,7 @@ def plotCValues(c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
   saveFig([],vals, 
       makePlotName('c1','train',type='hist'),hist=True, 
       axis=['c1[0]'],marker=True,marker_value=c1[0],
-      labels=labels,x_range=[0.,0.2],dir=dir,
+      labels=labels,x_range=[-0.1,-0.01],dir=dir,
       model_g=model_g,title='Histogram for fitted values c1[0]', print_pdf=True)
   #saveFig([],[c1_values['true'],c1_values['dec']], 
   #    makePlotName('c1c2','train',type='c1_hist{0}'.format(post)),hist=True, 
@@ -197,16 +197,32 @@ if __name__ == '__main__':
     print 'Not found classifier, Using logistic instead'
 
   # parameters of the mixture model
-  c0 = np.array([.0,.2,.1,.3,.3,.1])
-  c1 = np.array([.1,.2,.1,.3,.3,.1])
+  #c0 = np.array([0., .1,.2,.3,.4])
+  #c1 = np.array([.1, .1,.2,.3,.4])
+
+  c0 = np.array([1.,0.,0.,0.,0.])
+  c1 = np.array([-0.1,.4,-0.1,.3,.4])
+  #c0 = np.array([-0.0625, 0.5625, 0.5625, -0.0625, 0.5625])
+  #c1 = np.array([-0.0625, 0.5625, 0.5625, -0.0625, 0.5625])
+  #cross_section = np.array([0.1149,8.469,1.635, 27.40, 0.1882])
+  cross_section=None
+  #TODO change this so both are threated equally
+  #c0 = np.multiply(c0,cross_section)
+  #c1 = np.multiply(c1,cross_section)
+  c0 = c0/c0.sum()
+  c1 = c1/c1.sum()
+  print c0
+  print c1
   c1_g = ''
   #c0 = np.array([.0,.3, .7])
   #c1 = np.array([.1,.3, .7])
 
   c1_g = 'vbf'
   #c1[0] = (c1[0]*(c1[1]+c1[2]))/(1.-c1[0])
-  c1 = c1 / c1.sum()
+  #c1 = c1 / c1.sum()
+  #c0 = c0 / c0.sum()
   print c0
+  print c0.sum()
   print c1
   print c1_g
  
@@ -214,7 +230,9 @@ if __name__ == '__main__':
   dir = '/afs/cern.ch/user/j/jpavezse/systematics'
   workspace_file = 'workspace_vbfDataRatios.root'
   
-  data_files = ['S01','S10','S11','S12','S13','S1_1p5']
+  #data_files = ['S01','S10','S11','S12','S13','S1_1p5']
+  data_files = ['S10','S12','S11','S13','S01']
+  f1_dist = 'S1_1p5'
   #data_files = ['S01', 'S10', 'S11']
   # features
   vars_g = ["mH", "Z1_m", "Z2_m", "Mjj", "DelEta_jj", "DelPhi_jj", "jet1_eta", "jet2_eta", 
@@ -231,7 +249,6 @@ if __name__ == '__main__':
     random_seed = int(sys.argv[3])
     ROOT.RooRandom.randomGenerator().SetSeed(random_seed) 
 
-    
   scaler = None
   # train the pairwise classifiers
   #scaler = trainClassifiers(clf,c0,c1,workspace=workspace_file,dir=dir, model_g=model_g,
@@ -242,17 +259,17 @@ if __name__ == '__main__':
   test = DecomposedTest(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,
           input_workspace=workspace_file, verbose_printing = verbose_printing,
           dataset_names=data_files,model_file='model',preprocessing=False,scaler=scaler,
-          seed=random_seed)
+          seed=random_seed, F1_dist=f1_dist, cross_section=cross_section)
   #test.fit(data_file='data',importance_sampling=False, true_dist=False,vars_g=vars_g)
   #test.computeRatios(true_dist=True,vars_g=vars_g,use_log=True) 
   ##test.computeRatios(data_file='data',true_dist=False,vars_g=vars_g,use_log=False) 
 
-  n_hist = 300
+  n_hist = 50
   # compute likelihood for c0[0] and c0[1] values
-  #test.fitCValues(c0,c1,data_file='data', true_dist=False,vars_g=vars_g,use_log=False,
-  #          n_hist=n_hist, num_pseudodata=2500)
+  test.fitCValues(c0,c1,data_file='data', true_dist=False,vars_g=vars_g,use_log=False,
+            n_hist=n_hist, num_pseudodata=2500)
 
-  plotCValues(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=False,vars_g=vars_g,
-        workspace=workspace_file,use_log=False,n_hist=n_hist)
+  #plotCValues(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=False,vars_g=vars_g,
+  #      workspace=workspace_file,use_log=False,n_hist=n_hist)
 
 
