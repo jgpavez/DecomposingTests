@@ -20,7 +20,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from mlp import make_predictions, train_mlp
 
 from utils import printMultiFrame, printFrame, saveFig, loadData,\
-              makeROC, makeSigBkg, makePlotName
+              makeROC, makeSigBkg, makePlotName, getWeights
 
 from train_classifiers import trainClassifiers, predict
 from decomposed_test import DecomposedTest
@@ -140,7 +140,7 @@ def evalC1C2Likelihood(test,c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics'
 def plotCValues(c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
             c1_g='',model_g='mlp',true_dist=False,vars_g=None,
             workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root',
-            use_log=False, n_hist=150):
+            use_log=False, n_hist=150,c_eval=0, range_min=-1.0,range_max=0.):
   if use_log == True:
     post = 'log'
   else:
@@ -162,8 +162,8 @@ def plotCValues(c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
   
   saveFig([],vals, 
       makePlotName('c1','train',type='hist'),hist=True, 
-      axis=['c1[0]'],marker=True,marker_value=c1[0],
-      labels=labels,x_range=[-0.1,-0.01],dir=dir,
+      axis=['c1[0]'],marker=True,marker_value=c1[c_eval],
+      labels=labels,x_range=[range_min,range_max],dir=dir,
       model_g=model_g,title='Histogram for fitted values c1[0]', print_pdf=True)
   #saveFig([],[c1_values['true'],c1_values['dec']], 
   #    makePlotName('c1c2','train',type='c1_hist{0}'.format(post)),hist=True, 
@@ -177,6 +177,67 @@ def plotCValues(c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
   #    model_g=model_g,title='Histogram for fitted values c1[1]',print_pdf=True)
 
 
+def evalDist(x,f0,val):
+  iter = x.createIterator()
+  v = iter.Next()
+  i = 0
+  while v:
+    v.setVal(val[i])
+    v = iter.Next()
+    i = i+1
+  return f0.getVal(x)
+
+
+def checkCrossSection(c1,cross_section,samples,target,dir,c1_g,model_g,feature=0):
+  w = ROOT.RooWorkspace('w')
+  normalizer = (np.multiply(c1,cross_section)).sum()
+  #normalizer = cross_section.sum()
+
+  # load S(1,1.5) data
+  data_file = 'data'
+  testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,data_file,target))
+  testdata = testdata[:,feature]
+  bins = 300
+  low = 0.
+  high = 250.
+  w.factory('score[{0},{1}]'.format(low,high))
+  s = w.var('score')
+  target_hist = ROOT.TH1F('targethist','targethist',bins,low,high)
+  for val in testdata:
+    target_hist.Fill(val)
+  norm = 1./target_hist.Integral()
+  target_hist.Scale(norm) 
+
+  samples_hists = []
+  sum_hist = ROOT.TH1F('sampleshistsum','sampleshistsum',bins,low,high)
+  for i,sample in enumerate(samples):
+    samples_hist = ROOT.TH1F('sampleshist{0}'.format(i),'sampleshist',bins,low,high)
+    testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,data_file,sample))
+    testdata = testdata[:,feature]
+    weight = (c1[i] * cross_section[i])/normalizer
+    for val in testdata:
+      samples_hist.Fill(val)
+      #samples_hist.Fill(val,weight)
+    norm = 1./samples_hist.Integral()
+    samples_hist.Scale(norm) 
+    samples_hists.append(samples_hist)
+    sum_hist.Add(samples_hist,weight)  
+  
+  target_datahist = ROOT.RooDataHist('{0}datahist'.format('target'),'histtarget',
+        ROOT.RooArgList(s),target_hist)
+  target_histpdf = ROOT.RooHistFunc('{0}histpdf'.format('target'),'histtarget',
+        ROOT.RooArgSet(s), target_datahist, 0)
+  #xarray = np.linspace(low, high, bins) 
+  #score = ROOT.RooArgSet(s)
+  #test_values = np.array([evalDist(score,target_histpdf,[xs]) for xs in xarray])
+  samples_datahist = ROOT.RooDataHist('{0}datahist'.format('samples'),'histsamples',
+        ROOT.RooArgList(s),sum_hist)
+  samples_histpdf = ROOT.RooHistFunc('{0}histpdf'.format('samples'),'histsamples',
+        ROOT.RooArgSet(s), samples_datahist, 0)
+  
+  printFrame(w,['score'],[target_histpdf,samples_histpdf],'check_cross_section_{0}'.format(feature),['real','weighted'],
+    dir=dir, model_g=model_g,title='cross section check',x_text='x',y_text='dN')
+
 if __name__ == '__main__':
   # Setting the classifier to use
   model_g = None
@@ -185,8 +246,8 @@ if __name__ == '__main__':
         'bdt':GradientBoostingClassifier(n_estimators=300, learning_rate=0.1,
         max_depth=4, random_state=0),
         'mlp':'',
-        'xgboost': XGBoostClassifier(num_class=2, nthread=4, silent=1,
-          num_boost_round=200, eta=0.1, max_depth=6)}
+        'xgboost': XGBoostClassifier(num_class=2, nthread=4, silent=0,
+          num_boost_round=1000, eta=0.1, max_depth=15)}
   clf = None
   if (len(sys.argv) > 1):
     model_g = sys.argv[1]
@@ -200,27 +261,33 @@ if __name__ == '__main__':
   #c0 = np.array([0., .1,.2,.3,.4])
   #c1 = np.array([.1, .1,.2,.3,.4])
 
-  #c0 = np.array([1.,0.,0.,0.,0.])
-  #c1 = np.array([-0.1,.4,-0.1,.3,.4])
-  c0 = np.array([1., 0., 0., 0., 0.])
+  #c0 = np.array([.1,.2,.1,.3,.3])
+  #c1 = np.array([.1,.2,.1,.3,.3])
+  c0 = np.array([1.,1., 1., 1.,1.])
+  #c0 = np.array([1.,0., 0., 0., 0.])
+  #c0 = np.array([-0.0625, 0.5625, 0.5625, -0.0625, 0.5625])
   c1 = np.array([-0.0625, 0.5625, 0.5625, -0.0625, 0.5625])
+  #c1 = c1 + 0.1
+  #c1 = np.array([0.1,0.2,0.1,0.3,0.1])
+  c1 = np.array([1.,1.5])
   cross_section = np.array([0.1149,8.469,1.635, 27.40, 0.1882])
+  #cross_section = cross_section / cross_section.sum()
+  #print np.multiply(c1,cross_section)/np.multiply(c1,cross_section).sum()
   #cross_section=None
   #TODO change this so both are threated equally
-  #c0 = np.multiply(c0,cross_section)
   #c1 = np.multiply(c1,cross_section)
-  #c0 = c0/c0.sum()
+  #c1 = c1/c1.sum()
+  #cross_section = None
+  c0 = np.multiply(c0,cross_section)
+  c0 = c0/c0.sum()
   #c1 = c1/c1.sum()
   print c0
   print c1
   c1_g = ''
   #c0 = np.array([.0,.3, .7])
   #c1 = np.array([.1,.3, .7])
-
   c1_g = 'vbf'
   #c1[0] = (c1[0]*(c1[1]+c1[2]))/(1.-c1[0])
-  #c1 = c1 / c1.sum()
-  #c0 = c0 / c0.sum()
   print c0
   print c1
   print c1_g
@@ -229,7 +296,7 @@ if __name__ == '__main__':
   dir = '/afs/cern.ch/user/j/jpavezse/systematics'
   workspace_file = 'workspace_vbfDataRatios.root'
   
-  #data_files = ['S01','S10','S11','S12','S13','S1_1p5']
+  #data_files = ['S01','S10','S11','S12','S13']
   data_files = ['S10','S12','S11','S13','S01']
   f1_dist = 'S1_1p5'
   #data_files = ['S01', 'S10', 'S11']
@@ -247,12 +314,23 @@ if __name__ == '__main__':
     print 'Setting seed: {0} '.format(sys.argv[3])
     random_seed = int(sys.argv[3])
     ROOT.RooRandom.randomGenerator().SetSeed(random_seed) 
+  #for i in range(5):
+  #  checkCrossSection(c1,cross_section,data_files,f1_dist,dir,c1_g,model_g,feature=i)
+  #pdb.set_trace()
+
+  set_size = np.zeros(len(data_files))
+  #for i,files in enumerate(data_files):
+  #  testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,'data',files))
+  #  set_size[i] = testdata.shape[0]
+   
+  #cross_section = np.divide(cross_section,set_size)
 
   scaler = None
   # train the pairwise classifiers
   #scaler = trainClassifiers(clf,c0,c1,workspace=workspace_file,dir=dir, model_g=model_g,
   #    c1_g=c1_g ,model_file='model',data_file='data',dataset_names=data_files,preprocessing=False,
   #    seed=random_seed)
+  #pdb.set_trace()
 
   # class which implement the decomposed method
   test = DecomposedTest(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,
@@ -261,14 +339,15 @@ if __name__ == '__main__':
           seed=random_seed, F1_dist=f1_dist, cross_section=cross_section)
   #test.fit(data_file='data',importance_sampling=False, true_dist=False,vars_g=vars_g)
   #test.computeRatios(true_dist=True,vars_g=vars_g,use_log=True) 
-  ##test.computeRatios(data_file='data',true_dist=False,vars_g=vars_g,use_log=False) 
+  #test.computeRatios(data_file='data',true_dist=False,vars_g=vars_g,use_log=False) 
 
-  n_hist = 300
+  n_hist = 150
   # compute likelihood for c0[0] and c0[1] values
-  #test.fitCValues(c0,c1,data_file='data', true_dist=False,vars_g=vars_g,use_log=False,
-  #          n_hist=n_hist, num_pseudodata=2500)
+  test.fitCValues(c0,c1,data_file='data', true_dist=False,vars_g=vars_g,use_log=False,
+            n_hist=n_hist, num_pseudodata=5000,weights_func=getWeights)
 
-  plotCValues(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=False,vars_g=vars_g,
-       workspace=workspace_file,use_log=False,n_hist=n_hist)
+  #plotCValues(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=False,vars_g=vars_g,
+  #    workspace=workspace_file,use_log=False,n_hist=n_hist,c_eval=1,range_min=1.0,
+  #     range_max=2.0)
 
 

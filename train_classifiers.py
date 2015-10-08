@@ -44,7 +44,7 @@ def trainClassifiers(clf,c0,c1,
     scaler = {}
 
   for k,c in enumerate(c0):
-    for j,c_ in enumerate(c1):
+    for j,c_ in enumerate(c0):
       if k==j or k > j:
         continue
       if dataset_names <> None:
@@ -61,18 +61,19 @@ def trainClassifiers(clf,c0,c1,
         indices = rng.permutation(traindata.shape[0])
         traindata = traindata[indices]
         targetdata = targetdata[indices]
-        scores = cross_validation.cross_val_score(clf, traindata, targetdata)
+        scores = cross_validation.cross_val_score(clf, traindata.reshape(traindata.shape[0],
+        traindata.shape[1]), targetdata)
         print "Accuracy: {0} (+/- {1})".format(scores.mean(), scores.std() * 2)
         clf.fit(traindata.reshape(traindata.shape[0],traindata.shape[1])
             ,targetdata)
         joblib.dump(clf, '{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(dir,model_g,c1_g,model_file,k,j))
   
+
   print " Training Classifier on F0/F1"
+  traindata,targetdata = loadData(data_file,'F0','F1',dir=dir,c1_g=c1_g) 
   if model_g == 'mlp':
-    train_mlp(datatype=data_file,kpos='F0',jpos='F1',dir='{0}/data/{1}/{2}'.format(dir,'mlp',c1_g), 
-        save_file='{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(dir,model_g,c1_g,model_file))
+    train_mlp((traindata, targetdata), save_file='{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(dir,model_g,c1_g,model_file))
   else:
-    traindata,targetdata = loadData(data_file,'F0','F1',dir=dir,c1_g=c1_g) 
     #clf = svm.NuSVC(probability=True) #Why use a SVR??
     scores = cross_validation.cross_val_score(clf, traindata, targetdata)
     print "Accuracy: {0} (+/- {1})".format(scores.mean(), scores.std() * 2)
