@@ -161,10 +161,10 @@ def plotCValues(c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
     labels = ['dec']
   
   saveFig([],vals, 
-      makePlotName('c1','train',type='hist'),hist=True, 
-      axis=['c1[0]'],marker=True,marker_value=c1[c_eval],
+      makePlotName('g2','train',type='hist'),hist=True, 
+      axis=['g2'],marker=True,marker_value=c1[c_eval],
       labels=labels,x_range=[range_min,range_max],dir=dir,
-      model_g=model_g,title='Histogram for fitted values c1[0]', print_pdf=True)
+      model_g=model_g,title='Histogram for fitted g2', print_pdf=True)
   #saveFig([],[c1_values['true'],c1_values['dec']], 
   #    makePlotName('c1c2','train',type='c1_hist{0}'.format(post)),hist=True, 
   #    axis=['c1[0]'],marker=True,marker_value=c1[0],
@@ -258,48 +258,25 @@ if __name__ == '__main__':
     print 'Not found classifier, Using logistic instead'
 
   # parameters of the mixture model
-  #c0 = np.array([0., .1,.2,.3,.4])
-  #c1 = np.array([.1, .1,.2,.3,.4])
-
-  #c0 = np.array([.1,.2,.1,.3,.3])
-  #c1 = np.array([.1,.2,.1,.3,.3])
   c0 = np.array([1.,1., 1., 1.,1.])
-  #c0 = np.array([1.,0., 0., 0., 0.])
-  #c0 = np.array([-0.0625, 0.5625, 0.5625, -0.0625, 0.5625])
   c1 = np.array([-0.0625, 0.5625, 0.5625, -0.0625, 0.5625])
-  #c1 = c1 + 0.1
   #c1 = np.array([0.1,0.2,0.1,0.3,0.1])
   c1 = np.array([1.,1.5])
   cross_section = np.array([0.1149,8.469,1.635, 27.40, 0.1882])
-  #cross_section = cross_section / cross_section.sum()
-  #print np.multiply(c1,cross_section)/np.multiply(c1,cross_section).sum()
-  #cross_section=None
-  #TODO change this so both are threated equally
-  #c1 = np.multiply(c1,cross_section)
-  #c1 = c1/c1.sum()
-  #cross_section = None
   c0 = np.multiply(c0,cross_section)
   c0 = c0/c0.sum()
-  #c1 = c1/c1.sum()
   print c0
   print c1
   c1_g = ''
-  #c0 = np.array([.0,.3, .7])
-  #c1 = np.array([.1,.3, .7])
   c1_g = 'vbf'
-  #c1[0] = (c1[0]*(c1[1]+c1[2]))/(1.-c1[0])
-  print c0
-  print c1
   print c1_g
  
   verbose_printing = True
   dir = '/afs/cern.ch/user/j/jpavezse/systematics'
   workspace_file = 'workspace_vbfDataRatios.root'
   
-  #data_files = ['S01','S10','S11','S12','S13']
   data_files = ['S10','S12','S11','S13','S01']
   f1_dist = 'S1_1p5'
-  #data_files = ['S01', 'S10', 'S11']
   # features
   vars_g = ["mH", "Z1_m", "Z2_m", "Mjj", "DelEta_jj", "DelPhi_jj", "jet1_eta", "jet2_eta", 
           "jet1_pt", "jet2_pt", "ZeppetaZZ", "pT_Hjj", "pT_Hjj_bin_50"]
@@ -314,16 +291,12 @@ if __name__ == '__main__':
     print 'Setting seed: {0} '.format(sys.argv[3])
     random_seed = int(sys.argv[3])
     ROOT.RooRandom.randomGenerator().SetSeed(random_seed) 
+  # Checking correct cross section 
   #for i in range(5):
   #  checkCrossSection(c1,cross_section,data_files,f1_dist,dir,c1_g,model_g,feature=i)
   #pdb.set_trace()
 
   set_size = np.zeros(len(data_files))
-  #for i,files in enumerate(data_files):
-  #  testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,'data',files))
-  #  set_size[i] = testdata.shape[0]
-   
-  #cross_section = np.divide(cross_section,set_size)
 
   scaler = None
   # train the pairwise classifiers
@@ -341,13 +314,13 @@ if __name__ == '__main__':
   #test.computeRatios(true_dist=True,vars_g=vars_g,use_log=True) 
   #test.computeRatios(data_file='data',true_dist=False,vars_g=vars_g,use_log=False) 
 
-  n_hist = 150
+  n_hist = 300
   # compute likelihood for c0[0] and c0[1] values
-  test.fitCValues(c0,c1,data_file='data', true_dist=False,vars_g=vars_g,use_log=False,
-            n_hist=n_hist, num_pseudodata=5000,weights_func=getWeights)
+  #test.fitCValues(c0,c1,data_file='data', true_dist=False,vars_g=vars_g,use_log=False,
+  #          n_hist=n_hist, num_pseudodata=5000,weights_func=getWeights)
 
-  #plotCValues(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=False,vars_g=vars_g,
-  #    workspace=workspace_file,use_log=False,n_hist=n_hist,c_eval=1,range_min=1.0,
-  #     range_max=2.0)
+  plotCValues(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=False,vars_g=vars_g,
+      workspace=workspace_file,use_log=False,n_hist=n_hist,c_eval=1,range_min=0.5,
+      range_max=2.5)
 
 

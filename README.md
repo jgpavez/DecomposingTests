@@ -431,40 +431,42 @@ Finally the ratio histograms for this model are shown next,
 
 We will show how the method works in real physics data. For this we will use data from VBF with one BSM coupling. The samples used for this are **S(1,0),S(1,2), S(1,1), S(1,3), S(0,1)**.  The full mixture model **S(1,1.5)** can be considered a weighted sum of those samples.  
 
-First we will start by fitting the coefficients directly (in the real case each coefficient is a non-linear combination of two variables). We know that the coefficients are *C0 = [-0.0625, 0.5625, 0.5625, -0.0625, 0.5625]* for F1 and for background we will use an only standard model hypothesis (only the coefficient corresponing to S(1,0) is non zero). 
+First we will start by fitting the coefficients directly (in the real case each coefficient is a non-linear combination of two variables). We know that the coefficients are *C1 = [-0.0625, 0.5625, 0.5625, -0.0625, 0.5625]* for F1 and for background we will use a simple hypothesis with all coefficients set to 1 (for maximum likelihood of the signal coefficients the background hypothesis is not important). 
 Note that some of the coefficients are negative, that must be carefully considered in the algorithm to avoid negative probabilities. 
 We also know the cross section for each sample *xs = [0.1149,8.469,1.635, 27.40, 0.1882]* and we have data generated from **S(1,1.5)**.
 
 A *boosted tree model* is trained in each pair of samples using the library *xgboost*. The score distribution obtained for each one of the pairs are shown in the next image 
 
- S(0,1)-S(1,0),S(0,1)-S(1,1),S(0,1)-S(1,2) | S(0,1)-S(1,3),S(0,1)-S(1,1.5),S(1,0)-S(1,1)
+ S(1,0)-S(1,2),S(1,0)-S(1,1),S(1,0)-S(1,3) | S(1,0)-S(0,1),S(1,2)-S(1,1),S(1,2)-S(1,3)
 :-------------------------:|:-------------------------:
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec0_all_xgboost_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec1_all_xgboost_hist.png" width="350" >
- S(1,0)-S(1,2),S(1,0)-S(1,3),S(1,0)-S(1,1.5)  | S(1,1)-S(1,2),S(1,1)-S(1,3),S(1,1)-S(1,1.5)
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec2_all_xgboost_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec3_all_xgboost_hist.png" width="350" >
- S(1,2)-S(1,3),S(1,2)-S(1,1.5),S(1,3)-S(1,1.5)  | 
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec4_all_xgboost_hist.png" width="350">  | 
+ S(1,2)-S(0,1),S(1,1)-S(1,3),S(1,3)-S(0,1)  | 
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec2_all_xgboost_hist.png" width="350">  |
 
 The ROC curves for each one of the pairwise trained classifiers, using the ratio as discriminative variable, are shown next.
 
- S(0,1)-S(1,0),S(0,1)-S(1,1),S(0,1)-S(1,2) | S(0,1)-S(1,3),S(0,1)-S(1,1.5),S(1,0)-S(1,1)
+ S(1,0)-S(1,2),S(1,0)-S(1,1),S(1,0)-S(1,3) | S(1,0)-S(0,1),S(1,2)-S(1,1),S(1,2)-S(1,3)
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all0_comparison_xgboost_roc.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all1_comparison_xgboost_roc.png" width="350" >
- S(1,0)-S(1,2),S(1,0)-S(1,3),S(1,0)-S(1,1.5)  | S(1,1)-S(1,2),S(1,1)-S(1,3),S(1,1)-S(1,1.5)
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all2_comparison_xgboost_roc.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all3_comparison_xgboost_roc.png" width="350" >
- S(1,2)-S(1,3),S(1,2)-S(1,1.5),S(1,3)-S(1,1.5)  | 
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all4_comparison_xgboost_roc.png" width="350">  | 
-
-Next, the ratio histograms for the full model, for the ratio obtained using the composing formula and for the ratios obtained a *BDT* trained in the full models *F0, F1* are shown next.
-
-![All hist_ratio](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ratio_comparison_xgboost_hist.png)
-
-The Signal Efficiency - Background Rejection curves of each one of the ratios (composed, full trained) are shown in the following plot
-
-![All sigbkg](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_all_xgboost_sigbkg.png)
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all_comparison_xgboost_roc.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all1_comparison_xgboost_roc.png" width="350" >
+ S(1,2)-S(0,1),S(1,1)-S(1,3),S(1,3)-S(0,1)  | 
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all2_comparison_xgboost_roc.png" width="350">  
 
 Now, we will see if it is possible to identify the coefficient *C1[0]* for *S(1,0)* by using maximum likelihood on the composed ratios and assuming the other coefficients known. The histogram for values obtained in 300 pseudo samples of size 2500 is shown next. 
 
 ![hist c0](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/c1_train_mlp_hist.png)
 
 It is clear that the method is able to identify with high sensitivity the correct value of *C1[0]*..
+
+In the real case what we should fit is the values **g1,g2** for *S(g1,g2)*. Each coefficient on 
+the weighted sum is a non linear function of *g1* and *g2*. For *g1=1.0* and *g2=1.5* the values of
+the corresponding coefficients are *C1 = [-0.0625, 0.5625, 0.5625, -0.0625, 0.5625]*.
+
+Next, histogram for fitted values of *g1* and *g2* are shown. Each histogram correspond to 300 pseudo samples of size 5000. 
+
+ g1                         | g2
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/g1_train_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/g2_train_mlp_hist.png" width="350" >
+
+Those are initial results but it can be seen that
+both fits are quite close to the real value, there is a minor bias that must be investigated, 
+possible causes are imperfect training or the effect of negative values.
