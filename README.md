@@ -467,6 +467,4 @@ Next, histogram for fitted values of *g1* and *g2* are shown. Each histogram cor
 :-------------------------:|:-------------------------:
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/g1_train_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/g2_train_mlp_hist.png" width="350" >
 
-Those are initial results but it can be seen that
-both fits are quite close to the real value, there is a minor bias that must be investigated, 
-possible causes are imperfect training or the effect of negative values.
+It can be seen that the fit is working very good for the values of g1 and g2. The method is able to identify with high precision the real value of the coefficients.
