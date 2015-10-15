@@ -483,7 +483,7 @@ Finally, we will study if it is possible to fit both values *g1,g2* at the same 
 
  Coefficient              | mean ± std.          
 :------------------------:|:------------------------:
- g1                       | 1.00112 ± 0.02571
- g2                       | 1.5373 ± 0.05708
+ g1                       | 1.00112 ± 0.160
+ g2                       | 1.5373 ± 0.2389
 
 Both values are pretty close to the real values (1.0 and 1.5). this show the great capacity of the method to identify values of parameters on real data distributions by using Maximum Likelihood. 
