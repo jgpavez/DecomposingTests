@@ -457,7 +457,7 @@ To evaluate the classification capacity of the algorithmn we compare the decompo
 
 Next, the Signal Efficiency - Background Rejection curves for the decomposed method and the full trained method are shown.
 
-![All ROC](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_all_mlp_sigbkg.png)
+![All ROC](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_all_xgboost_sigbkg.png)
 
 It is clear that the decomposed method do a much better job in the task of classification on *S(1.,1.5)* vs. *S(1.,0.)*.
 
