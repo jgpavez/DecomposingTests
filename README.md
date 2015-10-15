@@ -457,7 +457,7 @@ To evaluate the classification capacity of the algorithmn we compare the decompo
 
 Next, the Signal Efficiency - Background Rejection curves for the decomposed method and the full trained method are shown.
 
-![All ROC](https://github.com/jgpavez/systematics/blob/master/plots/mlp/1Dim/0.10/comp_all_mlp_sigbkg.png)
+![All ROC](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_all_mlp_sigbkg.png)
 
 It is clear that the decomposed method do a much better job in the task of classification on *S(1.,1.5)* vs. *S(1.,0.)*.
 
@@ -486,4 +486,4 @@ Finally, we will study if it is possible to fit both values *g1,g2* at the same 
  g1                       | 1.00112 ± 0.160
  g2                       | 1.5373 ± 0.2389
 
-Both values are pretty close to the real values (1.0 and 1.5). this show the great capacity of the method to identify values of parameters on real data distributions by using Maximum Likelihood. 
+Both values are pretty close to the real values (1.0 and 1.5). this shows the great capacity of the method to identify values of parameters on real data distributions by using Maximum Likelihood. 
