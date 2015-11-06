@@ -41,6 +41,7 @@ class DecomposedTest:
             scaler=None,
             seed=1234,
             F1_dist='F1',
+            F0_dist='F0',
             cross_section=None):
     self.input_workspace = input_workspace
     self.workspace = output_workspace
@@ -56,6 +57,7 @@ class DecomposedTest:
     self.scaler = scaler
     self.seed=seed
     self.F1_dist=F1_dist
+    self.F0_dist=F0_dist
     self.cross_section=cross_section
 
   def fit(self, data_file='test',importance_sampling=False, true_dist=True,vars_g=None):
@@ -68,9 +70,9 @@ class DecomposedTest:
       and the data files are ./data/{model_g}/{c1_g}/{data_file}_i_j.dat
     '''
 
-    bins = 80
-    low = -0.5
-    high = 1.5  
+    bins = 40
+    low = 0.
+    high = 1.  
     
     if self.input_workspace <> None:
       f = ROOT.TFile('{0}/{1}'.format(self.dir,self.input_workspace))
@@ -223,7 +225,7 @@ class DecomposedTest:
           dir=self.dir,model_g=self.model_g,y_text='score(x)',print_pdf=True,title='Pairwise score distributions')
 
     # Full model
-    traindata, targetdata = loadData(data_file,'F0','F1',dir=self.dir,c1_g=self.c1_g,
+    traindata, targetdata = loadData(data_file,self.F0_dist,self.F1_dist,dir=self.dir,c1_g=self.c1_g,
       preprocessing=self.preprocessing, scaler=self.scaler)
     numtrain = traindata.shape[0]       
     size2 = traindata.shape[1] if len(traindata.shape) > 1 else 1
@@ -231,7 +233,9 @@ class DecomposedTest:
               predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),traindata[targetdata==0],model_g=self.model_g)]
 
     saveHistos(w,outputs,s_full, bins_full, low_full, high_full,importance_sampling=False)
-       
+    printFrame(w,['scoref'],[w.function('sighistpdf_F0_F1'),w.function('bkghistpdf_F0_F1')], makePlotName('full','all',type='hist',dir=self.dir,c1_g=self.c1_g,model_g=self.model_g),['signal','bkg'],
+    dir=self.dir,model_g=self.model_g,y_text='score(x)',print_pdf=True,title='Pairwise score distributions')
+   
     w.Print()
 
     w.writeToFile('{0}/{1}'.format(self.dir,self.workspace))
@@ -322,8 +326,8 @@ class DecomposedTest:
           
           ks[k-1][j] = self.computeLogKi(f0dist,f1dist,c,c_)
 
-        f0pdf = w.pdf('bkghistpdf_{0}_{1}'.format(k,j))
-        f1pdf = w.pdf('sighistpdf_{0}_{1}'.format(k,j))
+        f0pdf = w.function('bkghistpdf_{0}_{1}'.format(k,j))
+        f1pdf = w.function('sighistpdf_{0}_{1}'.format(k,j))
         if k <> j:
           if pre_evaluation == None:
             outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file,k,j),evalData,model_g=self.model_g)
@@ -406,7 +410,7 @@ class DecomposedTest:
     return pdfratios,ratios 
 
 
-  def evaluateDecomposedRatio(self,w,evalData,x=None,plotting=True, roc=False,gridsize=None,c0arr=None, c1arr=None,true_dist=False,pre_evaluation=None,pre_dist=None,data_type='test',debug=False):
+  def evaluateDecomposedRatio(self,w,evalData,x=None,plotting=True, roc=False,gridsize=None,c0arr=None, c1arr=None,true_dist=False,pre_evaluation=None,pre_dist=None,data_type='test',debug=False,cross_section=None):
     # pair-wise ratios
     # and decomposition computation
     #f = ROOT.TFile('{0}/{1}'.format(self.dir,self.workspace))
@@ -466,8 +470,8 @@ class DecomposedTest:
           ratios = self.singleRatio(f0dist, f1dist)
           innerTrueRatios += (c_/c) * ratios
         # ROC curves for pair-wise ratios
-        if (roc == True or plotting==True) and j < k:
-          all_positions.append((j,k))
+        if (roc == True or plotting==True) and k < j:
+          all_positions.append((k,j))
           if roc == True:
             if self.dataset_names <> None:
               name_k, name_j = (self.dataset_names[k], self.dataset_names[j])
@@ -526,16 +530,16 @@ class DecomposedTest:
         innerTrueRatios[np.abs(innerTrueRatios) == np.inf] = 0.
         fullRatiosReal += innerTrueRatios
     if roc == True:
-      for ind in range(1,(len(train_score)/3)):
+      for ind in range(1,(len(train_score)/3+1)):
         print_scores = train_score[(ind-1)*3:(ind-1)*3+3]
         print_targets = all_targets[(ind-1)*3:(ind-1)*3+3]
         print_positions = all_positions[(ind-1)*3:(ind-1)*3+3]
         if true_dist == True:
-          makeMultiROC(print_scores, print_targets,makePlotName('all{0}'.format(ind),'comparison',type='roc',
+          makeMultiROC(print_scores, print_targets,makePlotName('all{0}'.format(ind-1),'comparison',type='roc',
           dir=self.dir,model_g=self.model_g,c1_g=self.c1_g),dir=self.dir,model_g=self.model_g,
           true_score = true_score,print_pdf=True,title='ROC for pairwise trained classifier',pos=print_positions)
         else:
-          makeMultiROC(print_scores, print_targets,makePlotName('all{0}'.format(ind),'comparison',type='roc',
+          makeMultiROC(print_scores, print_targets,makePlotName('all{0}'.format(ind-1),'comparison',type='roc',
           dir=self.dir,model_g=self.model_g,c1_g=self.c1_g),dir=self.dir,model_g=self.model_g,
           print_pdf=True,title='ROC for pairwise trained classifier',pos=print_positions)
 
@@ -575,6 +579,19 @@ class DecomposedTest:
     w = f.Get('w')
     f.Close()
     
+    #TODO: This are Harcoded for now
+
+    c1 = np.array([-0.0625, 0.5625, 0.5625, -0.0625, 0.5625])
+    c0 = np.array([1.,0.,0.,0.,0.])
+    #c1 = np.array([0.1,0.2,0.1,0.3,0.3]) 
+    #c0 = np.array([1.,1.,1.,1.,1.])
+    #c0 = np.array([1.,1.,1.,1.,1.])
+    c1 = np.multiply(c1, self.cross_section)
+    c1 = np.abs(c1)
+    #c0 = np.multiply(c0, self.cross_section)
+    c1 = c1/c1.sum()
+    c0 = c0/c0.sum()
+
     print 'Calculating ratios'
 
     npoints = 50
@@ -610,11 +627,11 @@ class DecomposedTest:
             
 
     # NN trained on complete model
-    F0pdf = w.pdf('bkghistpdf_F0_F1')
-    F1pdf = w.pdf('sighistpdf_F0_F1')
+    F0pdf = w.function('bkghistpdf_F0_F1')
+    F1pdf = w.function('sighistpdf_F0_F1')
 
     # TODO Here assuming that signal is first dataset  
-    testdata, testtarget = loadData(data_file,'F0',self.dataset_names[0],dir=self.dir,c1_g=self.c1_g,preprocessing=False) 
+    testdata, testtarget = loadData(data_file,self.F0_dist,self.F1_dist,dir=self.dir,c1_g=self.c1_g,preprocessing=False) 
     if len(vars_g) == 1:
       xarray = np.linspace(0,5,npoints)
       fullRatios,_ = evaluateRatio(w,xarray,x=x,plotting=True,roc=False,true_dist=True)
@@ -635,7 +652,8 @@ class DecomposedTest:
     if true_dist == True:
       decomposedRatio,_ = evaluateRatio(w,testdata,x=x,plotting=False,roc=self.verbose_printing,true_dist=True)
     else:
-      decomposedRatio,_ = evaluateRatio(w,testdata,plotting=False,roc=False,data_type=  data_file)
+      decomposedRatio,_ = evaluateRatio(w,testdata,c0arr=c0,c1arr=c1,plotting=True,
+      roc=True,data_type=data_file)
     if len(testdata.shape) > 1:
       outputs = predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),testdata,model_g=self.model_g)
     else:
@@ -659,6 +677,25 @@ class DecomposedTest:
     complete_target = testtarget
     real_target = testtarget
     #Histogram F0-f0 for composed, full and true
+
+    # Removing outliers
+    numtest = decomposedRatio.shape[0] 
+    #decomposedRatio[decomposedRatio < 0.] = completeRatio[decomposedRatio < 0.]
+
+    decomposed_outliers = np.zeros(numtest,dtype=bool)
+    complete_outliers = np.zeros(numtest,dtype=bool)
+    decomposed_outliers = self.findOutliers(decomposedRatio)
+    complete_outliers = self.findOutliers(completeRatio)
+    decomposed_target = testtarget[decomposed_outliers] 
+    complete_target = testtarget[complete_outliers] 
+    decomposedRatio = decomposedRatio[decomposed_outliers]
+    completeRatio = completeRatio[complete_outliers]
+    if true_dist == True:
+      real_outliers = np.zeros(numtest,dtype=bool)
+      real_outliers = self.findOutliers(realRatio)
+      real_target = testtarget[real_outliers] 
+      realRatio = realRatio[real_outliers]
+
     all_ratios_plots = []
     all_names_plots = []
     bins = 70
@@ -686,6 +723,7 @@ class DecomposedTest:
       else:
         ratios_names = ['full','composed']
         ratios_vec = [completeRatio, decomposedRatio]
+        target_vec = [complete_target, decomposed_target] 
         minimum = min([completeRatio[complete_target == 1-l].min(), 
               decomposedRatio[decomposed_target == 1-l].min()])
         maximum = max([completeRatio[complete_target == 1-l].max(), 
@@ -695,11 +733,11 @@ class DecomposedTest:
       high.append(maximum + ((maximum - minimum) / bins)*10)
       w.factory('ratio{0}[{1},{2}]'.format(name, low[l], high[l]))
       ratios_vars.append(w.var('ratio{0}'.format(name)))
-    for curr, curr_ratios in zip(ratios_names,ratios_vec):
+    for curr, curr_ratios, curr_targets in zip(ratios_names,ratios_vec,target_vec):
       numtest = curr_ratios.shape[0] 
       for l,name in enumerate(['sig','bkg']):
         hist = ROOT.TH1F('{0}_{1}hist_F0_f0'.format(curr,name),'hist',bins,low[l],high[l])
-        for val in curr_ratios[testtarget == 1-l]:
+        for val in curr_ratios[curr_targets == 1-l]:
           hist.Fill(val)
         datahist = ROOT.RooDataHist('{0}_{1}datahist_F0_f0'.format(curr,name),'hist',
               ROOT.RooArgList(ratios_vars[l]),hist)
@@ -742,15 +780,33 @@ class DecomposedTest:
       targets_list = [decomposed_target, complete_target, real_target]
       legends_list = ['composed', 'full', 'true']
     else:
+      #decomposedRatio = decomposedRatio + np.abs(decomposedRatio.min())
+      #indices = (decomposedRatio > 0.)
+      #decomposedRatio = decomposedRatio[indices] 
+      #decomposed_target = decomposed_target[indices]
+      indices = (completeRatio > 0.)
+      #decomposedRatio = decomposedRatio[indices] 
+      #decomposed_target = decomposed_target[indices]
+      completeRatio = completeRatio[indices]
+      complete_target = complete_target[indices]
+      #decomposedRatio[decomposedRatio < 0.] = completeRatio[decomposedRatio < 0.] 
+
+      completeRatio = np.log(completeRatio)
+      decomposedRatio = np.log(decomposedRatio)
+      decomposedRatio = decomposedRatio + np.abs(decomposedRatio.min())
+      completeRatio = completeRatio + np.abs(completeRatio.min())
       ratios_list = [decomposedRatio/decomposedRatio.max(), 
                     completeRatio/completeRatio.max()]
       targets_list = [decomposed_target, complete_target]
       legends_list = ['composed','full']
+      saveFig([],[decomposedRatio, completeRatio], makePlotName('full_dec_ratio', 'hist', type='hist'), hist=True,
+axis=['x'],labels=['dec','full'], dir=self.dir, model_g=self.model_g, 
+title='Full Ratio',print_pdf=True)
     makeSigBkg(ratios_list,targets_list,makePlotName('comp','all',type='sigbkg'+post,dir=self.dir,model_g=self.model_g,c1_g=self.c1_g),dir=self.dir,model_g=self.model_g,print_pdf=True,legends=legends_list,title='Signal-Background rejection curves')
 
     # Scatter plot to compare regression function and classifier score
     if self.verbose_printing == True and true_dist == True:
-      testdata, testtarget = loadData('test','F0','F1',dir=self.dir,c1_g=self.c1_g) 
+      testdata, testtarget = loadData('test',self.F0_dist,self.F1_dist,dir=self.dir,c1_g=self.c1_g) 
       if len(testdata.shape) > 1:
         reg = np.array([self.__regFunc(x,w.pdf('F0'),w.pdf('F1'),xs) for xs in testdata])
       else:
@@ -883,22 +939,35 @@ class DecomposedTest:
     #for i,sample in enumerate(self.dataset_names):
     #  samples.append(np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(self.dir,'mlp',self.c1_g,'data',sample)))
 
+    #cross_section = self.cross_section / np.sum(self.cross_section)
+    n_eff_ratio = np.zeros(csarray.shape[0])
+    n_zeros = np.zeros(csarray.shape[0])
+    cross_section = None
     for i,cs in enumerate(csarray):
       if weights_func <> None: 
         c1s = weights_func(cs,c1[1]) if coef_index == 0 else weights_func(c1[0],cs)
-        print '{0} {1}'.format(c1[0],cs)
+        print '{0} {1}'.format(cs, c1[1]) if coef_index == 0 else '{0} {1}'.format(c1[0],cs)
         print c1s
       else:
         c1s[:] = c1[:]
         c1s[c_eval] = cs
       if self.cross_section <> None:
         c1s = np.multiply(c1s,self.cross_section)
+        #c1s = np.abs(c1s)
+      n_eff = c1s.sum()
+      n_tot = np.abs(c1s).sum()
+      print 'n_eff: {0}, n_tot: {1}, n_eff/n_tot: {2}'.format(n_eff, n_tot, n_eff/n_tot)
+      #print c1s.sum()
+      #c1s = np.abs(c1s)
       c1s = c1s/c1s.sum()
-      print c1s
+      #print c1s
       decomposedRatios,trueRatios = evaluateRatio(w,testdata,x=x,
       plotting=False,roc=False,c0arr=c0,c1arr=c1s,true_dist=true_dist,pre_dist=pre_dist,
-      pre_evaluation=pre_pdf)
+      pre_evaluation=pre_pdf,cross_section=cross_section)
       decomposedRatios = 1./decomposedRatios
+      n_eff_ratio[i] = n_eff/n_tot
+      n_zeros[i] = decomposedRatios[decomposedRatios < 0.].shape[0]
+      print decomposedRatios[decomposedRatios < 0.].shape 
       #calibratedRatios = self.calibrateFullRatios(w, decomposedRatios,
       #    c0,c1s,debug=debug,samples_data=samples,index=i) 
       #saveFig(decomposedRatios2, [calibratedRatios], makePlotName('calibrated_{0}'.format(i),'ratio',type='scat',
@@ -916,7 +985,9 @@ class DecomposedTest:
               np.array([c1[x] for x in ids]))).sum()
         else:
           decomposedRatios[decomposedRatios < 0.] = 1.0
+          #decomposedRatios = decomposedRatios[decomposedRatios > 0.]
           #decomposedRatios = decomposedRatios[self.findOutliers(decomposedRatios)]
+          #decomposedLikelihood[i] = -(1./decomposedRatios.shape[0]) * np.log(decomposedRatios).sum()
           decomposedLikelihood[i] = -np.log(decomposedRatios).sum()
           print decomposedLikelihood[i]
           
@@ -924,30 +995,367 @@ class DecomposedTest:
       else:
         decomposedLikelihood[i] = decomposedRatios.sum()
         trueLikelihood[i] = trueRatios.sum()
-    #decomposedLikelihood = decomposedLikelihood - decomposedLikelihood.min()
+    decomposedLikelihood = decomposedLikelihood - decomposedLikelihood.min()
+    # print n_eff/n_zero relation
+    #saveFig(csarray,[n_eff_ratio, n_zeros/n_zeros.max()],makePlotName('eff_ratio','zeros',type=post+'plot_g2'),labels=['n_eff/n_tot','zeros/{0}'.format(n_zeros.max())],axis=['g2','values'],marker=True,dir=self.dir,marker_value=c1[0],title='#zeros and n_eff/n_tot given g2',print_pdf=True,model_g=self.model_g)
+    #saveFig(n_eff_ratio, [n_zeros/n_zeros.max()], makePlotName('eff_ratio','zeros',type='scat',
+    #dir=self.dir, model_g=self.model_g, c1_g=self.c1_g),scatter=True, axis=['n_eff/n_tot', 
+    #'#zeros/{0}'.format(n_zeros.max())], dir=self.dir, model_g=self.model_g,title='# zeros given n_eff/n_tot ratio')
+
     if true_dist == True:
       trueLikelihood = trueLikelihood - trueLikelihood.min()
       saveFig(csarray,[decomposedLikelihood,trueLikelihood],makePlotName('comp','train',type=post+'likelihood_{0}'.format(n_sample)),labels=['decomposed','true'],axis=['c1[0]','-ln(L)'],marker=True,dir=self.dir,marker_value=c1[0],title='c1[0] Fitting',print_pdf=True)
       return (csarray[trueLikelihood.argmin()], csarray[decomposedLikelihood.argmin()])
     else:
-      #saveFig(csarray,[decomposedLikelihood],makePlotName('comp','train',type=post+'likelihood'),labels=['decomposed'],axis=['c1[0]','-ln(L)'],marker=True,dir=self.dir,marker_value=c1[c_eval],title='c1[0] Fitting',print_pdf=True,model_g=self.model_g)
-      #pdb.set_trace()
+      saveFig(csarray,[decomposedLikelihood],makePlotName('comp','train',type='likelihood_g2'),labels=['decomposed'],axis=['g2','-ln(L)'],marker=True,dir=self.dir,marker_value=c1[c_eval],title='g2 Fitting',print_pdf=True,model_g=self.model_g)
+      pdb.set_trace()
       return (0.,csarray[decomposedLikelihood.argmin()])
+
+  def computeAUC(self,outputs, target):
+    thresholds = np.linspace(0,1.0,150) 
+    outputs = np.log(outputs)
+    outputs = outputs + np.abs(outputs.min())
+    outputs = outputs/outputs.max()
+    fnr = np.array([float(np.sum((outputs > tr) * (target == 0)))/float(np.sum(target == 0)) for tr in thresholds])
+    tpr = np.array([float(np.sum((outputs < tr) * (target == 1)))/float(np.sum(target == 1)) for tr in thresholds])
+    return auc(tpr,fnr)
+
+  def evalC1C2AUC(self,w,testdata,c0,c1,c_eval=0,c_min=0.01,c_max=0.2,use_log=False,true_dist=False, vars_g=None, npoints=50,samples_ids=None,weights_func=None):
+
+    if true_dist == True:
+      vars = ROOT.TList()
+      for var in vars_g:
+        vars.Add(w.var(var))
+      x = ROOT.RooArgSet(vars)
+    else:
+      x = None
+    c0 = np.array([1.,0.,0.,0.,0.]) 
+
+    score = ROOT.RooArgSet(w.var('score'))
+    if use_log == True:
+      evaluateRatio = self.evaluateLogDecomposedRatio
+      post = 'log'
+    else:
+      evaluateRatio = self.evaluateDecomposedRatio
+      post = ''
+    testdata, testtarget = loadData('data',self.F0_dist,self.F1_dist,dir=self.dir,c1_g=self.c1_g,preprocessing=False) 
+
+    csarray = np.linspace(c_min[0],c_max[0],npoints)
+    csarray2 = np.linspace(c_min[1], c_max[1], npoints)
+    decomposedAUC = np.zeros((npoints,npoints))
+    decomposedS2 = np.zeros((npoints,npoints))
+    c1s = np.zeros(c0.shape[0])
+    pre_pdf = []
+    pre_dist = []
+    pre_pdf.extend([[],[]])
+    pre_dist.extend([[],[]])
+    # change this enumerates
+    for k,c0_ in enumerate(c0):
+      pre_pdf[0].append([])
+      pre_pdf[1].append([])
+      pre_dist[0].append([])
+      pre_dist[1].append([])
+      for j,c1_ in enumerate(c0):
+        if k <> j:
+          f0pdf = w.function('bkghistpdf_{0}_{1}'.format(k,j))
+          f1pdf = w.function('sighistpdf_{0}_{1}'.format(k,j))
+          data = testdata
+          if self.preprocessing == True:
+            data = preProcessing(testdata,self.dataset_names[min(k,j)],
+            self.dataset_names[max(k,j)],self.scaler) 
+          outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,
+          self.c1_g,self.model_file,k,j),data,model_g=self.model_g)
+          #Evaluate histogram values with outputs directly
+          #outputs = np.linspace(0.,1.,150) 
+          f0pdfdist = np.array([self.evalDist(score,f0pdf,[xs]) for xs in outputs])
+          f1pdfdist = np.array([self.evalDist(score,f1pdf,[xs]) for xs in outputs])
+          pre_pdf[0][k].append(f0pdfdist)
+          pre_pdf[1][k].append(f1pdfdist)
+        else:
+          pre_pdf[0][k].append(None)
+          pre_pdf[1][k].append(None)
+        if true_dist == True:
+          f0 = w.pdf('f{0}'.format(k))
+          f1 = w.pdf('f{0}'.format(j))
+          if len(testdata.shape) > 1:
+            f0dist = np.array([self.evalDist(x,f0,xs) for xs in testdata])
+            f1dist = np.array([self.evalDist(x,f1,xs) for xs in testdata])
+          else:
+            f0dist = np.array([self.evalDist(x,f0,[xs]) for xs in testdata])
+            f1dist = np.array([self.evalDist(x,f1,[xs]) for xs in testdata])
+          pre_dist[0][k].append(f0dist)
+          pre_dist[1][k].append(f1dist)
+    indices = np.ones(testdata.shape[0], dtype=bool)
+    ratiosList = []
+    samples = []
+    # This is needed for calibration of full ratios
+    #for i,sample in enumerate(self.dataset_names):
+    #  samples.append(np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(self.dir,'mlp',self.c1_g,'data',sample)))
+
+    n_eff_ratio = np.zeros((csarray.shape[0], csarray2.shape[0]))
+    for i,cs in enumerate(csarray):
+      ratiosList.append([])
+      for j, cs2 in enumerate(csarray2):
+        if weights_func <> None: 
+          c1s = weights_func(cs,cs2)
+          print '{0} {1}'.format(cs,cs2)
+          #print c1s
+        else:
+          c1s[:] = c1[:]
+          c1s[c_eval] = cs
+        if self.cross_section <> None:
+          c1s = np.multiply(c1s,self.cross_section)
+        n_eff = c1s.sum()
+        n_tot = np.abs(c1s).sum()
+        n_eff_ratio[i,j] = n_eff/n_tot 
+
+        print 'n_eff: {0}, n_tot: {1}, n_eff/n_tot: {2}'.format(n_eff, n_tot, n_eff/n_tot)
+        c1s = c1s/c1s.sum()
+        #print c1s
+        decomposedRatios,trueRatios = evaluateRatio(w,testdata,x=x,
+        plotting=False,roc=False,c0arr=c0,c1arr=c1s,true_dist=true_dist,pre_dist=pre_dist,
+        pre_evaluation=pre_pdf)
+        #decomposedRatios = 1./decomposedRatios
+        '''
+        targetdata = testtarget[decomposedRatios > 0.]
+        decomposedRatios = decomposedRatios[decomposedRatios > 0.]
+        outliers = self.findOutliers(decomposedRatios)
+        decomposedRatios = decomposedRatios[outliers]
+        targetdata = targetdata[outliers]
+
+        bkgRatios = decomposedRatios[targetdata == 0]
+        sigRatios = decomposedRatios[targetdata == 1]
+      
+        ratios_vec = [sigRatios, bkgRatios]
+        minimum = min([sigRatios.min(),bkgRatios.min()])
+        maximum = max([sigRatios.max(),bkgRatios.max()])
+
+        bins = 150
+        bkgValues = np.zeros(bins)
+        sigValues = np.zeros(bins)
+        histValues = [sigValues, bkgValues]
+        ratios_vars = []
+        low = minimum - ((maximum - minimum) / bins)*10
+        high = maximum + ((maximum - minimum) / bins)*10
+        names = ['sig','bkg']
+        hists = []
+        for l,(name,ratio) in enumerate(zip(names,ratios_vec)):
+          w.factory('ratio{0}_{1}_{2}[{3},{4}]'.format(name,i,j, low, high))
+          ratios_vars.append(w.var('ratio{0}_{1}_{2}'.format(name,i,j)))
+          hist = ROOT.TH1F('{0}hist_F0_f0'.format(name),'hist',bins,low,high)
+          for val in ratio:
+            hist.Fill(val)
+          norm = 1./hist.Integral()
+          hist.Scale(norm) 
+          hists.append(hist)
+          datahist = ROOT.RooDataHist('{0}_datahist_F0_f0'.format(name),'hist',
+                ROOT.RooArgList(ratios_vars[l]),hist)
+          ratios_vars[l].setBins(bins)
+          histpdf = ROOT.RooHistFunc('{0}_histpdf_F0_f0'.format(name),'hist',
+                ROOT.RooArgSet(ratios_vars[l]), datahist, 0)
+
+          histpdf.specialIntegratorConfig(ROOT.kTRUE).method1D().setLabel('RooBinIntegrator')
+          getattr(w,'import')(hist)
+          getattr(w,'import')(datahist) # work around for morph = w.import(morph)
+          getattr(w,'import')(histpdf) # work around for morph = w.import(morph)
+          #print '{0} {1} {2}'.format(curr,name,hist.Integral())
+   
+          #histpdf.specialIntegratorConfig(ROOT.kTRUE).method1D().setLabel('RooBinIntegrator')
+          for actual_bin in range(bins):
+            histValues[l][actual_bin] = hist.GetBinContent(actual_bin + 1)  
+        printFrame(w,['ratiosig_{0}_{1}','ratiobkg_{0}_{1}'],[w.function('sig_histpdf_F0_f0'),
+            w.function('bkg_histpdf_F0_f0')],makePlotName('ratio','temp',type='hist',dir=self.dir,model_g=self.model_g,c1_g=self.c1_g),['sig','bkg'],dir=self.dir,model_g=self.model_g,y_text='Count',title='Histograms for ratios',x_text='ratio value',print_pdf=True)
+        '''
+        '''
+        S2 = self.singleRatio((histValues[0] + histValues[1]),((histValues[0] - histValues[1])**2))
+        decomposedS2[i,j] = np.sum(S2)/2.
+        ratiosList[i].append(decomposedRatios)
+        print('{0} {1} '.format(i,j)),
+        print decomposedS2[i,j]
+        '''
+        #auc = self.computeAUC(decomposedRatios, targetdata) 
+        #if i == 18 and j == 6:
+        #  decomposedAUC[i,j] = decomposedAUC[18,5]
+        #else:
+        #  decomposedAUC[i,j] = auc
+        #print auc
+        #print c1s
+        #indices = np.logical_and(indices, decomposedRatios > 0.)
+    #decomposedLikelihood = decomposedLikelihood - decomposedLikelihood.min()
+    #X,Y = np.meshgrid(csarray, csarray2)
+    saveFig(csarray,[csarray2,n_eff_ratio],makePlotName('comp','train',type='n_eff'),labels=['composed'],pixel=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(c1[0],c1[1]),print_pdf=True,contour=True,title='n_eff/n_tot values for g1,g2')
+    #saveFig([],[vals[:size],vals1[:size]], 
+    #    makePlotName('g1g2','train',type='hist'),hist=True,hist2D=True, 
+    #    axis=['g1','g2'],marker=True,marker_value=c1,
+    #    labels=labels,dir=dir,model_g=model_g,title='2D Histogram for fitted g1,g2', print_pdf=True,
+    #    x_range=[[0.5,1.4],[1.1,1.9]])
+
+  def evalC1C2Likelihood(self,w,testdata,c0,c1,c_eval=0,c_min=0.01,c_max=0.2,use_log=False,true_dist=False, vars_g=None, npoints=50,samples_ids=None,weights_func=None):
+
+    if true_dist == True:
+      vars = ROOT.TList()
+      for var in vars_g:
+        vars.Add(w.var(var))
+      x = ROOT.RooArgSet(vars)
+    else:
+      x = None
+
+    score = ROOT.RooArgSet(w.var('score'))
+    if use_log == True:
+      evaluateRatio = self.evaluateLogDecomposedRatio
+      post = 'log'
+    else:
+      evaluateRatio = self.evaluateDecomposedRatio
+      post = ''
+
+    csarray = np.linspace(c_min[0],c_max[0],npoints)
+    csarray2 = np.linspace(c_min[1], c_max[1], npoints)
+    decomposedLikelihood = np.zeros((npoints,npoints))
+    trueLikelihood = np.zeros((npoints,npoints))
+    c1s = np.zeros(c0.shape[0])
+    pre_pdf = []
+    pre_dist = []
+    pre_pdf.extend([[],[]])
+    pre_dist.extend([[],[]])
+    # change this enumerates
+    for k,c0_ in enumerate(c0):
+      pre_pdf[0].append([])
+      pre_pdf[1].append([])
+      pre_dist[0].append([])
+      pre_dist[1].append([])
+      for j,c1_ in enumerate(c0):
+        if k <> j:
+          f0pdf = w.function('bkghistpdf_{0}_{1}'.format(k,j))
+          f1pdf = w.function('sighistpdf_{0}_{1}'.format(k,j))
+          data = testdata
+          if self.preprocessing == True:
+            data = preProcessing(testdata,self.dataset_names[min(k,j)],
+            self.dataset_names[max(k,j)],self.scaler) 
+          outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,
+          self.c1_g,self.model_file,k,j),data,model_g=self.model_g)
+          f0pdfdist = np.array([self.evalDist(score,f0pdf,[xs]) for xs in outputs])
+          f1pdfdist = np.array([self.evalDist(score,f1pdf,[xs]) for xs in outputs])
+          pre_pdf[0][k].append(f0pdfdist)
+          pre_pdf[1][k].append(f1pdfdist)
+        else:
+          pre_pdf[0][k].append(None)
+          pre_pdf[1][k].append(None)
+        if true_dist == True:
+          f0 = w.pdf('f{0}'.format(k))
+          f1 = w.pdf('f{0}'.format(j))
+          if len(testdata.shape) > 1:
+            f0dist = np.array([self.evalDist(x,f0,xs) for xs in testdata])
+            f1dist = np.array([self.evalDist(x,f1,xs) for xs in testdata])
+          else:
+            f0dist = np.array([self.evalDist(x,f0,[xs]) for xs in testdata])
+            f1dist = np.array([self.evalDist(x,f1,[xs]) for xs in testdata])
+          pre_dist[0][k].append(f0dist)
+          pre_dist[1][k].append(f1dist)
+    indices = np.ones(testdata.shape[0], dtype=bool)
+    ratiosList = []
+    samples = []
+    # This is needed for calibration of full ratios
+    #for i,sample in enumerate(self.dataset_names):
+    #  samples.append(np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(self.dir,'mlp',self.c1_g,'data',sample)))
+    n_eff_ratio = np.zeros((csarray.shape[0], csarray2.shape[0]))
+    for i,cs in enumerate(csarray):
+      ratiosList.append([])
+      for j, cs2 in enumerate(csarray2):
+        if weights_func <> None: 
+          c1s = weights_func(cs,cs2)
+          #print '{0} {1}'.format(cs,cs2)
+          #print c1s
+        else:
+          c1s[:] = c1[:]
+          c1s[c_eval] = cs
+        if self.cross_section <> None:
+          c1s = np.multiply(c1s,self.cross_section)
+        n_eff = c1s.sum()
+        n_tot = np.abs(c1s).sum()
+        n_eff_ratio[i,j] = n_eff/n_tot 
+        #print '{0} {1}'.format(i,j)
+        #print 'n_eff: {0}, n_tot: {1}, n_eff/n_tot: {2}'.format(n_eff, n_tot, n_eff/n_tot)
+        c1s = c1s/c1s.sum()
+        #print c1s
+        decomposedRatios,trueRatios = evaluateRatio(w,testdata,x=x,
+        plotting=False,roc=False,c0arr=c0,c1arr=c1s,true_dist=true_dist,pre_dist=pre_dist,
+        pre_evaluation=pre_pdf)
+        decomposedRatios = 1./decomposedRatios
+        #calibratedRatios = self.calibrateFullRatios(w, decomposedRatios,
+        #    c0,c1s,debug=debug,samples_data=samples,index=i) 
+        #saveFig(decomposedRatios2, [calibratedRatios], makePlotName('calibrated_{0}'.format(i),'ratio',type='scat',
+        #dir=self.dir, model_g=self.model_g, c1_g=self.c1_g),scatter=True, axis=['composed ratio', 
+        #'composed calibrated'], dir=self.dir, model_g=self.model_g)
+        ratiosList[i].append(decomposedRatios)
+        #print('{0} {1} '.format(i,j)),
+        #print decomposedRatios[decomposedRatios < 0.].shape 
+        #print c1s
+        #indices = np.logical_and(indices, decomposedRatios > 0.)
+    for i,cs in enumerate(csarray):
+      for j, cs2 in enumerate(csarray2):
+        decomposedRatios = ratiosList[i][j]
+        if use_log == False:
+          if samples_ids <> None:
+            ratios = decomposedRatios
+            ids = samples_ids
+            decomposedLikelihood[i,j] = (np.dot(np.log(ratios),
+                np.array([c1[x] for x in ids]))).sum()
+          else:
+            #decomposedRatios[decomposedRatios < 0.] = 0.9
+            decomposedRatios[decomposedRatios < 0.] = 1.0
+            #decomposedRatios = decomposedRatios[self.findOutliers(decomposedRatios)]
+            if n_eff_ratio[i,j] <= 0.5:
+              #TODO: Harcoded number
+              decomposedLikelihood[i,j] = 20000
+            else:
+              decomposedLikelihood[i,j] = -np.log(decomposedRatios).sum()
+            #print decomposedLikelihood[i,j]
+            #print '{0} {1} {2}'.format(i,j,decomposedLikelihood[i,j])
+          trueLikelihood[i,j] = -np.log(trueRatios).sum()
+        else:
+          decomposedLikelihood[i,j] = decomposedRatios.sum()
+          trueLikelihood[i,j] = trueRatios.sum()
+      #print '\n {0}'.format(i)
+    #decomposedLikelihood = decomposedLikelihood - decomposedLikelihood.min()
+    decMin = np.unravel_index(decomposedLikelihood.argmin(), decomposedLikelihood.shape)
+    # pixel plots
+    #saveFig(csarray,[csarray2,decomposedLikelihood],makePlotName('comp','train',type='likelihood_g1g2'),labels=['composed'],pixel=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(c1[0],c1[1]),print_pdf=True,contour=True,title='Likelihood fit for g1,g2')
+
+    #decMin = [np.sum(decomposedLikelihood,1).argmin(),np.sum(decomposedLikelihood,0).argmin()] 
+    #X,Y = np.meshgrid(csarray, csarray2)
+    #saveFig(X,[Y,decomposedLikelihood],makePlotName('comp','train',type='multilikelihood'),labels=['composed'],contour=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(c1[0],c1[1]),print_pdf=True)
+    #print decMin
+    #pdb.set_trace()
+    if true_dist == True:
+      trueLikelihood = trueLikelihood - trueLikelihood.min()
+      trueMin = np.unravel_index(trueLikelihood.argmin(), trueLikelihood.shape)
+      saveFig(csarray,[decomposedLikelihood,trueLikelihood],makePlotName('comp','train',type=post+'likelihood_{0}'.format(n_sample)),labels=['decomposed','true'],axis=['c1[0]','-ln(L)'],marker=True,dir=self.dir,marker_value=c1[0],title='c1[0] Fitting',print_pdf=True)
+      return [[csarray[trueMin[0]],csarray2[trueMin[1]]],
+          [csarray2[decMin[0],csarray2[decMin[1]]]]]
+    else:
+      return [[0.,0.],[csarray[decMin[0]],csarray2[decMin[1]]]]
 
   def fitCValues(self,c0,c1,data_file = 'test',true_dist=False,vars_g=None,use_log=False,n_hist=150,num_pseudodata=1000,weights_func=None):
     if use_log == True:
       post = 'log'
     else:
       post = ''
-    npoints = 50
+    npoints = 20
     c_eval = 1
-    c_min = 1.1
-    c_max = 2.0
+    c_min = [0.7,1.1]
+    c_max = [1.3,1.9]
+    #c_min = 1.1
+    #c_max = 2.5
 
     f = ROOT.TFile('{0}/{1}'.format(self.dir,self.workspace))
     w = f.Get('w')
     f.Close()
     assert w 
+
+    #self.evalC1C2AUC(w,None, c0,c1,c_eval=c_eval,c_min=c_min,
+    #   c_max=c_max,true_dist=true_dist,vars_g=vars_g,weights_func=weights_func,
+    #                npoints=npoints,use_log=use_log)  
+    #return
 
     print '{0} {1}'.format(c_min,c_max)
     rng = np.random.RandomState(self.seed)
@@ -980,9 +1388,14 @@ class DecomposedTest:
     for i in range(n_hist):
       indices = rng.choice(testdata.shape[0], num_pseudodata) 
       dataset = testdata[indices]
-      (c1_true_1, c1_dec_1) = self.evalC1Likelihood(w,dataset, c0,c1,c_eval=c_eval,c_min=c_min,
+      #(c1_true_1, c1_dec_1) = self.evalC1Likelihood(w,dataset, c0,c1,c_eval=c_eval,c_min=c_min,
+      #c_max=c_max,true_dist=true_dist,vars_g=vars_g,weights_func=weights_func,
+      #              npoints=npoints,use_log=use_log,coef_index=c_eval)  
+      ((c1_true,c2_true),(c1_dec,c2_dec)) = self.evalC1C2Likelihood(w,dataset, c0,c1,c_eval=c_eval,c_min=c_min,
       c_max=c_max,true_dist=true_dist,vars_g=vars_g,weights_func=weights_func,
-                    npoints=npoints,use_log=use_log,coef_index=c_eval)  
-      print '1: {0} {1}'.format(c1_true_1, c1_dec_1)
-      fil1.write('{0} {1}\n'.format(c1_true_1, c1_dec_1))
+                    npoints=npoints,use_log=use_log)  
+      print '2: {0} {1} {2} {3}'.format(c1_true, c1_dec, c2_true, c2_dec)
+      fil1.write('{0} {1} {2} {3}\n'.format(c1_true, c1_dec, c2_true, c2_dec))
+      #print '1: {0} {1}'.format(c1_true_1, c1_dec_1)
+      #fil1.write('{0} {1}\n'.format(c1_true_1, c1_dec_1))
     fil1.close()  

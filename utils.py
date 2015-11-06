@@ -12,7 +12,9 @@ import sys
 import os.path
 import pdb
 
+from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn import preprocessing
 
@@ -36,13 +38,20 @@ def preProcessing(traindata,k,j, scaler):
   traindata = scaler[(k,j)].transform(traindata)
   return traindata
 
-def loadData(type,k,j,folder=None,dir='',c1_g='',preprocessing=False,scaler=None, persist=False):
+def loadData(type,k,j,folder=None,dir='',c1_g='',preprocessing=False,scaler=None, persist=False,
+      model_g='mlp'):
   if folder <> None:
     fk = np.loadtxt('{0}/{1}_{2}.dat'.format(folder,type,k))
     fj = np.loadtxt('{0}/{1}_{2}.dat'.format(folder,type,j))
   else:
-    fk = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,type,k))
-    fj = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,type,j))
+    fk = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,model_g,c1_g,type,k))
+    fj = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,model_g,c1_g,type,j))
+  rng = np.random.RandomState(1111)
+  data_num = 10000
+  indices = rng.choice(fk.shape[0],data_num)
+  fk = fk[indices]
+  indices = rng.choice(fj.shape[0],data_num)
+  fj = fj[indices] 
   num0 = fk.shape[0]
   num1 = fj.shape[0]
   traindata = np.zeros((num0+num1,fk.shape[1])) if len(fk.shape) > 1 else \
@@ -244,28 +253,46 @@ def printFrame(w,obs,pdf,name,legends,
 
 def saveFig(x,y,file,labels=None,scatter=False,contour=False,axis=None, 
             dir='/afs/cern.ch/user/j/jpavezse/systematics',
-            model_g='mlp',marker=False, hist=False, marker_value=None, x_range=None,title='',multi=False,print_pdf=False):
+            model_g='mlp',marker=False, hist=False, marker_value=None, x_range=None,title='',multi=False,print_pdf=False,hist2D=False,pixel=True):
   fig,ax = plt.subplots()
   colors = ['b-','r-','k-']
   colors_rgb = ['blue','red','black']
   if contour == True: 
-    cs1 = plt.contour(x,y[0],y[1],[0.,0.1,0.5,1.,5.,10.,50.,100.])
-    cs2 = plt.contour(x,y[0],y[2],[0.,0.1,0.5,1.,5.,10.,50.,100.],linestyles="dashed")
-    plt.clabel(cs1, inline=1, fontsize=10)
-    lines = [cs1.collections[0],cs2.collections[0]]
-    plt.legend(lines,labels,frameon=False,fontsize=11)
-    ax.set_title('Likelihood ratio values for c1[0]-c1[1]')
-    ax.set_xlabel('c1[0]',fontsize=11) 
-    ax.set_ylabel('c1[1]',fontsize=11)
-    if marker == True: 
-      plt.axvline(marker_value[0], color='black')
-      plt.axhline(marker_value[1], color='black')
-    #ax.plot([c1[0]],[c1[1]],'o')
-    #ax.annotate('min',xy=(c1[0],c1[1]),xytext=(0.,0.))
+    if pixel == True:
+      vals = np.flipud(y[1]) 
+      #vals = y[1]
+      im = plt.imshow(vals, extent=(y[0].min(), y[0].max(), x.min(),x.max()),
+                 interpolation='nearest', cmap=cm.gist_rainbow_r)
+
+      CB = plt.colorbar(im, shrink=0.8, extend='both')
+      #plt.legend(lines,labels,frameon=False,fontsize=11)
+      ax.set_title(title)
+      ax.set_xlabel('g2',fontsize=11) 
+      ax.set_ylabel('g1',fontsize=11)
+    else:
+      levels = [0.8,0.85,0.90,0.91,0.92,0.93,0.94]
+      #im = plt.imshow(y[1], interpolation='bilinear', origin='lower',
+      #            cmap=cm.gray, extent=(-3,3,-2,2))
+      #cs1 = plt.contour(x,y[0],y[1],[0.,0.1,0.5,1.,5.,10.,50.,100.])
+      cs1 = plt.contour(x,y[0],y[1],levels)
+      #cs2 = plt.contour(x,y[0],y[2],[0.,0.1,0.5,1.,5.,10.,50.,100.],linestyles="dashed")
+      plt.clabel(cs1, inline=1, fontsize=10)
+      #CB = plt.colorbar(cs1, shrink=0.8, extend='both')
+      #lines = [cs1.collections[0],cs2.collections[0]]
+      lines = [cs1.collections[0]]
+      plt.legend(lines,labels,frameon=False,fontsize=11)
+      ax.set_title('Likelihood ratio values for c1[0]-c1[1]')
+      ax.set_xlabel('c1[0]',fontsize=11) 
+      ax.set_ylabel('c1[1]',fontsize=11)
+      if marker == True: 
+        plt.axvline(marker_value[0], color='black')
+        plt.axhline(marker_value[1], color='black')
+      #ax.plot([c1[0]],[c1[1]],'o')
+      #ax.annotate('min',xy=(c1[0],c1[1]),xytext=(0.,0.))
   else:
     if scatter == True:
       if len(y) == 1: 
-        ax.scatter(x,y[0],s=2)
+        ax.scatter(x,y[0],marker='*',color='g')
         ax.set_xlabel(axis[0])
         ax.set_ylabel(axis[1])
       else:
@@ -276,32 +303,59 @@ def saveFig(x,y,file,labels=None,scatter=False,contour=False,axis=None,
         ax.set_ylabel('regression(score)')
     else:
       if hist == True:
-        if len(y) == 1:
-          ax.hist(y[0],color='blue', label=labels[0],bins=15, range=[x_range[0], x_range[1]],
-          histtype='step', normed=1, alpha=0.5)
+        if hist2D == True:
+          H, xedges, yedges, img = plt.hist2d(y[0][:450], y[1][:450],bins=10)
+          pdb.set_trace()
+          extent = [xedges[0], xedges[-1], yedges[-1], yedges[0]]
+          fig = plt.figure()
+          plt.xlim([xedges[0],xedges[-1]])
+          plt.ylim([1.2,yedges[-1]])
+          ax = fig.add_subplot(1, 1, 1)
+          ax.set_xlabel(axis[0])
+          ax.set_ylabel(axis[1])
+          im = ax.imshow(H, cmap=plt.cm.jet,extent=extent)
+          mean1,mean2 = (y[0][:450].mean(),y[1][:450].mean())
+          std1, std2 = (y[0][:450].std(),y[1][:450].std())
+          ax.annotate('mean=[{0:.2f},{1:.2f}]\nstd=[{2:.2f},{3:.2f}]'.format(mean1,mean2,std1,std2)
+              ,xy=(mean1,mean2),xytext=(mean1-0.01,mean2-0.1),arrowprops=dict(facecolor='red'),color='white')
+          fig.colorbar(im, ax=ax)
+          if marker == True:
+            plt.axvline(marker_value[0], color='black')
+            plt.axhline(marker_value[1], color='black')
         else:
-          #Just supporting two plots for now
-          if x_range <> None:
-            for i,ys in enumerate(y): 
-              ax.hist(ys,color=colors_rgb[i],label=labels[i],bins=15, range=[x_range[0],x_range[1]],histtype='step',normed=1, alpha=0.5) 
+          if len(y) == 1:
+            if x_range <> None:
+              ax.hist(y[0],color='red', label=labels[0],bins=16, range=[x_range[0], x_range[1]],
+            histtype='step', alpha=0.5)
+            else:
+              ax.hist(y[0],color='red', label=labels[0],bins=20,
+            histtype='step', alpha=0.5)
           else:
-            for i,ys in enumerate(y): 
-              ax.hist(ys,color=colors_rgb[i],label=labels[i],bins=15,histtype='step',normed=1, alpha=0.5) 
-          ax.legend(frameon=False,fontsize=11)
-        if axis <> None:
-          ax.set_xlabel(axis[0]) 
-        else:
-          ax.set_xlabel('x')
-        ax.set_ylabel('Count')
-        if marker == True:
-          plt.axvline(marker_value, color='black')
+            #Just supporting two plots for now
+            if x_range <> None:
+              for i,ys in enumerate(y): 
+                ax.hist(ys,color=colors_rgb[i],label=labels[i],bins=15, range=[x_range[0],x_range[1]],histtype='step',normed=1, alpha=0.5) 
+            else:
+              for i,ys in enumerate(y): 
+                ax.hist(ys,color=colors_rgb[i],label=labels[i],bins=15,histtype='step',normed=1, alpha=0.5) 
+            ax.legend(frameon=False,fontsize=11)
+          if axis <> None:
+            ax.set_xlabel(axis[0]) 
+          else:
+            ax.set_xlabel('x')
+          ax.set_ylabel('Count')
+          if marker == True:
+            plt.axvline(marker_value, color='black')
       else:
         if len(y) == 1:
           ax.plot(x,y[0],'b')
+          ax.annotate('fit min 1.5285', xy=(1.52857,0),xytext=(1.8,200.),arrowprops=dict(facecolor='red'))
         else:
           #Just supporting two plots for now
+          linestyles=['--','--']
+          markers = ['+','x']
           for k,ys in enumerate(y):
-            ax.plot(x,ys,colors[k],label=labels[k]) 
+            ax.plot(x,ys,colors[k],label=labels[k],linestyle=linestyles[k],marker=markers[k]) 
           ax.legend(frameon=False,fontsize=11)
         if axis <> None:
           ax.set_ylabel(axis[1])
@@ -312,13 +366,13 @@ def saveFig(x,y,file,labels=None,scatter=False,contour=False,axis=None,
         if marker == True:
           plt.axvline(marker_value, color='black')
     ax.set_title(title)
-    if (len(y) > 1):
+    #if (len(y) > 1):
       # This breaks the naming convention for plots, I will solve
       # it later
-      for i,l in enumerate(labels):
-        np.savetxt('{0}/plots/{1}/results/{2}_{3}.txt'.format(dir,model_g,file,l),y[i])
-    else:
-      np.savetxt('{0}/plots/{1}/results/{2}.txt'.format(dir,model_g,file),y[0])
+    #  for i,l in enumerate(labels):
+    #    np.savetxt('{0}/plots/{1}/results/{2}_{3}.txt'.format(dir,model_g,file,l),y[i])
+    #else:
+    #  np.savetxt('{0}/plots/{1}/results/{2}.txt'.format(dir,model_g,file),y[0])
   if print_pdf == True:
     fig.savefig('{0}/plots/{1}/{2}.pdf'.format(dir,model_g,file))
   fig.savefig('{0}/plots/{1}/{2}.png'.format(dir,model_g,file))
@@ -498,3 +552,64 @@ def makeSigBkg(all_outputs, targets, label,
   plt.close(fig)
   plt.clf()
 
+def getWeights(g_1=1.,g_2=1.5):
+  #Set the basis
+  basis_g1 = np.array((1.,1.,1.,1.,0.))
+  basis_g2 = np.array((0.,2.,1.,3.,1.))
+  
+  #basis_g1 = np.array((0.,1.,1.,1.,1.))
+  #basis_g2 = np.array((1.,0.,1.,2.,3.))
+ 
+  #define the formulae
+  g1_t4 = lambda x,y: x*x*x*x + 0*y
+  g1_t2_g2_t2  = lambda x,y: x*x*y*y
+  g1_t3_g2 = lambda x,y: x*x*x*y
+  g1_g2_t3 = lambda x,y: y*y*y*x
+  g2_t4 = lambda x,y: y*y*y*y + 0*x
+
+  a = np.zeros((5,5))
+
+  for i in range(5):
+      a[0,i] = g1_t4(basis_g1[i],basis_g2[i])
+      a[2,i] = g1_t2_g2_t2(basis_g1[i],basis_g2[i])
+      a[1,i] = g1_t3_g2(basis_g1[i],basis_g2[i])
+      a[3,i] = g1_g2_t3(basis_g1[i],basis_g2[i])
+      a[4,i] = g2_t4(basis_g1[i],basis_g2[i])
+
+  #print a
+  
+  b = np.linalg.inv(a)
+  #print b
+  
+  weight = np.zeros(5)
+  #identify the weight
+
+  for j in range(5):
+      weight[j] = b[j,0]*g1_t4(g_1,g_2) + b[j,1]*g1_t3_g2(g_1,g_2) + b[j,2]*g1_t2_g2_t2(g_1,g_2) + b[j,3]*g1_g2_t3(g_1,g_2) + b[j,4]*g2_t4(g_1,g_2) 
+
+  return weight
+
+def savitzky_golay(y, window_size, order, deriv=0, rate=1):
+
+  from math import factorial
+
+  try:
+      window_size = np.abs(np.int(window_size))
+      order = np.abs(np.int(order))
+  except ValueError, msg:
+      raise ValueError("window_size and order have to be of type int")
+  if window_size % 2 != 1 or window_size < 1:
+      raise TypeError("window_size size must be a positive odd number")
+  if window_size < order + 2:
+      raise TypeError("window_size is too small for the polynomials order")
+  order_range = range(order+1)
+  half_window = (window_size -1) // 2
+  # precompute coefficients
+  b = np.mat([[k**i for i in order_range] for k in range(-half_window, half_window+1)])
+  m = np.linalg.pinv(b).A[deriv] * rate**deriv * factorial(deriv)
+  # pad the signal at the extremes with
+  # values taken from the signal itself
+  firstvals = y[0] - np.abs( y[1:half_window+1][::-1] - y[0] )
+  lastvals = y[-1] + np.abs(y[-half_window-1:-1][::-1] - y[-1])
+  y = np.concatenate((firstvals, y, lastvals))
+  return np.convolve( m[::-1], y, mode='valid')
