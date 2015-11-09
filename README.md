@@ -427,16 +427,26 @@ Finally the ratio histograms for this model are shown next,
 1000                | 10000
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/1000/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/10000/ratio_comparison_mlp_hist.png" width="350" >
 
-## A Real Case
 
-We will show how the method works in real physics data. For this we will use data from VBF with one BSM coupling. The samples used for this are **S(1,0),S(1,2), S(1,1), S(1,3), S(0,1)**.  The full mixture model **S(1,1.5)** can be considered a weighted sum of those samples.  
+## Morphing Data for VBF Higgs production with 1 BSM coupling
 
-First we will start by fitting the coefficients directly (in the real case each coefficient is a non-linear combination of two variables). We know that the coefficients are *C1 = [-0.0625, 0.5625, 0.5625, -0.0625, 0.5625]* for F1 and for background we will use an only Standard Model hypothesis *S(1.,0)* (for maximum likelihood of the signal coefficients the background hypothesis is not important). 
-Note that some of the coefficients are negative, that must be carefully considered in the algorithm to avoid negative probabilities. 
-We also know the cross section for each sample *xs = [0.1149,8.469,1.635, 27.40, 0.1882]* and we have data generated from **S(1,1.5)**.
+Using Morphing Methods one can construct an arbitrary sample using a set of base samples related by a set of coupling constants. The morphed sampled can be written as 
+**S(g1,g2,...) = sum(Wi(g1,g2,...)Si(g1,g2,...))**, g1,g2 are coupling constants, Si input samples and Wi its weights. The minimum number of input samples needed is related with the 
+number of shared coupling constants in production and decay and the number of coupling constants only in production or decay. The morphed sample it is a mixture model and the ratio between 
+two morphed samples **S(g1,g2,...)** and **S(g1',g2',...)** can be decomposed and approximated using discriminative classifiers as shown before. 
 
-A *boosted tree model* is trained in each pair of samples using the library *xgboost*. The score distribution obtained for each one of the pairs are shown in the next image 
+We will use data from VBF Higgs production with 1 
+BSM coupling. For this only 5 base samples are needed (a good selection of base samples is needed in order to minimize statistical uncertainty). The base samples used for morphing are **S(1,0),S(1,2), S(1,1), S(1,3), S(0,1)**. As validation sample we use **S(1.,1.5)**. We also know that the weights corresponding to the validation sample with the base samples mentioned before are *C1 = [-0.0625, 0.5625, 0.5625, -0.0625, 0.5625]* and the cross section values for each base sample are *[0.1149,8.469,1.635, 27.40, 0.1882]*.
+ 
+Some of the pairwise distributions are represented using scatter plots for a subset of features (indicated in the column and row of the grid of plots). 
 
+ S(1,0)-S(0,1)  | S(1,0)-S(1,1)
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec_truth_S10_S01_grid.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec_truth_S10_S11_grid.png" width="350" >
+ S(1,0)-S(1,2)  |  S(1,1)-(0,1)
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec_truth_S10_S12_grid.png" width="350">  |<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec_truth_S11_S01_grid.png" width="350">
+
+We start by training a **Boosted Decision Tree** (using the library *xgboost*) in each pair samples. The score distribution obtained for each one of the pairs is shown next
  S(1,0)-S(1,2),S(1,0)-S(1,1),S(1,0)-S(1,3) | S(1,0)-S(0,1),S(1,2)-S(1,1),S(1,2)-S(1,3)
 :-------------------------:|:-------------------------:
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec0_all_xgboost_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec1_all_xgboost_hist.png" width="350" >
@@ -451,27 +461,38 @@ The ROC curves for each one of the pairwise trained classifiers, using the ratio
  S(1,2)-S(0,1),S(1,1)-S(1,3),S(1,3)-S(0,1)  | 
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all2_comparison_xgboost_roc.png" width="350">  
 
-To evaluate the classification capacity of the algorithmn we compare the decomposed method with a BDT trained on the full data on the samples *S(1.,1.5)* as signal and *S(1,0)* (only SM) as background. First, the ratio histograms for both methods are shown
-
-![All Ratios](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ratio_comparison_xgboost_hist.png)
-
-Next, the Signal Efficiency - Background Rejection curves for the decomposed method and the full trained method are shown.
+To evaluate the classification capacity of the algorithmn we compare the decomposed method with a BDT trained on the full data on the samples *S(1.,1.5)* as signal and *S(1,0)* (only SM) as background. 
+The Signal Efficiency - Background Rejection curves for the decomposed method and the full trained method are shown next.
 
 ![All ROC](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_all_xgboost_sigbkg.png)
 
-It is clear that the decomposed method do a much better job in the task of classification on *S(1.,1.5)* vs. *S(1.,0.)*.
+In this case, the full trained classifier behave better than the pairwise, mainly because some of the pairwise distributions are very similar and hard to classify, more analysis must be done on this
+since there is a lot of room for improvement of the training. Anyway, it should be noted that meanwhile the full trained classifier is only optimum for the sample *S(1.,1.5)* and must be retrained 
+for any new sample, the pairwise classifier is optimum for any combination of samples and there is no need of retraining (only a change of coupling constants in the formula is needed).
+#It is clear that the decomposed method do a much better job in the task of classification on *S(1.,1.5)* vs. *S(1.,0.)*.
 
-Now, we will see if it is possible to identify the coefficient *C1[0]* for *S(1,0)* by using maximum likelihood on the composed ratios and assuming the other coefficients known. The histogram for values obtained in 300 pseudo samples of size 2500 is shown next. 
+By using the morphing and the decomposed trained classifiers we are able to identify the coupling constants of an arbitrary sample by using **Maximum Likeligood**. In this case we will fit the coefficients for the sample **S(1.,1.5)** keeping the background distribution **S(1,0)** constant. 
 
-![hist c0](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/c1_train_mlp_hist.png)
+#First, we should mention that special care must be take in the choice of basis in order to avoid high statistical undertainties in the morphing method. If we define *Neff = sum(WiXi)* where Wi are the weights obtained by the morphing method and Xi the cross section of each sample, then  
 
-It is clear that the method is able to identify with high sensitivity the correct value of *C1[0]*..
+#Now, we will see if it is possible to identify the coefficient *C1[0]* for *S(1,0)* by using maximum likelihood on the composed ratios and assuming the other coefficients known. The histogram for values obtained in 300 pseudo samples of size 2500 is shown next. 
 
-In the real case what we should fit is the values **g1,g2** for *S(g1,g2)*. Each coefficient on 
-the weighted sum is a non linear function of *g1* and *g2*. For *g1=1.0* and *g2=1.5* the values of
-the corresponding coefficients are *C1 = [-0.0625, 0.5625, 0.5625, -0.0625, 0.5625]*.
+#![hist c0](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/c1_train_mlp_hist.png)
 
-Next, histogram for fitted values of *g1*(assumed *g2* known) and *g2*(assumed *g1* known) are shown. Each histogram correspond to 300 pseudo samples of size 5000. 
+#It is clear that the method is able to identify with high sensitivity the correct value of *C1[0]*..
+
+#In the real case what we should fit is the values **g1,g2** for *S(g1,g2)*. Each coefficient on 
+#the weighted sum is a non linear function of *g1* and *g2*. For *g1=1.0* and *g2=1.5* the values of
+#the corresponding coefficients are *C1 = [-0.0625, 0.5625, 0.5625, -0.0625, 0.5625]*.
+
+#Next, histogram for fitted values of *g1*(assumed *g2* known) and *g2*(assumed *g1* known) are shown. Each histogram correspond to 300 pseudo samples of size 5000. 
+We start by fitting *g1* by keeping *g2=1.5* constant and *g2* by keeping *g1=1.* constant. The plots for the fit are shown next
+
+ g1                         | g2
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_likelihood_g1.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_likelihood_g2.png" width="350" >
+
+Both fits are pretty close to the real values, we can check that both values are unbiased estimator of the fitted values in the next histograms, using 300 pseudo samples of size 5000.
 
  g1                         | g2
 :-------------------------:|:-------------------------:
@@ -479,11 +500,8 @@ Next, histogram for fitted values of *g1*(assumed *g2* known) and *g2*(assumed *
 
 It can be seen that the fit is working very good for the values of g1 and g2. The method is able to identify with high precision the real value of the coefficients.
 
-Finally, we will study if it is possible to fit both values *g1,g2* at the same time by using Maximum Likelihood. The mean values of the fit of both values for 750 pseudo samples of size 5000 are shown next
+Finally, we will study if it is possible to fit both values *g1,g2* at the same time by using Maximum Likelihood. The mean values of the fit of both values for 450 pseudo samples of size 5000 are shown next
 
- Coefficient              | mean ± std.          
-:------------------------:|:------------------------:
- g1                       | 1.00112 ± 0.160
- g2                       | 1.5373 ± 0.2389
+![hist c0](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/g1g2_train_mlp_hist.png)
 
 Both values are pretty close to the real values (1.0 and 1.5). this shows the great capacity of the method to identify values of parameters on real data distributions by using Maximum Likelihood. 
