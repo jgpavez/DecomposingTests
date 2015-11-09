@@ -447,6 +447,7 @@ Some of the pairwise distributions are represented using scatter plots for a sub
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec_truth_S10_S12_grid.png" width="350">  |<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec_truth_S11_S01_grid.png" width="350">
 
 We start by training a **Boosted Decision Tree** (using the library *xgboost*) in each pair samples. The score distribution obtained for each one of the pairs is shown next
+
  S(1,0)-S(1,2),S(1,0)-S(1,1),S(1,0)-S(1,3) | S(1,0)-S(0,1),S(1,2)-S(1,1),S(1,2)-S(1,3)
 :-------------------------:|:-------------------------:
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec0_all_xgboost_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec1_all_xgboost_hist.png" width="350" >
@@ -469,23 +470,9 @@ The Signal Efficiency - Background Rejection curves for the decomposed method an
 In this case, the full trained classifier behave better than the pairwise, mainly because some of the pairwise distributions are very similar and hard to classify, more analysis must be done on this
 since there is a lot of room for improvement of the training. Anyway, it should be noted that meanwhile the full trained classifier is only optimum for the sample *S(1.,1.5)* and must be retrained 
 for any new sample, the pairwise classifier is optimum for any combination of samples and there is no need of retraining (only a change of coupling constants in the formula is needed).
-#It is clear that the decomposed method do a much better job in the task of classification on *S(1.,1.5)* vs. *S(1.,0.)*.
 
 By using the morphing and the decomposed trained classifiers we are able to identify the coupling constants of an arbitrary sample by using **Maximum Likeligood**. In this case we will fit the coefficients for the sample **S(1.,1.5)** keeping the background distribution **S(1,0)** constant. 
 
-#First, we should mention that special care must be take in the choice of basis in order to avoid high statistical undertainties in the morphing method. If we define *Neff = sum(WiXi)* where Wi are the weights obtained by the morphing method and Xi the cross section of each sample, then  
-
-#Now, we will see if it is possible to identify the coefficient *C1[0]* for *S(1,0)* by using maximum likelihood on the composed ratios and assuming the other coefficients known. The histogram for values obtained in 300 pseudo samples of size 2500 is shown next. 
-
-#![hist c0](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/c1_train_mlp_hist.png)
-
-#It is clear that the method is able to identify with high sensitivity the correct value of *C1[0]*..
-
-#In the real case what we should fit is the values **g1,g2** for *S(g1,g2)*. Each coefficient on 
-#the weighted sum is a non linear function of *g1* and *g2*. For *g1=1.0* and *g2=1.5* the values of
-#the corresponding coefficients are *C1 = [-0.0625, 0.5625, 0.5625, -0.0625, 0.5625]*.
-
-#Next, histogram for fitted values of *g1*(assumed *g2* known) and *g2*(assumed *g1* known) are shown. Each histogram correspond to 300 pseudo samples of size 5000. 
 We start by fitting *g1* by keeping *g2=1.5* constant and *g2* by keeping *g1=1.* constant. The plots for the fit are shown next
 
  g1                         | g2
