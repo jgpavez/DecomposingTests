@@ -1,10 +1,22 @@
 ## Decomposing tests between mixture models into their components 
-## Simple Case
 
 This work is based on the section **5.4 Decomposing tests between mixture models into their components** 
 of the paper [Approximating Likelihood Ratios with Calibrated Discriminative Classifiers]
 (http://arxiv.org/abs/1506.02169) by Kyle Cranmer.
 
+The analysis is divided in the next sections:
+* Simple Case (1D)
+  * Identifying the signal coefficient by fitting (1D)
+* N-dimensions
+  * Varying the signal presence
+  * Identifying the signal coefficient by fitting (ND)
+* N-dimensions Private Model
+  * Identifying the signal coefficient by fitting (Private)
+  * How training affect ratios
+* Morphing Data for VBF Higgs production with 1 BSM coupling
+
+
+## Simple Case
 We start with a simple model composed of three 1-Dim pdfs. This allow us to check visually the quallity of the 
 Ratios. The pdfs are shown next
 
@@ -430,13 +442,13 @@ Finally the ratio histograms for this model are shown next,
 
 ## Morphing Data for VBF Higgs production with 1 BSM coupling
 
-Using Morphing Methods one can construct an arbitrary sample using a set of base samples related by a set of coupling constants. The morphed sampled can be written as 
-**S(g1,g2,...) = sum(Wi(g1,g2,...)Si(g1,g2,...))**, g1,g2 are coupling constants, Si input samples and Wi its weights. The minimum number of input samples needed is related with the 
+Using [Morphing Methods](https://cds.cern.ch/record/2065188) one can construct an arbitrary sample using a set of base samples related by a set of coupling constants. The morphed sampled can be written as 
+**S(g1,g2,...) = sum(Wi(g1,g2,...)Si(g1,g2,...))**, where g1,g2 are coupling constants, Si input samples and Wi its weights. The minimum number of input samples needed is related with the 
 number of shared coupling constants in production and decay and the number of coupling constants only in production or decay. The morphed sample it is a mixture model and the ratio between 
 two morphed samples **S(g1,g2,...)** and **S(g1',g2',...)** can be decomposed and approximated using discriminative classifiers as shown before. 
 
 We will use data from VBF Higgs production with 1 
-BSM coupling. For this only 5 base samples are needed (a good selection of base samples is needed in order to minimize statistical uncertainty). The base samples used for morphing are **S(1,0),S(1,2), S(1,1), S(1,3), S(0,1)**. As validation sample we use **S(1.,1.5)**. We also know that the weights corresponding to the validation sample with the base samples mentioned before are *C1 = [-0.0625, 0.5625, 0.5625, -0.0625, 0.5625]* and the cross section values for each base sample are *[0.1149,8.469,1.635, 27.40, 0.1882]*.
+BSM coupling. For this only 5 base samples are needed (a good selection of base samples is needed in order to minimize statistical uncertainty). The base samples used for morphing are **S(1,0),S(1,2), S(1,1), S(1,3), S(0,1)**. As validation sample we use **S(1.,1.5)**. We also know that the weights corresponding to the validation sample with the base samples mentioned before are *W = [-0.0625, 0.5625, 0.5625, -0.0625, 0.5625]* and the cross section values for each base sample is *[0.1149,8.469,1.635, 27.40, 0.1882]*.
  
 Some of the pairwise distributions are represented using scatter plots for a subset of features (indicated in the column and row of the grid of plots). 
 
@@ -446,7 +458,7 @@ Some of the pairwise distributions are represented using scatter plots for a sub
  S(1,0)-S(1,2)  |  S(1,1)-(0,1)
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec_truth_S10_S12_grid.png" width="350">  |<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec_truth_S11_S01_grid.png" width="350">
 
-We start by training a **Boosted Decision Tree** (using the library *xgboost*) in each pair samples. The score distribution obtained for each one of the pairs is shown next
+We start by training a **Boosted Decision Tree** (using the library *xgboost*) in each pair of samples. The score distribution obtained for each one of the pairs is shown next
 
  S(1,0)-S(1,2),S(1,0)-S(1,1),S(1,0)-S(1,3) | S(1,0)-S(0,1),S(1,2)-S(1,1),S(1,2)-S(1,3)
 :-------------------------:|:-------------------------:
@@ -454,15 +466,15 @@ We start by training a **Boosted Decision Tree** (using the library *xgboost*) i
  S(1,2)-S(0,1),S(1,1)-S(1,3),S(1,3)-S(0,1)  | 
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec2_all_xgboost_hist.png" width="350">  |
 
-The ROC curves for each one of the pairwise trained classifiers, using the ratio as discriminative variable, are shown next.
+Following, the ROC curves for each one of the pairwise trained classifiers, using the ratio as discriminative variable are shown.
 
  S(1,0)-S(1,2),S(1,0)-S(1,1),S(1,0)-S(1,3) | S(1,0)-S(0,1),S(1,2)-S(1,1),S(1,2)-S(1,3)
 :-------------------------:|:-------------------------:
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all0_comparison_xgboost_roc.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all1_comparison_xgboost_roc.png" width="350" >
  S(1,2)-S(0,1),S(1,1)-S(1,3),S(1,3)-S(0,1)  | 
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all2_comparison_xgboost_roc.png" width="350">  
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all2_comparison_xgboost_roc.png" width="350"> | 
 
-To evaluate the classification capacity of the algorithmn we compare the decomposed method with a BDT trained on the full data on the samples *S(1.,1.5)* as signal and *S(1,0)* (only SM) as background. 
+To evaluate the classification capacity of the algorithmn we compare the decomposed method with a BDT trained on the full data on the sample *S(1.,1.5)* as signal and *S(1,0)* (only SM) as background. 
 The Signal Efficiency - Background Rejection curves for the decomposed method and the full trained method are shown next.
 
 ![All ROC](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_all_xgboost_sigbkg.png)
@@ -473,13 +485,13 @@ for any new sample, the pairwise classifier is optimum for any combination of sa
 
 By using the morphing and the decomposed trained classifiers we are able to identify the coupling constants of an arbitrary sample by using **Maximum Likeligood**. In this case we will fit the coefficients for the sample **S(1.,1.5)** keeping the background distribution **S(1,0)** constant. 
 
-We start by fitting *g1* by keeping *g2=1.5* constant and *g2* by keeping *g1=1.* constant. The plots for the fit are shown next
+We start by fitting *g1* and keeping *g2=1.5* constant and *g2* by keeping *g1=1.* constant. The plots for the fit are shown next
 
  g1                         | g2
 :-------------------------:|:-------------------------:
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_likelihood_g1.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_likelihood_g2.png" width="350" >
 
-Both fits are pretty close to the real values, we can check that both values are unbiased estimator of the fitted values in the next histograms, using 300 pseudo samples of size 5000.
+Both fits are pretty close to the real values, we can check that both are unbiased estimator of the fitted values in the next histograms, using 300 pseudo samples of size 5000.
 
  g1                         | g2
 :-------------------------:|:-------------------------:
@@ -491,4 +503,4 @@ Finally, we will study if it is possible to fit both values *g1,g2* at the same 
 
 ![hist c0](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/g1g2_train_mlp_hist.png)
 
-Both values are pretty close to the real values (1.0 and 1.5). this shows the great capacity of the method to identify values of parameters on real data distributions by using Maximum Likelihood. 
+Both values are pretty close to the real values (1.0 and 1.5), this shows the great capacity of the method to identify values of parameters on real data distributions by using Maximum Likelihood. 
