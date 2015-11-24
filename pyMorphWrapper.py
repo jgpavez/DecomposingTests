@@ -1,15 +1,18 @@
 '''
 Simple python Wrapper for EFT Morphing code
-
 author: jpavezse
 '''
 
-from ctypes import *
 
+from ctypes import *
+import numpy as np
+import pdb
+import time
+from itertools import combinations
 
 #reading C++ library
 lib = cdll.LoadLibrary('./RandomEFT/RandomEFT/libcMorphWrapper.so')
-lib.getWeights.restype = c_char_p
+#lib.getWeights.restype = c_char_p
 lib.getCrossSections.restype = c_char_p
 
 class MorphingWrapper:
@@ -22,28 +25,40 @@ class MorphingWrapper:
     #'Nsamples Ncouplings types[P|D|S]*Ncouplings target sample1 sample2 ...'
     # where target are the N couplings of the sample to morph and sample* 
     # N couplings of each sample
-
+    self.string_data = data
     s_data = create_string_buffer(data)
     lib.setSampleData(self.obj,s_data)
   
-  def setSampleData(self,nsamples,ncouplings,types,morphed,samples):
+  def getStringData(self):
+    string_data = '{0} {1} '.format(self.nsamples,self.ncouplings)
+    string_data = string_data + ' '.join(str(x) for x in self.types) + ' '
+    string_data = string_data + ' '.join(str(x) for x in self. morphed) + ' '
+    string_data = string_data + ' '.join(str(x) for sample in self.basis for x in sample)
+    return string_data
+
+  def setSampleData(self,nsamples,ncouplings,types,morphed,samples,ncomb=20):
+    lib.getWeights.restype = POINTER(c_float*nsamples)
     self.nsamples = nsamples
     self.ncouplings = ncouplings
     self.types = types
     self.morphed = morphed
     self.samples = samples
-    string_data = '{0} {1} '.format(nsamples,ncouplings)
-    string_data = string_data + ' '.join(str(x) for x in types) + ' '
-    string_data = string_data + ' '.join(str(x) for x in morphed) + ' '
-    string_data = string_data + ' '.join(str(x) for samples in samples_values for x in samples)
+    self.basis = samples[:self.nsamples]
+    self.ncomb = ncomb 
+    string_data = self.getStringData()
     self.setStringData(string_data)
 
+  def resetBasis(self, sample):
+    self.basis = sample
+    string_data = self.getStringData()
+    self.setStringData(string_data)
 
   def getWeights(self):
     # Return computed weights for each sample
 
     s = lib.getWeights(self.obj)
-    return [float(x) for x in s.split()]
+    return [float(x) for x in s.contents]
+    #return [float(x) for x in s.split()]
 
   def getCrossSections(self):
     # Return cross section for each one of the samples 
@@ -64,9 +79,8 @@ class MorphingWrapper:
       return 4*osm*((ca**4)*((ksm**4) + c_[0]*(ksm**3)*khzz + c_[1]*(ksm**2)*(khzz**2) + c_[2]*ksm*(khzz**3) + c_[3]*(khzz**4)) +\
         (ca**2)*(sa**2)*(c_[4]*(ksm**2)*(kazz**2) + c_[5]*ksm*khzz*(kazz**2) + c_[6]*(khzz**2)*(kazz**2)) + (sa**4)*c_[7]*(kazz**4))
 
-    print self.samples
     cross_sections = []
-    for sample in self.samples:
+    for sample in self.basis:
       ksm = sample[0]
       khzz = 16.247*sample[1]
       kazz = 16.247*sample[2]
@@ -74,6 +88,39 @@ class MorphingWrapper:
 
     return cross_sections
 
+  def computeNeff(self,basis,samples):
+    basis = [samples[b] for b in basis]
+    self.resetBasis(basis)
+    weights = np.array(self.getWeights())
+    #print weights
+    cross_sections = np.array(self.getCrossSections())
+    n_tot = (np.abs(np.multiply(weights,cross_sections))).sum()
+    n_eff = (np.multiply(weights,cross_sections)).sum()
+    return np.abs(n_eff / n_tot)
+
+
+  def dynamicMorphing(self):
+    # TODO: Have to check the condition number and det
+    # This function will work in case you have more samples that needed
+    samples = self.samples[:]
+    #samples.sort(key=lambda x: np.sqrt(np.sum((np.array(x)-self.morphed)**2)))
+    indexes = sorted(range(len(samples)),  key=lambda x: np.sqrt(np.sum((np.array(samples[x])-self.morphed)**2)))
+    #print [np.sqrt(np.sum((np.array(samples[x])-self.morphed)**2)) for x in indexes]
+    #samples = samples[indexes][:self.ncomb]
+    comb = list(combinations(indexes[:self.ncomb],self.nsamples))
+    start = time.time()
+    best = sorted(comb,key=lambda x: self.computeNeff(x,samples),reverse=True)[0]
+    end = time.time()
+    print 'elapsed time : {0}'.format(end-start)
+    print 'n_eff: {0}'.format(self.computeNeff(best,samples))
+    #print [self.computeNeff(x) for x in comb[:20]]
+    #pdb.set_trace()
+    self.resetBasis([samples[b] for b in best])
+
+    return best
+
+
+'''
 ncouplings = 3
 nsamples = 15
 
@@ -96,3 +143,4 @@ cs = morph.getCrossSections()
 
 #print s
 print cs
+'''

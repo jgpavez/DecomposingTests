@@ -12,6 +12,7 @@
 #include <iostream> 
 #include <string>
 #include <sstream>
+#include <iomanip>
  
 using namespace std;
 
@@ -19,8 +20,10 @@ using namespace std;
 // and cross section computation
 class MorphWrapper{
 public:
+  MorphWrapper(){ weights = new float[nsamples]; };
+  ~MorphWrapper(){ delete weights; };
   void setSampleData(const char *in_data);
-  const char * getWeights();
+  float * getWeights();
   const char * getCrossSections();
   void printData();
 
@@ -33,11 +36,15 @@ private:
   vector<vector<float> > dec;
   vector<vector<float> > same;
   vector<vector<float> > samples;
+  float *weights;
 };
 
 void MorphWrapper::setSampleData(const char *in_data){
+  // Resetting old data in case is being called again
+  morphed.clear(); types.clear(); prod.clear(); dec.clear(); same.clear(); samples.clear(); 
+
   string data_string(in_data,strlen(in_data));
-  cout << in_data << endl;
+  //cout << in_data << endl;
 
   stringstream ss(data_string);
   // read n samles and ncouplings
@@ -67,10 +74,9 @@ void MorphWrapper::setSampleData(const char *in_data){
       samples[i].push_back(sample_coupling);
     }
   }
-  cout<<"Basis samples "<<endl;
+  //cout<<"Basis samples "<<endl;
   //calculating N eff for this basis.   
   // making vectors of couplings for this basis
-
   for(unsigned int i  = 0; i<nsamples; ++i)
   {
     vector<float> s = samples[i];
@@ -79,13 +85,13 @@ void MorphWrapper::setSampleData(const char *in_data){
     vector<float>  dec_l; 
     vector<float>  same_l; 
 
-    cout<<endl;
+    //cout<<endl;
 
-    cout<<"{";
+    //cout<<"{";
     for (unsigned int j  = 0; j<ncouplings; ++j)
     {
-      cout<< s[j];
-      if(j<(ncouplings-1)) cout<<"," << " ";
+      //cout<< s[j];
+      //if(j<(ncouplings-1)) cout<<"," << " ";
       if(types[j] == "P")      prod_l.push_back(s[j]);
       else if(types[j] == "D") dec_l.push_back(s[j]);
       else if(types[j] == "S") same_l.push_back(s[j]);
@@ -94,7 +100,7 @@ void MorphWrapper::setSampleData(const char *in_data){
 
       }//end of the type selection loop                                                                                                                                      
     }//end of sample couplings print loop                                                                                                                                   
-    cout<< "}," << endl;
+    //cout<< "}," << endl;
 
 
     prod.push_back(prod_l);
@@ -104,10 +110,9 @@ void MorphWrapper::setSampleData(const char *in_data){
   }//end of loop over all the samples
 }
 
-const char* MorphWrapper::getWeights(){
+float* MorphWrapper::getWeights(){
   //morphing class  
   EFTMorphing * mph  = new EFTMorphing(prod, dec, same);
-
   //vector of input couplings for testing point:
   //same size and same order as basis  
   //have to change this
@@ -115,21 +120,23 @@ const char* MorphWrapper::getWeights(){
   vector<float> test_d;
   vector<float> test_s;
   
+
   for (unsigned int j  = 0; j<ncouplings; ++j)
   {
     if(types[j] == "P")      test_p.push_back(morphed[j]);
     else if(types[j] == "D") test_d.push_back(morphed[j]);
     else if(types[j] == "S") test_s.push_back(morphed[j]);
   }//end of sample couplings print loop                                                                                                                                   
-  cout << "MORPHING VALUES" << endl;
+  //cout << "MORPHING VALUES" << endl;
   vector<float> mc =  mph->morphingCoefficients(test_p, test_d, test_s);
 
   ostringstream out_data;
 
   for(unsigned int i =0;i<mc.size();++i) 
   { 
-    cout << mc[i] << endl;
-    out_data << mc[i] << ' ';
+    //cout << fixed << setw( 11 ) << setprecision( 6 ) << mc[i] << endl;
+    weights[i] = mc[i];
+    out_data <<  fixed << setw( 11 ) << setprecision( 6 ) << mc[i] << ' ';
     //n_eff += mc[i] * cross_sections[i];
     //cs_norm += TMath::Abs(mc[i])* cross_sections[i];
   }
@@ -140,8 +147,10 @@ const char* MorphWrapper::getWeights(){
 
   //memory cleanup
   delete mph;
-
-  return out_data.str().c_str() ;
+  mph = 0L;
+  // TODO: This can bee dangereous, have to look for other options
+  //return out_data.str().c_str() ;
+  return weights;
 }
 
 const char* MorphWrapper::getCrossSections(){
@@ -173,12 +182,11 @@ const char* MorphWrapper::getCrossSections(){
     kSM = samples[i][0];
     kHZZ = samples[i][1]*16.247;
     kAZZ = samples[i][2]*16.247;
-    cout << kSM << ' ' << kHZZ << ' ' << kAZZ << endl;
     cs = eft_cs->vbfToDiFermions(kSM, kHZZ, kAZZ, kHWW, kAWW, kHdZ,  
                                       kHdWR, kHdWI, kHgamgam, kAgamgam, 
                                       kHZgam, kAZgam, kHdgam, kHgg, 
                                       kAgg, calpha,dec_f);
-    cout << cs << endl;
+    //cout << cs << endl;
     out_data << cs << ' ';
 
   }
@@ -189,7 +197,7 @@ const char* MorphWrapper::getCrossSections(){
 extern "C"{
   MorphWrapper* MorphingWrapperNew(){ return new MorphWrapper(); }
   void setSampleData(MorphWrapper *mw,const char* in_data){return mw->setSampleData(in_data);}
-  const char* getWeights(MorphWrapper *mw){ return mw->getWeights();}
+  float* getWeights(MorphWrapper *mw){ return mw->getWeights();}
   const char* getCrossSections(MorphWrapper *mw){return mw->getCrossSections();}
 }
 
