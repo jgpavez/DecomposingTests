@@ -265,7 +265,7 @@ if __name__ == '__main__':
         max_depth=4, random_state=0),
         'mlp':'',
         'xgboost': XGBoostClassifier(missing=-999.,num_class=2, nthread=4, silent=0,
-          num_boost_round=1000, eta=0.5, max_depth=6)}
+          num_boost_round=50, eta=0.5, max_depth=8)}
   clf = None
   if (len(sys.argv) > 1):
     model_g = sys.argv[1]
@@ -282,6 +282,7 @@ if __name__ == '__main__':
   
   mypath = dir + '/data/mlp/2BSM'
   data_files = [f[5:-4] for f in listdir(mypath) if isfile(join(mypath, f)) and f.startswith('data')]
+  print data_files
 
   def processString(file_str):
     file_str = file_str.split('_') 
@@ -298,33 +299,92 @@ if __name__ == '__main__':
         res.append(neg * float(s_str))
     return res
 
-  couplings = [processString(f) for f in data_files]
-  basis_files = data_files[:15]
-  basis = couplings[1:16]
+  all_couplings = [processString(f) for f in data_files]
+  basis_files = data_files[1:]
+  basis = all_couplings[1:]
   f1_dist = data_files[0]
-  f0_dist = data_files[-1]
-  c1 = np.array(couplings[0])
-  c0 = np.array(couplings[-1])
-
-  #c1 = np.array([1.,0.])
-  #cross_section = np.array([0.1149,8.469,1.635, 27.40, 0.1882])
-  #c0 = np.multiply(c0,cross_section)
-  #cross_section = None
-  #c1 = c1/c1.sum()
-  c0 = c0/c0.sum()
-  print c0
-  print c1
-  c1_g = ''
+  f0_dist = data_files[3]#Using 1_1_0
+  morphed = all_couplings[0]
   c1_g = '2BSM'
-  print c1_g
 
-  morph = MorphingWrapper()    
-  morph.setSampleData(nsamples=15,ncouplings=3,types=['S','S','S'],morphed=c1,samples=couplings[1:])
-  basis_indexes = morph.dynamicMorphing()
-  basis_files = [data_files[i] for i in basis_indexes]
-  basis = [couplings[i] for i in basis_indexes] 
-  couplings = np.array(morph.getWeights())
-  cross_section = np.array(morph.getCrossSections())
+  #morph = MorphingWrapper()    
+  #morph.setSampleData(nsamples=15,ncouplings=3,types=['S','S','S'],morphed=morphed,samples=all_couplings)
+  #basis_indexes = morph.dynamicMorphing()
+  #basis_files = [data_files[i] for i in basis_indexes]
+  #basis = [all_couplings[i] for i in basis_indexes] 
+  #couplings = np.array(morph.getWeights())
+  #cross_section = np.array(morph.getCrossSections())
+  #pdb.set_trace()
+  basis_indexes = [15, 19, 6, 21, 20, 24, 15, 17, 23, 11, 12, 22, 16, 5, 9]
+  basis_files = [basis_files[i] for i in basis_indexes]
+  basis = [basis[i] for i in basis_indexes] 
+  couplings = np.array([  8.0625    ,   0.04166675,  10.8125    ,   0.7782737 ,
+        35.98204041,   7.71840429,   5.74050045,   5.25005674,
+        19.89099693,  20.37686539,  10.0357542 ,  21.91056824,
+         0.65301228,   3.71593142,  19.95527649])
+  cross_section = np.array([  0.72753178,   0.17189144,   0.52275165,   3.90910227,
+         2.50304355,   3.68695864,   0.72753178,   0.21662377,
+        10.33017995,  58.08554602,  35.75995451,   3.90910227,
+         0.36000962,   1.13599184,  29.05239118])
+
+  '''
+  basis_indexes = [7, 16, 2, 1, 18, 5, 4, 0, 13, 22, 10, 20, 14, 11, 24]
+  basis_files = [basis_files[i] for i in basis_indexes]
+  basis = [basis[i] for i in basis_indexes] 
+  couplings = np.array([ 1.91366732e+00,   2.47283196e+00,   1.57382786e-02,
+        -4.58868742e-01,  -3.86966467e+00,   5.25740802e-01,
+         1.70577914e-02,   3.71695422e-02,   3.47625077e-01,
+        -4.52819690e-02,   9.70078185e-02,  -1.94446463e-02,
+        -2.68758778e-02,   5.68656178e-05,  -6.75892923e-03])
+  cross_section = np.array([0.48637711,   0.36000962,   4.21623804,   0.45986807,
+         0.19756027,   1.13599184,   5.05110374,   1.63185362,
+         0.55535416,   3.90910227,  35.75995451,   2.50304355,
+         0.72753178,  58.08554602,   3.68695864])
+  '''
+
+  #bkg_morphed = all_couplings[3]
+  #morph = MorphingWrapper()    
+  #morph.setSampleData(nsamples=15,ncouplings=3,types=['S','S','S'],morphed=bkg_morphed,samples=basis)
+  #bkg_couplings = np.array(morph.getWeights())
+  #bkg_cross_section = np.array(morph.getCrossSections())
+  #pdb.set_trace()  
+  ''' 
+  c0 = np.array([ -2.76157355e+00,   4.41163361e-01,  -1.00578892e+00,
+         6.01073429e-02,  -1.46776285e+01,   5.45841396e-01,
+        -5.05605750e-02,   1.32171893e+00,  -4.56396230e-02,
+         1.17458906e-02,   7.18578249e-02,   1.73555489e+01,
+        -1.70041263e-01,  -1.00364551e-01,   3.61182448e-03])
+  c0_cross_section = np.array([  0.52275165,   0.72753178,   0.45986807,   1.63185362,
+         0.21662377,   5.05110374,   7.69338217,   5.05110374,
+        35.75995451,   3.90910227,  29.05239118,   0.17189144,
+         0.55535416,  35.75995451,  10.33017995]) 
+  c0 = np.multiply(c0,c0_cross_section)
+
+  # Considering background as 1,1,0
+  c0 = np.array([  5.        ,  -0.33333349,  -4.39285707,  47.50322723,
+         5.39236307,   6.67031336,   0.46575356,  -0.34352303,
+         4.70266438,   4.09168863,   7.60000801,   6.89566898,
+         3.80555463,   2.91366005,  10.47156906])  
+  c0_cross_section = np.array([  0.72753178,   0.19756027,   1.13599184,   2.50304355,
+         0.17189144,  10.33017995,   0.72753178,   0.36000962,
+         3.90910227,  35.75995451,  58.08554602,   3.90910227,
+         0.72753178,   5.05110374,   0.35444307])
+  c0 = np.multiply(c0,c0_cross_section)
+
+  c1 = couplings
+  c0 = np.array([1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
+  f0_dist = basis_files[0]
+  print basis_files
+  print f1_dist
+  print f0_dist
+  '''
+  c1 = couplings
+  #c0 = np.ones(couplings.shape[0])
+  c0 = np.array([1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
+  print f1_dist
+  print f0_dist
+  print c1
+  print c0
 
   # features
   vars_g = ["Z1_E","Z1_pt","Z1_eta","Z1_phi","Z1_m","Z2_E","Z2_pt","Z2_eta","Z2_phi","Z2_m","higgs_E","higgs_pt","higgs_eta","higgs_phi","higgs_m","DelPhi_Hjj","mH","pT_Hjj","DelEta_jj","EtaProd_jj","DelY_jj","DelPhi_jj","DelR_jj","Mjj","Mjets","njets","jet1_E","jet1_eta","jet1_y","jet1_phi","jet1_pt","jet1_m","jet1_isPU","jet2_E","jet2_phi","jet2_eta","jet2_y","jet2_pt","jet2_m","jet2_isPU","DelPt_jj","minDelR_jZ","DelPt_ZZ","Zeppetaj3","ZeppetaZZ","jet3_E","jet3_eta","jet3_phi","jet3_pt","jet3_m","jet3_isPU"]
@@ -340,35 +400,38 @@ if __name__ == '__main__':
     random_seed = int(sys.argv[3])
     ROOT.RooRandom.randomGenerator().SetSeed(random_seed) 
   # Checking correct cross section 
-  for i in range(5):
-    checkCrossSection(couplings,cross_section,basis_files,f1_dist,dir,c1_g,model_g,feature=i)
-  pdb.set_trace()
+  #for i in range(5):
+  #  checkCrossSection(couplings,cross_section,basis_files,f1_dist,dir,c1_g,model_g,feature=i)
+  #pdb.set_trace()
 
   set_size = np.zeros(len(data_files))
 
+  train_files = data_files
+  train_n = len(train_files)
   scaler = None
   # train the pairwise classifiers
-  scaler = trainClassifiers(clf,c0,c1,workspace=workspace_file,dir=dir, model_g=model_g,
-      c1_g=c1_g ,model_file='model',data_file='data',dataset_names=data_files,preprocessing=False,
-      seed=random_seed, full_names=[f0_dist,f1_dist])
-  pdb.set_trace()
+  #scaler = trainClassifiers(clf,train_n,dir=dir, model_g=model_g,
+  #    c1_g=c1_g ,model_file='model',data_file='data',dataset_names=train_files,
+  #    preprocessing=False,
+  #    seed=random_seed, full_names=[f0_dist,f1_dist],vars_names=vars_g)
+  #pdb.set_trace()
 
   # class which implement the decomposed method
   test = DecomposedTest(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,
           input_workspace=workspace_file, verbose_printing = verbose_printing,
-          dataset_names=data_files,model_file='model',preprocessing=False,scaler=scaler,
-          seed=random_seed, F1_dist=f1_dist,F0_dist=f0_dist, cross_section=cross_section)
+          model_file='model',preprocessing=False,scaler=scaler, dataset_names=data_files,
+          seed=random_seed, F1_dist=f1_dist,F0_dist=f0_dist, cross_section=cross_section,
+          basis_indexes=basis_indexes,F1_couplings=morphed,all_couplings=all_couplings)
   #test.fit(data_file='data',importance_sampling=False, true_dist=False,vars_g=vars_g)
-  #test.computeRatios(true_dist=True,vars_g=vars_g,use_log=True) 
   #test.computeRatios(data_file='data',true_dist=False,vars_g=vars_g,use_log=False) 
 
   n_hist = 1050
   # compute likelihood for c0[0] and c0[1] values
-  #test.fitCValues(c0,c1,data_file='data', true_dist=False,vars_g=vars_g,use_log=False,
-  #          n_hist=n_hist, num_pseudodata=5000,weights_func=getWeights)
+  test.fitCValues(c0,c1,data_file='data', true_dist=False,vars_g=vars_g,use_log=False,
+            n_hist=n_hist, num_pseudodata=5000,weights_func=getWeights)
 
-  plotCValues(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=False,vars_g=vars_g,
-      workspace=workspace_file,use_log=False,n_hist=n_hist,c_eval=1,range_min=1.1,
-      range_max=1.9)
+  #plotCValues(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,true_dist=False,vars_g=vars_g,
+  #    workspace=workspace_file,use_log=False,n_hist=n_hist,c_eval=1,range_min=1.1,
+  #    range_max=1.9)
 
 
