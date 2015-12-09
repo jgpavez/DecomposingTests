@@ -454,30 +454,30 @@ Some of the pairwise distributions are represented using scatter plots for a sub
 
  S(1,0)-S(0,1)  | S(1,0)-S(1,1)
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec_truth_S10_S01_grid.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec_truth_S10_S11_grid.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ggf/dec_truth_S10_S01_grid.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ggf/dec_truth_S10_S11_grid.png" width="350" >
  S(1,0)-S(1,2)  |  S(1,1)-(0,1)
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec_truth_S10_S12_grid.png" width="350">  |<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec_truth_S11_S01_grid.png" width="350">
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ggf/dec_truth_S10_S12_grid.png" width="350">  |<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ggf/dec_truth_S11_S01_grid.png" width="350">
 
 We start by training a **Boosted Decision Tree** (using the library *xgboost*) in each pair of samples. The score distribution obtained for each one of the pairs is shown next
 
  S(1,0)-S(1,2),S(1,0)-S(1,1),S(1,0)-S(1,3) | S(1,0)-S(0,1),S(1,2)-S(1,1),S(1,2)-S(1,3)
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec0_all_xgboost_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec1_all_xgboost_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ggf/dec0_all_xgboost_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ggf/dec1_all_xgboost_hist.png" width="350" >
  S(1,2)-S(0,1),S(1,1)-S(1,3),S(1,3)-S(0,1)  | 
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/dec2_all_xgboost_hist.png" width="350">  |
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ggf/dec2_all_xgboost_hist.png" width="350">  |
 
 Following, the ROC curves for each one of the pairwise trained classifiers, using the ratio as discriminative variable are shown.
 
  S(1,0)-S(1,2),S(1,0)-S(1,1),S(1,0)-S(1,3) | S(1,0)-S(0,1),S(1,2)-S(1,1),S(1,2)-S(1,3)
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all0_comparison_xgboost_roc.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all1_comparison_xgboost_roc.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ggf/all0_comparison_xgboost_roc.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ggf/all1_comparison_xgboost_roc.png" width="350" >
  S(1,2)-S(0,1),S(1,1)-S(1,3),S(1,3)-S(0,1)  | 
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/all2_comparison_xgboost_roc.png" width="350"> | 
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ggf/all2_comparison_xgboost_roc.png" width="350"> | 
 
 To evaluate the classification capacity of the algorithmn we compare the decomposed method with a BDT trained on the full data on the sample *S(1.,1.5)* as signal and *S(1,0)* (only SM) as background. 
 The Signal Efficiency - Background Rejection curves for the decomposed method and the full trained method are shown next.
 
-![All ROC](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_all_xgboost_sigbkg.png)
+![All ROC](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ggf/comp_all_xgboost_sigbkg.png)
 
 In this case, the full trained classifier behave better than the pairwise, mainly because some of the pairwise distributions are very similar and hard to classify, more analysis must be done on this
 since there is a lot of room for improvement of the training. Anyway, it should be noted that meanwhile the full trained classifier is only optimum for the sample *S(1.,1.5)* and must be retrained 
@@ -489,22 +489,22 @@ We start by fitting *g1* and keeping *g2=1.5* constant and *g2* by keeping *g1=1
 
  g1                         | g2
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_likelihood_g1.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_likelihood_g2.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ggf/comp_train_mlp_likelihood_g1.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ggf/comp_train_mlp_likelihood_g2.png" width="350" >
 
 Both fits are pretty close to the real values, we can check that both are unbiased estimator of the fitted values in the next histograms, using 300 pseudo samples of size 5000.
 
  g1                         | g2
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/g1_train_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/g2_train_mlp_hist.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ggf/g1_train_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ggf/g2_train_mlp_hist.png" width="350" >
 
 It can be seen that the fit is working very good for the values of g1 and g2. The method is able to identify with high precision the real value of the coefficients.
 
 Finally, we will study if it is possible to fit both values *g1,g2* at the same time by using Maximum Likelihood. The contour plot for a likelihood fit in both parameters is shown
 
-![fit_g1g2](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood.png)
+![fit_g1g2](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ggf/comp_train_mlp_multilikelihood.png)
 
 The mean values of the fit of both values for 450 pseudo samples of size 5000 are shown next
 
-![hist c0](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/g1g2_train_mlp_hist_pix.png)
+![hist c0](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ggf/g1g2_train_mlp_hist_pix.png)
 
 Both values are pretty close to the real values (1.0 and 1.5), this shows the great capacity of the method to identify values of parameters on real data distributions by using Maximum Likelihood. 
