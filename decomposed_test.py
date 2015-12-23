@@ -85,14 +85,14 @@ class DecomposedTest:
     high = 1.  
     
     if self.input_workspace <> None:
-      f = ROOT.TFile('{0}/{1}'.format('/tmp/jpavezse/',self.workspace))
+      f = ROOT.TFile('{0}/{1}'.format('/afs/cern.ch/work/j/jpavezse/private',self.workspace))
       w = f.Get('w')
       # TODO test this when workspace is present
       w = ROOT.RooWorkspace('w') if w == None else w
       f.Close()
     else: 
       w = ROOT.RooWorkspace('w')
-
+    w.Print()
 
     print 'Generating Score Histograms'
 
@@ -109,7 +109,7 @@ class DecomposedTest:
         x = None
 
     #This is because most of the data of the full model concentrate around 0 
-    bins_full = 80
+    bins_full = 40
     low_full = 0.
     high_full = 1.
     w.factory('scoref[{0},{1}]'.format(low_full, high_full))
@@ -178,10 +178,11 @@ class DecomposedTest:
     if self.scaler == None:
       self.scaler = {}
 
-    '''
     # change this
     for k in range(self.nsamples):
       for j in range(self.nsamples):
+        if k < 22:
+          continue
         if k == j:
           continue
         if self.dataset_names <> None:
@@ -194,11 +195,11 @@ class DecomposedTest:
        
         numtrain = traindata.shape[0]       
         size2 = traindata.shape[1] if len(traindata.shape) > 1 else 1
-        output = [predict('/tmp/jpavezse/{0}_{1}_{2}.pkl'.format(self.model_file,k,j),traindata[targetdata == 1],model_g=self.model_g),
-          predict('/tmp/jpavezse/{0}_{1}_{2}.pkl'.format(self.model_file,k,j),traindata[targetdata == 0],model_g=self.model_g)]
+        output = [predict('/afs/cern.ch/work/j/jpavezse/private/{0}_{1}_{2}.pkl'.format(self.model_file,k,j),traindata[targetdata == 1],model_g=self.model_g),
+          predict('/afs/cern.ch/work/j/jpavezse/private/{0}_{1}_{2}.pkl'.format(self.model_file,k,j),traindata[targetdata == 0],model_g=self.model_g)]
 
         saveHistos(w,output,s,bins,low,high,(k,j))
-        w.writeToFile('{0}/{1}'.format('/tmp/jpavezse/',self.workspace))
+        w.writeToFile('{0}/{1}'.format('/afs/cern.ch/work/j/jpavezse/private',self.workspace))
 
     if self.verbose_printing==True:
       for ind in range(1,(len(histos)/3+1)):
@@ -206,7 +207,6 @@ class DecomposedTest:
         print_histos_names = histos_names[(ind-1)*3:(ind-1)*3+3]
         printMultiFrame(w,['score']*len(print_histos),print_histos, makePlotName('dec{0}'.format(ind-1),'all',type='hist',dir=self.dir,c1_g=self.c1_g,model_g=self.model_g),print_histos_names,
           dir=self.dir,model_g=self.model_g,y_text='score(x)',print_pdf=True,title='Pairwise score distributions')
-    '''
     # Full model
     traindata, targetdata = loadData(data_file,self.F0_dist,self.F1_dist,dir=self.dir,c1_g=self.c1_g,
       preprocessing=self.preprocessing, scaler=self.scaler)
@@ -214,15 +214,15 @@ class DecomposedTest:
     size2 = traindata.shape[1] if len(traindata.shape) > 1 else 1
     #outputs = [predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),traindata[targetdata==1],model_g=self.model_g),
     #          predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),traindata[targetdata==0],model_g=self.model_g)]
-    outputs = [predict('/tmp/jpavezse/{0}_F0_F1.pkl'.format(self.model_file),traindata[targetdata==1],model_g=self.model_g),
-              predict('/tmp/jpavezse/{0}_F0_F1.pkl'.format(self.model_file),traindata[targetdata==0],model_g=self.model_g)]
+    outputs = [predict('/afs/cern.ch/work/j/jpavezse/private/{0}_F0_F1.pkl'.format(self.model_file),traindata[targetdata==1],model_g=self.model_g),
+              predict('/afs/cern.ch/work/j/jpavezse/private/{0}_F0_F1.pkl'.format(self.model_file),traindata[targetdata==0],model_g=self.model_g)]
 
     saveHistos(w,outputs,s_full, bins_full, low_full, high_full,importance_sampling=False)
     if self.verbose_printing == True:
       printFrame(w,['scoref'],[w.function('sighistpdf_F0_F1'),w.function('bkghistpdf_F0_F1')], makePlotName('full','all',type='hist',dir=self.dir,c1_g=self.c1_g,model_g=self.model_g),['signal','bkg'],
     dir=self.dir,model_g=self.model_g,y_text='score(x)',print_pdf=True,title='Pairwise score distributions')
    
-    w.writeToFile('{0}/{1}'.format('/tmp/jpavezse/',self.workspace))
+    w.writeToFile('{0}/{1}'.format('/afs/cern.ch/work/j/jpavezse/private',self.workspace))
       
     w.Print()
 
@@ -427,20 +427,22 @@ class DecomposedTest:
         index_k, index_j = (indexes[k],indexes[j])
         f0pdf = w.function('bkghistpdf_{0}_{1}'.format(index_k,index_j))
         f1pdf = w.function('sighistpdf_{0}_{1}'.format(index_k,index_j))
-        if k<>j:
+        if index_k<>index_j:
           if pre_evaluation == None:
             traindata = evalData
             if self.preprocessing == True:
               traindata = preProcessing(evalData,self.dataset_names[min(index_k,index_j)],
               self.dataset_names[max(index_k,index_j)],self.scaler) 
             #outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file,k,j),traindata,model_g=self.model_g)
-            outputs = predict('/tmp/jpavezse/{0}_{1}_{2}.pkl'.format(self.model_file,index_k,
+            outputs = predict('/afs/cern.ch/work/j/jpavezse/private/{0}_{1}_{2}.pkl'.format(self.model_file,index_k,
             index_j),traindata,model_g=self.model_g)
             f0pdfdist = np.array([self.evalDist(score,f0pdf,[xs]) for xs in outputs])
             f1pdfdist = np.array([self.evalDist(score,f1pdf,[xs]) for xs in outputs])
           else:
             f0pdfdist = pre_evaluation[0][index_k][index_j]
             f1pdfdist = pre_evaluation[1][index_k][index_j]
+            if f0pdfdist == None or f1pdfdist == None:
+              pdb.set_trace()
           pdfratios = self.singleRatio(f0pdfdist,f1pdfdist)
         else:
           pdfratios = np.ones(npoints) 
@@ -477,7 +479,7 @@ class DecomposedTest:
           #outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,
           #          self.c1_g,self.model_file,k,j),
           #          testdata.reshape(testdata.shape[0],size2),model_g=self.model_g)
-          outputs = predict('/tmp/jpavezse/{0}_{1}_{2}.pkl'.format(self.model_file,index_k,
+          outputs = predict('/afs/cern.ch/work/j/jpavezse/private/{0}_{1}_{2}.pkl'.format(self.model_file,index_k,
                     index_j),testdata.reshape(testdata.shape[0],size2),model_g=self.model_g)
           f0pdfdist = np.array([self.evalDist(score,f0pdf,[xs]) for xs in outputs])
           f1pdfdist = np.array([self.evalDist(score,f1pdf,[xs]) for xs in outputs])
@@ -644,7 +646,7 @@ class DecomposedTest:
       roc=True,data_type=data_file)
     if len(testdata.shape) > 1:
       #outputs = predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),testdata,model_g=self.model_g)
-      outputs = predict('/tmp/jpavezse/{0}_F0_F1.pkl'.format(self.model_file),testdata,model_g=self.model_g)
+      outputs = predict('/afs/cern.ch/work/j/jpavezse/private/{0}_F0_F1.pkl'.format(self.model_file),testdata,model_g=self.model_g)
 
     else:
       outputs = predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),testdata.reshape(testdata.shape[0],1),model_g=self.model_g)
@@ -861,6 +863,95 @@ class DecomposedTest:
     calibrated_ratio = self.singleRatio(calibrated_F0,calibrated_F1)        
     return calibrated_ratio
  
+  def pre2DBasis(self,c_min,c_max,npoints):
+    csarray = np.linspace(c_min[0],c_max[0],npoints)
+    csarray2 = np.linspace(c_min[1], c_max[1], npoints)
+    n_eff_ratio = np.zeros((npoints,npoints))
+    cross_section = None
+    morph = MorphingWrapper()
+    # TODO: Most of the values harcoded here
+    #bkg_morph = MorphingWrapper()
+    # TODO: Most of the values harcoded here
+    morph.setSampleData(nsamples=15,ncouplings=3,types=['S','S','S'],morphed=self.F1_couplings,samples=self.all_couplings)
+    indexes = morph.dynamicMorphing3(self.F1_couplings,csarray,csarray2)
+    #indexes = np.loadtxt('doubleindexes_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints)) 
+    target = self.F1_couplings[:]
+    indexes = np.array(indexes)
+    morph.resetBasis([self.all_couplings[int(k)] for k in indexes]) 
+    sorted_indexes = np.argsort(indexes)
+    indexes = indexes[sorted_indexes]
+    print indexes
+    for i,cs in enumerate(csarray):
+      for j,cs2 in enumerate(csarray2):
+        target[1] = cs
+        target[2] = cs2
+        morph.resetTarget(target)
+        couplings = np.array(morph.getWeights())
+        cross_section = np.array(morph.getCrossSections())
+        couplings,cross_section = (couplings[sorted_indexes],
+                          cross_section[sorted_indexes])
+        #bkg_morph.resetBasis([self.all_couplings[i] for i in indexes]) 
+        all_couplings = np.vstack([all_couplings,couplings])  if i <> 0 or j <> 0 else couplings
+        all_cross_sections = np.vstack([all_cross_sections, cross_section]) if i <> 0 or j <> 0 else cross_section
+        c1s = np.multiply(couplings,cross_section)
+          #c1s = np.abs(c1s)
+        n_eff = c1s.sum()
+        n_tot = np.abs(c1s).sum()
+        n_eff_ratio[i] = n_eff/n_tot
+        print '{0} {1} '.format(i,j)
+        print target
+        print 'n_eff: {0}, n_tot: {1}, n_eff/n_tot: {2}'.format(n_eff, n_tot, n_eff/n_tot)
+
+    np.savetxt('4indexes_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints),indexes) 
+    np.savetxt('4couplings_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints),all_couplings) 
+    np.savetxt('4crosssection_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints),all_cross_sections) 
+    
+    pdb.set_trace()
+
+  def pre2DDoubleBasis(self,c_min,c_max,npoints):
+    csarray = np.linspace(c_min[0],c_max[0],npoints)
+    csarray2 = np.linspace(c_min[1], c_max[1], npoints)
+    n_eff_ratio = np.zeros((npoints,npoints))
+    cross_section = None
+    morph = MorphingWrapper()
+    # TODO: Most of the values harcoded here
+    #bkg_morph = MorphingWrapper()
+    # TODO: Most of the values harcoded here
+    morph.setSampleData(nsamples=15,ncouplings=3,types=['S','S','S'],morphed=self.F1_couplings,samples=self.all_couplings)
+    indexes = morph.dynamicMorphing2(self.F1_couplings,csarray,csarray2)
+    #indexes = np.loadtxt('doubleindexes_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints)) 
+    target = self.F1_couplings[:]
+    for l,ind in enumerate(indexes): 
+      ind = np.array(ind)
+      morph.resetBasis([self.all_couplings[int(k)] for k in ind]) 
+      sorted_indexes = np.argsort(ind)
+      indexes[l] = ind[sorted_indexes]
+      print ind
+      for i,cs in enumerate(csarray):
+        for j,cs2 in enumerate(csarray2):
+          target[1] = cs
+          target[2] = cs2
+          morph.resetTarget(target)
+          couplings = np.array(morph.getWeights())
+          cross_section = np.array(morph.getCrossSections())
+          couplings,cross_section = (couplings[sorted_indexes],
+                            cross_section[sorted_indexes])
+          #bkg_morph.resetBasis([self.all_couplings[i] for i in indexes]) 
+          all_couplings = np.vstack([all_couplings,couplings])  if i <> 0 or j <> 0 or l <> 0 else couplings
+          all_cross_sections = np.vstack([all_cross_sections, cross_section]) if i <> 0 or j <> 0 or l <> 0 else cross_section
+          c1s = np.multiply(couplings,cross_section)
+            #c1s = np.abs(c1s)
+          n_eff = c1s.sum()
+          n_tot = np.abs(c1s).sum()
+          n_eff_ratio[i] = n_eff/n_tot
+          print '{0} {1} {2}'.format(l,i,j)
+          print target
+          print 'n_eff: {0}, n_tot: {1}, n_eff/n_tot: {2}'.format(n_eff, n_tot, n_eff/n_tot)
+
+    np.savetxt('3doubleindexes_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints),indexes) 
+    np.savetxt('3doublecouplings_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints),all_couplings) 
+    np.savetxt('3doublecrosssection_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints),all_cross_sections) 
+ 
   def pre2DMorphedBasis(self,c_min,c_max,npoints):
     csarray = np.linspace(c_min[0],c_max[0],npoints)
     csarray2 = np.linspace(c_min[1], c_max[1], npoints)
@@ -872,6 +963,7 @@ class DecomposedTest:
     # TODO: Most of the values harcoded here
     morph.setSampleData(nsamples=15,ncouplings=3,types=['S','S','S'],morphed=self.F1_couplings,samples=self.all_couplings)
     target = self.F1_couplings[:]
+
     for i,cs in enumerate(csarray):
       for j,cs2 in enumerate(csarray2):
         target[1] = cs
@@ -883,7 +975,6 @@ class DecomposedTest:
         sorted_indexes = np.argsort(indexes)
         indexes,couplings,cross_section = (indexes[sorted_indexes],couplings[sorted_indexes],
                           cross_section[sorted_indexes])
-        #bkg_morph.resetBasis([self.all_couplings[i] for i in indexes]) 
         all_indexes = np.vstack([all_indexes,indexes]) if i <> 0 or j <> 0 else indexes 
         all_couplings = np.vstack([all_couplings,couplings])  if i <> 0 or j <> 0 else couplings
         all_cross_sections = np.vstack([all_cross_sections, cross_section]) if i <> 0 or j <> 0 else cross_section
@@ -896,12 +987,48 @@ class DecomposedTest:
         print target
         print indexes
         print 'n_eff: {0}, n_tot: {1}, n_eff/n_tot: {2}'.format(n_eff, n_tot, n_eff/n_tot)
-    pdb.set_trace()
-    np.savetxt('indexes_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints),all_indexes) 
-    np.savetxt('couplings_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints),all_couplings) 
-    np.savetxt('crosssection_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints),all_cross_sections) 
+    # 3h are the highest results
+    np.savetxt('4hindexes_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints),all_indexes) 
+    np.savetxt('4hcouplings_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints),all_couplings) 
+    np.savetxt('4hcrosssection_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints),all_cross_sections) 
    
+  def pre1DMorphedBasis(self,c_min,c_max,npoints,c_eval):
+    csarray = np.linspace(c_min,c_max,npoints)
+    n_eff_ratio = np.zeros(npoints)
+    cross_section = None
+    morph = MorphingWrapper()
+    # TODO: Most of the values harcoded here
+    #bkg_morph = MorphingWrapper()
+    # TODO: Most of the values harcoded here
+    morph.setSampleData(nsamples=15,ncouplings=3,types=['S','S','S'],morphed=self.F1_couplings,samples=self.all_couplings)
+    target = self.F1_couplings[:]
 
+    for i,cs in enumerate(csarray):
+      target[c_eval] = cs
+      morph.resetTarget(target)
+      indexes = np.array(morph.dynamicMorphing(self.F1_couplings))
+      couplings = np.array(morph.getWeights())
+      cross_section = np.array(morph.getCrossSections())
+      sorted_indexes = np.argsort(indexes)
+      indexes,couplings,cross_section = (indexes[sorted_indexes],couplings[sorted_indexes],
+                        cross_section[sorted_indexes])
+      all_indexes = np.vstack([all_indexes,indexes]) if i <> 0 else indexes 
+      all_couplings = np.vstack([all_couplings,couplings])  if i <> 0  else couplings
+      all_cross_sections = np.vstack([all_cross_sections, cross_section]) if i <> 0 else cross_section
+      c1s = np.multiply(couplings,cross_section)
+        #c1s = np.abs(c1s)
+      n_eff = c1s.sum()
+      n_tot = np.abs(c1s).sum()
+      n_eff_ratio[i] = n_eff/n_tot
+      print '{0}'.format(i)
+      print target
+      print indexes
+      print 'n_eff: {0}, n_tot: {1}, n_eff/n_tot: {2}'.format(n_eff, n_tot, n_eff/n_tot)
+    # 3h are the highest results
+    np.savetxt('hindexes_{0:.2f}_{1:.2f}_{2:.2f}.dat'.format(c_min,c_max,npoints),all_indexes) 
+    np.savetxt('hcouplings_{0:.2f}_{1:.2f}_{2:.2f}.dat'.format(c_min,c_max,npoints),all_couplings) 
+    np.savetxt('hcrosssection_{0:.2f}_{1:.2f}_{2:.2f}.dat'.format(c_min,c_max,npoints),all_cross_sections) 
+   
   def preMorphedBasis(self,c_eval=0,c_min=0.01,c_max=0.2, npoints=50):
     csarray = np.linspace(c_min,c_max,npoints)
     n_eff_ratio = np.zeros(csarray.shape[0])
@@ -912,18 +1039,21 @@ class DecomposedTest:
     #bkg_morph = MorphingWrapper()
     # TODO: Most of the values harcoded here
     morph.setSampleData(nsamples=15,ncouplings=3,types=['S','S','S'],morphed=self.F1_couplings,samples=self.all_couplings)
+    indexes = morph.dynamicMorphing3(self.F1_couplings, csarray, c_eval=c_eval)
     target = self.F1_couplings[:]
+    indexes = np.array(indexes)
+    sorted_indexes = np.argsort(indexes)
+    indexes = indexes[sorted_indexes]
+    morph.resetBasis([self.all_couplings[int(k)] for k in indexes]) 
     for i,cs in enumerate(csarray):
       target[c_eval] = cs
       morph.resetTarget(target)
-      indexes = np.array(morph.dynamicMorphing(self.F1_couplings))
       couplings = np.array(morph.getWeights())
       cross_section = np.array(morph.getCrossSections())
-      sorted_indexes = np.argsort(indexes)
-      indexes,couplings,cross_section = (indexes[sorted_indexes],couplings[sorted_indexes],
-                        cross_section[sorted_indexes])
+      #couplings,cross_section = (couplings[sorted_indexes],
+      #                  cross_section[sorted_indexes])
+      print target
       #bkg_morph.resetBasis([self.all_couplings[i] for i in indexes]) 
-      all_indexes = np.vstack([all_indexes,indexes]) if i <> 0 else indexes 
       all_couplings = np.vstack([all_couplings,couplings])  if i <> 0 else couplings
       all_cross_sections = np.vstack([all_cross_sections, cross_section]) if i <> 0 else cross_section
       c1s = np.multiply(couplings,cross_section)
@@ -933,10 +1063,680 @@ class DecomposedTest:
       n_eff_ratio[i] = n_eff/n_tot
       print target
       print 'n_eff: {0}, n_tot: {1}, n_eff/n_tot: {2}'.format(n_eff, n_tot, n_eff/n_tot)
-    np.savetxt('indexes_{0:.2f}_{1:.2f}_{2}.dat'.format(c_min,c_max,npoints),all_indexes) 
-    np.savetxt('couplings_{0:.2f}_{1:.2f}_{2}.dat'.format(c_min,c_max,npoints),all_couplings) 
-    np.savetxt('crosssection_{0:.2f}_{1:.2f}_{2}.dat'.format(c_min,c_max,npoints),all_cross_sections) 
-   
+    pdb.set_trace()
+    np.savetxt('2indexes_{0:.2f}_{1:.2f}_{2}.dat'.format(c_min,c_max,npoints),indexes) 
+    np.savetxt('2couplings_{0:.2f}_{1:.2f}_{2}.dat'.format(c_min,c_max,npoints),all_couplings) 
+    np.savetxt('2crosssection_{0:.2f}_{1:.2f}_{2}.dat'.format(c_min,c_max,npoints),all_cross_sections) 
+
+  def evalDoubleC1C2Likelihood(self,w,testdata,c0,c1,c_eval=0,c_min=0.01,c_max=0.2,use_log=False,true_dist=False, vars_g=None, npoints=50,samples_ids=None,weights_func=None):
+
+    if true_dist == True:
+      vars = ROOT.TList()
+      for var in vars_g:
+        vars.Add(w.var(var))
+      x = ROOT.RooArgSet(vars)
+    else:
+      x = None
+
+    score = ROOT.RooArgSet(w.var('score'))
+    if use_log == True:
+      evaluateRatio = self.evaluateLogDecomposedRatio
+      post = 'log'
+    else:
+      evaluateRatio = self.evaluateDecomposedRatio
+      post = ''
+
+    if not os.path.isfile('doubleindexes_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints)): 
+    #if True:
+      self.pre2DDoubleBasis(c_min=c_min,c_max=c_max,npoints=npoints)   
+
+    csarray = np.linspace(c_min[0],c_max[0],npoints)
+    csarray2 = np.linspace(c_min[1], c_max[1], npoints)
+    decomposedLikelihood = np.zeros((npoints,npoints))
+    trueLikelihood = np.zeros((npoints,npoints))
+
+    all_indexes = np.loadtxt('3doubleindexes_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints)) 
+    all_indexes = np.array([[int(x) for x in rows] for rows in all_indexes])
+    all_couplings = np.loadtxt('3doublecouplings_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints)) 
+    all_cross_sections = np.loadtxt('3doublecrosssection_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints))
+    
+    pdb.set_trace() 
+    n_eff_ratio = np.zeros((csarray.shape[0], csarray2.shape[0]))
+    n_eff_1s = np.zeros((csarray.shape[0], csarray2.shape[0]))
+    n_eff_2s = np.zeros((csarray.shape[0], csarray2.shape[0]))
+    for i,cs in enumerate(csarray):
+      for j, cs2 in enumerate(csarray2):
+        print '{0} {1}'.format(cs,cs2)
+        c1s = all_couplings[i*npoints + j]
+        cross_section = all_cross_sections[i*npoints + j] 
+        c1s = np.multiply(c1s,cross_section)
+        c0_arr = c0[:]
+        #c0_arr = np.multiply(c0_arr,cross_section)
+        #c0_arr = c0_arr / c0_arr.sum()
+        n_eff = c1s.sum()
+        n_tot = np.abs(c1s).sum()
+        n_eff_1 = n_eff / n_tot
+        n_eff_1s[i,j] = n_eff_1
+        print 'n_eff 1: {0}'.format(n_eff/n_tot)
+        #print '{0} {1}'.format(i,j)
+        c1s = all_couplings[npoints*npoints + i*npoints + j]
+        cross_section = all_cross_sections[npoints*npoints + i*npoints + j] 
+        c1s = np.multiply(c1s,cross_section)
+        c0_arr = c0[:]
+        #c0_arr = np.multiply(c0_arr,cross_section)
+        #c0_arr = c0_arr/c0_arr.sum()
+        n_eff = c1s.sum()
+        n_tot = np.abs(c1s).sum()
+        n_eff_2 = n_eff / n_tot
+        n_eff_2s[i,j] = n_eff_2
+
+        print 'n_eff 2: {0}'.format(n_eff/n_tot)
+        if max(n_eff_1,n_eff_2) < 0.35:
+          n_eff_1s[i,j] = 1.
+          n_eff_2s[i,j] = 1.
+
+        n_eff_ratio[i,j] = (n_eff_1 + n_eff_2)/2. 
+
+    all_eff_min = np.min(np.array([max(n_eff_1s[i,j],n_eff_2s[i,j]) for j,_ in enumerate(csarray2) for i,_ in enumerate(csarray)]))
+    # using 0.35 as constant value
+    alpha = np.zeros([csarray.shape[0],csarray2.shape[0],2])
+    for i,_ in enumerate(csarray):
+      for j,_ in enumerate(csarray2):
+        neff2 = 1./n_eff_2s[i,j]
+        neff1 = 1./n_eff_1s[i,j] 
+        alpha1 = np.exp(-np.sqrt(neff1))
+        alpha2 = np.exp(-np.sqrt(neff2))
+        alpha[i,j,0] = alpha1/(alpha1 + alpha2)
+        alpha[i,j,1] = alpha2/(alpha1 + alpha2)
+        '''
+        neff2 = min(n_eff_1s[i,j], n_eff_2s[i,j])
+        neff1 = max(n_eff_1s[i,j], n_eff_2s[i,j])
+        alpha2 = (const_eff / neff2) /2.
+        alpha1 = (const_eff - alpha2*neff2)/neff1
+        alpha[i,j,np.argmax(np.array([n_eff_1s[i,j], n_eff_2s[i,j]]))] = alpha1
+        alpha[i,j,np.argmin(np.array([n_eff_1s[i,j], n_eff_2s[i,j]]))] = alpha2
+        
+        if neff2 > neff1:
+          alpha[i,j,1] = (const_eff - neff1)/(neff2 - neff1)
+          alpha[i,j,0] = 1. - alpha[i,j,1]
+        if neff1 > neff2:
+          alpha[i,j,0] = (const_eff - neff2)/(neff1 - neff2)
+          alpha[i,j,1] = 1. - alpha[i,j,0]
+        '''
+    print all_eff_min
+
+    #unique_indexes = [all_indexes[k] for k in range(all_indexes.shape[0])].unique()
+    unique_indexes = np.unique(all_indexes)
+
+    #Print loading dynamic basis, ensure that they exist before running
+    pre_pdf = [[range(self.nsamples) for _ in range(self.nsamples)],[range(self.nsamples) for _ in range(self.nsamples)]]
+    pre_dist = [[range(self.nsamples) for _ in range(self.nsamples)],[range(self.nsamples) for _ in range(self.nsamples)]]
+    # Only precompute distributions that will be used
+    unique_indexes = set()
+    for indexes in all_indexes:
+      unique_indexes |= set(indexes) 
+    # change this enumerates
+    unique_indexes = list(unique_indexes)
+    for k in range(len(unique_indexes)):
+      for j in range(len(unique_indexes)):
+        index_k,index_j = (unique_indexes[k],unique_indexes[j])
+        #if index_k <> 2 and index_k <> 3 and index_k <> 4 and index_k <> 5 and index_k <>  17:
+        #  continue
+        if index_k <> 2:
+          continue
+        print 'Pre computing {0} {1}'.format(index_k,index_j)
+        if k <> j:
+          # saving dist to save time
+          if True:
+            f0pdf = w.function('bkghistpdf_{0}_{1}'.format(index_k,index_j))
+            f1pdf = w.function('sighistpdf_{0}_{1}'.format(index_k,index_j))
+            data = testdata
+            if self.preprocessing == True:
+              data = preProcessing(testdata,self.dataset_names[min(k,j)],
+              self.dataset_names[max(k,j)],self.scaler) 
+            #outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,
+            outputs = predict('/afs/cern.ch/work/j/jpavezse/private/{0}_{1}_{2}.pkl'.format(self.model_file,index_k,index_j),data,model_g=self.model_g)
+            f0pdfdist = np.array([self.evalDist(score,f0pdf,[xs]) for xs in outputs])
+            f1pdfdist = np.array([self.evalDist(score,f1pdf,[xs]) for xs in outputs])
+            np.savetxt('/afs/cern.ch/work/j/jpavezse/private/temp_data/bkg_{0}_{1}.dat'.format(index_k,index_j),f0pdfdist)
+            np.savetxt('/afs/cern.ch/work/j/jpavezse/private/temp_data/sig_{0}_{1}.dat'.format(index_k,index_j),f1pdfdist)
+            pre_pdf[0][index_k][index_j] = f0pdfdist
+            pre_pdf[1][index_k][index_j] = f1pdfdist
+          else:
+            f0pdfdist = np.loadtxt('/afs/cern.ch/work/j/jpavezse/private/temp_data/bkg_{0}_{1}.dat'.format(index_k,index_j))
+            f1pdfdist = np.loadtxt('/afs/cern.ch/work/j/jpavezse/private/temp_data/sig_{0}_{1}.dat'.format(index_k,index_j))
+            pre_pdf[0][index_k][index_j] = f0pdfdist
+            pre_pdf[1][index_k][index_j] = f1pdfdist
+        else:
+          pre_pdf[0][index_k][index_j] = None
+          pre_pdf[1][index_k][index_j] = None
+        if true_dist == True:
+          f0 = w.pdf('f{0}'.format(index_k))
+          f1 = w.pdf('f{0}'.format(index_j))
+          if len(testdata.shape) > 1:
+            f0dist = np.array([self.evalDist(x,f0,xs) for xs in testdata])
+            f1dist = np.array([self.evalDist(x,f1,xs) for xs in testdata])
+          else:
+            f0dist = np.array([self.evalDist(x,f0,[xs]) for xs in testdata])
+            f1dist = np.array([self.evalDist(x,f1,[xs]) for xs in testdata])
+          pre_dist[0][index_k][index_j] = f0dist
+          pre_dist[1][index_k][index_j] = f1dist
+
+    indices = np.ones(testdata.shape[0], dtype=bool)
+    ratiosList = []
+    samples = []
+    # This is needed for calibration of full ratios
+    #for i,sample in enumerate(self.dataset_names):
+    #  samples.append(np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(self.dir,'mlp',self.c1_g,'data',sample)))
+    n_eff_ratio = np.zeros((csarray.shape[0], csarray2.shape[0]))
+    n_eff_1s = np.zeros((csarray.shape[0], csarray2.shape[0]))
+    n_eff_2s = np.zeros((csarray.shape[0], csarray2.shape[0]))
+    n_tot_1s = np.zeros((csarray.shape[0], csarray2.shape[0]))
+    n_tot_2s = np.zeros((csarray.shape[0], csarray2.shape[0]))
+    n_zeros = np.zeros((npoints,npoints))
+    target = self.F1_couplings[:]
+    for i,cs in enumerate(csarray):
+      ratiosList.append([])
+      for j, cs2 in enumerate(csarray2):
+        target[1] = cs
+        target[2] = cs2
+        print '{0} {1}'.format(i,j)
+        print target
+        c1s_1 = all_couplings[i*npoints + j]
+        cross_section_1 = all_cross_sections[i*npoints + j] 
+        c1s_1 = np.multiply(c1s_1,cross_section_1)
+        c0_arr_1 = c0[:]
+        c0_arr_1 = np.multiply(c0_arr_1,cross_section_1)
+        n_eff = c1s_1.sum()
+        n_tot = np.abs(c1s_1).sum()
+        n_eff_1 = n_eff / n_tot
+        n_eff_1s[i,j] = n_eff_1
+        n_tot_1s[i,j] = n_tot
+        print 'n_eff 1: {0}'.format(n_eff/n_tot)
+        #print '{0} {1}'.format(i,j)
+        #print 'n_eff: {0}, n_tot: {1}, n_eff/n_tot: {2}'.format(n_eff, n_tot, n_eff/n_tot)
+        c1s_1 = c1s_1/c1s_1.sum()
+        c1s_1 = alpha[i,j,0]*c1s_1
+        #c1s_1 = 0.5*c1s_1
+        #print c1s
+        #decomposedRatios1,trueRatios = evaluateRatio(w,testdata,x=x,
+        #plotting=False,roc=False,c0arr=c0_arr,c1arr=c1s_1,true_dist=true_dist,
+        #pre_dist=pre_dist,pre_evaluation=pre_pdf,cross_section=cross_section_1,
+        #indexes=all_indexes[0])
+        #decomposedRatios1 = 1./decomposedRatios1
+
+        c1s_2 = all_couplings[npoints*npoints + i*npoints + j]
+        cross_section_2 = all_cross_sections[npoints*npoints + i*npoints + j] 
+        c1s_2 = np.multiply(c1s_2,cross_section_2)
+        c0_arr_2 = c0[:]
+        c0_arr_2 = np.multiply(c0_arr_2,cross_section_2)
+        c0_arr_1 = np.zeros(15)
+        c0_arr_2 = np.zeros(15)
+        c0_arr_1[1] = 1.
+        c0_arr_2[0] = 1.
+        c0_arr_1 = c0_arr_1/c0_arr_1.sum()
+        c0_arr_2 = c0_arr_2/c0_arr_2.sum()
+        n_eff = c1s_2.sum()
+        n_tot = np.abs(c1s_2).sum()
+        n_eff_2 = n_eff / n_tot
+        n_eff_2s[i,j] = n_eff_2
+        n_tot_2s[i,j] = n_tot
+        print 'n_eff 2: {0}'.format(n_eff/n_tot)
+        c1s_2 = c1s_2/c1s_2.sum()
+        c1s_2 = alpha[i,j,1]*c1s_2 
+        #c1s_2 = 0.5*c1s_2 
+        c1s = np.append(c1s_1,c1s_2) 
+        #c0_arr = np.append(alpha[i,j,0]*c0_arr_1,alpha[i,j,1]*c0_arr_2)
+        c0_arr = np.append(0.5*c0_arr_1,0.5*c0_arr_2)
+        print c0_arr
+        cross_section = np.append(cross_section_1,cross_section_2)
+        indexes = np.append(all_indexes[0],all_indexes[1])
+        completeRatios,trueRatios = evaluateRatio(w,testdata,x=x,
+        plotting=False,roc=False,c0arr=c0_arr,c1arr=c1s,true_dist=true_dist,
+        pre_dist=pre_dist,pre_evaluation=pre_pdf,cross_section=cross_section,
+        indexes=indexes)
+        completeRatios = 1./completeRatios
+        #decomposedRatios2,trueRatios = evaluateRatio(w,testdata,x=x,
+        #plotting=False,roc=False,c0arr=c0_arr,c1arr=c1s_2,true_dist=true_dist,
+        #pre_dist=pre_dist,pre_evaluation=pre_pdf,cross_section=cross_section_2,
+        #indexes=all_indexes[1])
+        #decomposedRatios2 = 1./decomposedRatios2
+        #norm = alpha[i,j,0] + alpha[i,j,1]
+        #completeRatios = alpha[i,j,0]*decomposedRatios1 + alpha[i,j,1]*decomposedRatios2
+        #completeRatios = (decomposedRatios1 + decomposedRatios2)/2.
+        print '{0} {1}'.format(i,j)
+        print completeRatios[completeRatios < 0.].shape
+        n_zeros[i,j] = completeRatios[completeRatios < 0.].shape[0]
+        ratiosList[i].append(completeRatios)
+        n_eff_ratio[i,j] = (alpha[i,j,0]*n_eff_1 + alpha[i,j,1]*n_eff_2) 
+        #n_eff_ratio[i,j] = (n_eff_1 + n_eff_2)/2. 
+        print 'total eff: {0}'.format(n_eff_ratio[i,j])
+        if n_eff_ratio[i,j] > 0.4:
+          indices = np.logical_and(indices, completeRatios > 0.)
+        print indices[indices==True].shape
+    for i,cs in enumerate(csarray):
+      for j, cs2 in enumerate(csarray2):
+
+        completeRatios = ratiosList[i][j]
+        #completeRatios = completeRatios[completeRatios > 0.]
+        completeRatios = completeRatios[indices]
+        print completeRatios.shape
+ 
+        if use_log == False:
+            #decomposedRatios[decomposedRatios < 0.] = 0.9
+            norm = completeRatios[completeRatios <> 0.].shape[0] 
+            completeRatios[completeRatios < 0.] = 1.0
+            #decomposedRatios = decomposedRatios[self.findOutliers(decomposedRatios)]
+            #if max(n_eff_1,n_eff_2) < 0.35:
+            #if (cs < 0.82 and cs2 > 0.5) :
+            if n_eff_ratio[i,j] < 0.4:
+              #TODO: Harcoded number
+              decomposedLikelihood[i,j] = 20000
+            else:
+              decomposedLikelihood[i,j] = -np.log(completeRatios).sum() 
+              #decomposedLikelihood[i,j] = -np.log(completeRatios).sum()/np.sqrt(norm)
+            #print decomposedLikelihood[i,j]
+            #print '{0} {1} {2}'.format(i,j,decomposedLikelihood[i,j])
+        else:
+          decomposedLikelihood[i,j] = completeRatios.sum()
+          trueLikelihood[i,j] = trueRatios.sum()
+      #print '\n {0}'.format(i)
+    decomposedLikelihood[decomposedLikelihood == 20000] = decomposedLikelihood[decomposedLikelihood <> 20000].max()
+    decomposedLikelihood = decomposedLikelihood - decomposedLikelihood.min()
+    decMin = np.unravel_index(decomposedLikelihood.argmin(), decomposedLikelihood.shape)
+
+    # pixel plots
+    saveFig(csarray,[csarray2,n_eff_1s/n_eff_2s],makePlotName('comp','train',type='n_eff_ratio'),labels=['composed'],pixel=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(c1[0],c1[1]),print_pdf=True,contour=True,title='n_rat_1/n_rat_2 values for g1,g2')
+  
+    saveFig(csarray,[csarray2,n_eff_ratio],makePlotName('comp','train',type='n_eff'),labels=['composed'],pixel=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(c1[0],c1[1]),print_pdf=True,contour=True,title='n_eff/n_tot sum values for g1,g2')
+
+    saveFig(csarray,[csarray2,n_eff_1s],makePlotName('comp','train',type='n_eff1'),labels=['composed'],pixel=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(c1[0],c1[1]),print_pdf=True,contour=True,title='n_eff_1 ratio values for g1,g2')
+
+    saveFig(csarray,[csarray2,n_eff_2s],makePlotName('comp','train',type='n_eff2'),labels=['composed'],pixel=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(c1[0],c1[1]),print_pdf=True,contour=True,title='n_eff_2 ratiovalues for g1,g2')
+
+
+    saveFig(csarray,[csarray2,n_tot_1s],makePlotName('comp','train',type='n_tot1'),labels=['composed'],pixel=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(c1[0],c1[1]),print_pdf=True,contour=True,title='n_tot_1 values for g1,g2')
+
+    saveFig(csarray,[csarray2,n_tot_2s],makePlotName('comp','train',type='n_tot2'),labels=['composed'],pixel=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(c1[0],c1[1]),print_pdf=True,contour=True,title='n_tot_2 values for g1,g2')
+
+
+    saveFig(csarray,[csarray2,n_zeros],makePlotName('comp','train',type='n_zeros'),labels=['composed'],pixel=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(c1[0],c1[1]),print_pdf=True,contour=True,title='n_zeros values for g1,g2')
+
+    saveFig(csarray,[csarray2,decomposedLikelihood],makePlotName('comp','train',type='pixel_g1g2'),labels=['composed'],pixel=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(c1[0],c1[1]),print_pdf=True,contour=True,title='Likelihood fit for g1,g2')
+
+    #decMin = [np.sum(decomposedLikelihood,1).argmin(),np.sum(decomposedLikelihood,0).argmin()] 
+    X,Y = np.meshgrid(csarray, csarray2)
+
+    saveFig(X,[Y,decomposedLikelihood],makePlotName('comp','train',type='multilikelihood'),labels=['composed'],contour=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(self.F1_couplings[1],self.F1_couplings[2]),print_pdf=True,min_value=(csarray[decMin[0]],csarray2[decMin[1]]))
+    #print decMin
+    print [csarray[decMin[0]],csarray2[decMin[1]]]
+    pdb.set_trace()
+    if true_dist == True:
+      trueLikelihood = trueLikelihood - trueLikelihood.min()
+      trueMin = np.unravel_index(trueLikelihood.argmin(), trueLikelihood.shape)
+      saveFig(csarray,[decomposedLikelihood,trueLikelihood],makePlotName('comp','train',type=post+'likelihood_{0}'.format(n_sample)),labels=['decomposed','true'],axis=['c1[0]','-ln(L)'],marker=True,dir=self.dir,marker_value=c1[0],title='c1[0] Fitting',print_pdf=True)
+      return [[csarray[trueMin[0]],csarray2[trueMin[1]]],
+          [csarray2[decMin[0],csarray2[decMin[1]]]]]
+    else:
+      return [[0.,0.],[csarray[decMin[0]],csarray2[decMin[1]]]]
+
+
+  def evalSingleC1C2Likelihood(self,w,testdata,c0,c1,c_eval=0,c_min=0.01,c_max=0.2,use_log=False,true_dist=False, vars_g=None, npoints=50,samples_ids=None,weights_func=None):
+
+    if true_dist == True:
+      vars = ROOT.TList()
+      for var in vars_g:
+        vars.Add(w.var(var))
+      x = ROOT.RooArgSet(vars)
+    else:
+      x = None
+
+    score = ROOT.RooArgSet(w.var('score'))
+    if use_log == True:
+      evaluateRatio = self.evaluateLogDecomposedRatio
+      post = 'log'
+    else:
+      evaluateRatio = self.evaluateDecomposedRatio
+      post = ''
+
+    if not os.path.isfile('3indexes_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints)): 
+    #if True:
+      self.pre2DBasis(c_min=c_min,c_max=c_max,npoints=npoints)   
+
+    csarray = np.linspace(c_min[0],c_max[0],npoints)
+    csarray2 = np.linspace(c_min[1], c_max[1], npoints)
+    decomposedLikelihood = np.zeros((npoints,npoints))
+    trueLikelihood = np.zeros((npoints,npoints))
+
+    all_indexes = np.loadtxt('3indexes_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints)) 
+    all_indexes = np.array([int(x) for x in all_indexes])
+    all_couplings = np.loadtxt('3couplings_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints)) 
+    all_cross_sections = np.loadtxt('3crosssection_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints))
+    
+    n_eff_ratio = np.zeros((csarray.shape[0], csarray2.shape[0]))
+
+    #Print loading dynamic basis, ensure that they exist before running
+    pre_pdf = [[range(self.nsamples) for _ in range(self.nsamples)],[range(self.nsamples) for _ in range(self.nsamples)]]
+    pre_dist = [[range(self.nsamples) for _ in range(self.nsamples)],[range(self.nsamples) for _ in range(self.nsamples)]]
+    # Only precompute distributions that will be used
+    unique_indexes = set()
+    unique_indexes = set(all_indexes) 
+    # change this enumerates
+    unique_indexes = list(unique_indexes)
+    for k in range(len(unique_indexes)):
+      for j in range(len(unique_indexes)):
+        index_k,index_j = (unique_indexes[k],unique_indexes[j])
+        #if index_k <> 2 and index_k <> 3 and index_k <> 4 and index_k <> 5 and index_k <>  17:
+        #  continue
+        print 'Pre computing {0} {1}'.format(index_k,index_j)
+        if k <> j:
+          # saving dist to save time
+          if True:
+            f0pdf = w.function('bkghistpdf_{0}_{1}'.format(index_k,index_j))
+            f1pdf = w.function('sighistpdf_{0}_{1}'.format(index_k,index_j))
+            data = testdata
+            if self.preprocessing == True:
+              data = preProcessing(testdata,self.dataset_names[min(k,j)],
+              self.dataset_names[max(k,j)],self.scaler) 
+            #outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,
+            outputs = predict('/afs/cern.ch/work/j/jpavezse/private/{0}_{1}_{2}.pkl'.format(self.model_file,index_k,index_j),data,model_g=self.model_g)
+            f0pdfdist = np.array([self.evalDist(score,f0pdf,[xs]) for xs in outputs])
+            f1pdfdist = np.array([self.evalDist(score,f1pdf,[xs]) for xs in outputs])
+            np.savetxt('/afs/cern.ch/work/j/jpavezse/private/temp_data/bkg_{0}_{1}.dat'.format(index_k,index_j),f0pdfdist)
+            np.savetxt('/afs/cern.ch/work/j/jpavezse/private/temp_data/sig_{0}_{1}.dat'.format(index_k,index_j),f1pdfdist)
+            pre_pdf[0][index_k][index_j] = f0pdfdist
+            pre_pdf[1][index_k][index_j] = f1pdfdist
+          else:
+            f0pdfdist = np.loadtxt('/afs/cern.ch/work/j/jpavezse/private/temp_data/bkg_{0}_{1}.dat'.format(index_k,index_j))
+            f1pdfdist = np.loadtxt('/afs/cern.ch/work/j/jpavezse/private/temp_data/sig_{0}_{1}.dat'.format(index_k,index_j))
+            pre_pdf[0][index_k][index_j] = f0pdfdist
+            pre_pdf[1][index_k][index_j] = f1pdfdist
+        else:
+          pre_pdf[0][index_k][index_j] = None
+          pre_pdf[1][index_k][index_j] = None
+        if true_dist == True:
+          f0 = w.pdf('f{0}'.format(index_k))
+          f1 = w.pdf('f{0}'.format(index_j))
+          if len(testdata.shape) > 1:
+            f0dist = np.array([self.evalDist(x,f0,xs) for xs in testdata])
+            f1dist = np.array([self.evalDist(x,f1,xs) for xs in testdata])
+          else:
+            f0dist = np.array([self.evalDist(x,f0,[xs]) for xs in testdata])
+            f1dist = np.array([self.evalDist(x,f1,[xs]) for xs in testdata])
+          pre_dist[0][index_k][index_j] = f0dist
+          pre_dist[1][index_k][index_j] = f1dist
+
+    indices = np.ones(testdata.shape[0], dtype=bool)
+    ratiosList = []
+    samples = []
+    # This is needed for calibration of full ratios
+    #for i,sample in enumerate(self.dataset_names):
+    #  samples.append(np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(self.dir,'mlp',self.c1_g,'data',sample)))
+    n_zeros = np.zeros((npoints,npoints))
+    target = self.F1_couplings[:]
+    for i,cs in enumerate(csarray):
+      ratiosList.append([])
+      for j, cs2 in enumerate(csarray2):
+        target[1] = cs
+        target[2] = cs2
+        print '{0} {1}'.format(i,j)
+        print target
+        c1s = all_couplings[i*npoints + j]
+        cross_section = all_cross_sections[i*npoints + j] 
+        c1s = np.multiply(c1s,cross_section)
+        c0_arr = c0[:]
+        c0_arr = np.multiply(c0_arr,cross_section)
+        #c0_arr = np.ones(15)
+        #c0_arr[0] = 1.
+        c0_arr = c0_arr/c0_arr.sum()
+        n_eff = c1s.sum()
+        n_tot = np.abs(c1s).sum()
+        n_eff_r = n_eff / n_tot
+        print 'n_eff: {0}'.format(n_eff/n_tot)
+        c1s = c1s/c1s.sum()
+        completeRatios,trueRatios = evaluateRatio(w,testdata,x=x,
+        plotting=False,roc=False,c0arr=c0_arr,c1arr=c1s,true_dist=true_dist,
+        pre_dist=pre_dist,pre_evaluation=pre_pdf,cross_section=cross_section,
+        indexes=all_indexes)
+        completeRatios = 1./completeRatios
+
+        print completeRatios[completeRatios < 0.].shape
+        n_zeros[i,j] = completeRatios[completeRatios < 0.].shape[0]
+        ratiosList[i].append(completeRatios)
+        n_eff_ratio[i,j] = n_eff_r
+        #n_eff_ratio[i,j] = (n_eff_1 + n_eff_2)/2. 
+        print 'total eff: {0}'.format(n_eff_ratio[i,j])
+        if n_eff_ratio[i,j] > 0.4:
+          indices = np.logical_and(indices, completeRatios > 0.)
+        print indices[indices==True].shape
+
+    for i,cs in enumerate(csarray):
+      for j, cs2 in enumerate(csarray2):
+
+        completeRatios = ratiosList[i][j]
+        #completeRatios = completeRatios[completeRatios > 0.]
+        completeRatios = completeRatios[indices]
+        print completeRatios.shape
+ 
+        if use_log == False:
+            #decomposedRatios[decomposedRatios < 0.] = 0.9
+            norm = completeRatios[completeRatios <> 0.].shape[0] 
+            completeRatios[completeRatios < 0.] = 1.0
+            #decomposedRatios = decomposedRatios[self.findOutliers(decomposedRatios)]
+            #if max(n_eff_1,n_eff_2) < 0.35:
+            #if (cs < 0.82 and cs2 > 0.5) :
+            if n_eff_ratio[i,j] < 0.4:
+              #TODO: Harcoded number
+              decomposedLikelihood[i,j] = 20000
+            else:
+              decomposedLikelihood[i,j] = -np.log(completeRatios).sum() 
+              #decomposedLikelihood[i,j] = -np.log(completeRatios).sum()/np.sqrt(norm)
+            #print decomposedLikelihood[i,j]
+            #print '{0} {1} {2}'.format(i,j,decomposedLikelihood[i,j])
+        else:
+          decomposedLikelihood[i,j] = completeRatios.sum()
+          trueLikelihood[i,j] = trueRatios.sum()
+      #print '\n {0}'.format(i)
+    decomposedLikelihood[decomposedLikelihood == 20000] = decomposedLikelihood[decomposedLikelihood <> 20000].max()
+    decomposedLikelihood = decomposedLikelihood - decomposedLikelihood.min()
+    decMin = np.unravel_index(decomposedLikelihood.argmin(), decomposedLikelihood.shape)
+
+    # pixel plots
+    saveFig(csarray,[csarray2,n_eff_ratio],makePlotName('comp','train',type='n_eff'),labels=['composed'],pixel=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(c1[0],c1[1]),print_pdf=True,contour=True,title='n_eff/n_tot sum values for g1,g2')
+
+    saveFig(csarray,[csarray2,n_zeros],makePlotName('comp','train',type='n_zeros'),labels=['composed'],pixel=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(c1[0],c1[1]),print_pdf=True,contour=True,title='n_zeros values for g1,g2')
+
+    saveFig(csarray,[csarray2,decomposedLikelihood],makePlotName('comp','train',type='pixel_g1g2'),labels=['composed'],pixel=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(c1[0],c1[1]),print_pdf=True,contour=True,title='Likelihood fit for g1,g2')
+
+    #decMin = [np.sum(decomposedLikelihood,1).argmin(),np.sum(decomposedLikelihood,0).argmin()] 
+    X,Y = np.meshgrid(csarray, csarray2)
+
+    saveFig(X,[Y,decomposedLikelihood],makePlotName('comp','train',type='multilikelihood'),labels=['composed'],contour=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(self.F1_couplings[1],self.F1_couplings[2]),print_pdf=True,min_value=(csarray[decMin[0]],csarray2[decMin[1]]))
+    #print decMin
+    print [csarray[decMin[0]],csarray2[decMin[1]]]
+    pdb.set_trace()
+    if true_dist == True:
+      trueLikelihood = trueLikelihood - trueLikelihood.min()
+      trueMin = np.unravel_index(trueLikelihood.argmin(), trueLikelihood.shape)
+      saveFig(csarray,[decomposedLikelihood,trueLikelihood],makePlotName('comp','train',type=post+'likelihood_{0}'.format(n_sample)),labels=['decomposed','true'],axis=['c1[0]','-ln(L)'],marker=True,dir=self.dir,marker_value=c1[0],title='c1[0] Fitting',print_pdf=True)
+      return [[csarray[trueMin[0]],csarray2[trueMin[1]]],
+          [csarray2[decMin[0],csarray2[decMin[1]]]]]
+    else:
+      return [[0.,0.],[csarray[decMin[0]],csarray2[decMin[1]]]]
+
+
+  def evalSingleC1Likelihood(self,w,testdata,c0,c1,c_eval=0,c_min=0.01,c_max=0.2,use_log=False,true_dist=False, vars_g=None, npoints=50,samples_ids=None,weights_func=None):
+
+    if true_dist == True:
+      vars = ROOT.TList()
+      for var in vars_g:
+        vars.Add(w.var(var))
+      x = ROOT.RooArgSet(vars)
+    else:
+      x = None
+
+    score = ROOT.RooArgSet(w.var('score'))
+    if use_log == True:
+      evaluateRatio = self.evaluateLogDecomposedRatio
+      post = 'log'
+    else:
+      evaluateRatio = self.evaluateDecomposedRatio
+      post = ''
+
+    if not os.path.isfile('2indexes_{0:.2f}_{1:.2f}_{2}.dat'.format(c_min,c_max,npoints)): 
+    #if True:
+      self.preMorphedBasis(c_eval=c_eval,c_min=c_min,c_max=c_max,npoints=npoints)   
+
+    all_indexes = np.loadtxt('2indexes_{0:.2f}_{1:.2f}_{2}.dat'.format(c_min,c_max,npoints)) 
+    all_indexes = np.array([int(x) for x in all_indexes])
+    all_couplings = np.loadtxt('2couplings_{0:.2f}_{1:.2f}_{2}.dat'.format(c_min,c_max,npoints)) 
+    all_cross_sections = np.loadtxt('2crosssection_{0:.2f}_{1:.2f}_{2}.dat'.format(c_min,c_max,npoints)) 
+    print all_indexes
+
+    csarray = np.linspace(c_min,c_max,npoints)
+    decomposedLikelihood = np.zeros(npoints)
+    trueLikelihood = np.zeros(npoints)
+
+    n_eff_ratio = np.zeros(csarray.shape[0])
+
+    #Print loading dynamic basis, ensure that they exist before running
+    pre_pdf = [[range(self.nsamples) for _ in range(self.nsamples)],[range(self.nsamples) for _ in range(self.nsamples)]]
+    pre_dist = [[range(self.nsamples) for _ in range(self.nsamples)],[range(self.nsamples) for _ in range(self.nsamples)]]
+    # Only precompute distributions that will be used
+    unique_indexes = set()
+    unique_indexes = set(all_indexes) 
+    # change this enumerates
+    unique_indexes = list(unique_indexes)
+    for k in range(len(unique_indexes)):
+      for j in range(len(unique_indexes)):
+        index_k,index_j = (unique_indexes[k],unique_indexes[j])
+        #if index_k <> 2 and index_k <> 3 and index_k <> 4 and index_k <> 5 and index_k <>  17:
+        #  continue
+        print 'Pre computing {0} {1}'.format(index_k,index_j)
+        if k <> j:
+          # saving dist to save time
+          if False:
+            f0pdf = w.function('bkghistpdf_{0}_{1}'.format(index_k,index_j))
+            f1pdf = w.function('sighistpdf_{0}_{1}'.format(index_k,index_j))
+            data = testdata
+            if self.preprocessing == True:
+              data = preProcessing(testdata,self.dataset_names[min(k,j)],
+              self.dataset_names[max(k,j)],self.scaler) 
+            #outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,
+            outputs = predict('/afs/cern.ch/work/j/jpavezse/private/{0}_{1}_{2}.pkl'.format(self.model_file,index_k,index_j),data,model_g=self.model_g)
+            f0pdfdist = np.array([self.evalDist(score,f0pdf,[xs]) for xs in outputs])
+            f1pdfdist = np.array([self.evalDist(score,f1pdf,[xs]) for xs in outputs])
+            np.savetxt('/afs/cern.ch/work/j/jpavezse/private/temp_data/bkg_{0}_{1}.dat'.format(index_k,index_j),f0pdfdist)
+            np.savetxt('/afs/cern.ch/work/j/jpavezse/private/temp_data/sig_{0}_{1}.dat'.format(index_k,index_j),f1pdfdist)
+            pre_pdf[0][index_k][index_j] = f0pdfdist
+            pre_pdf[1][index_k][index_j] = f1pdfdist
+          else:
+            f0pdfdist = np.loadtxt('/afs/cern.ch/work/j/jpavezse/private/temp_data/bkg_{0}_{1}.dat'.format(index_k,index_j))
+            f1pdfdist = np.loadtxt('/afs/cern.ch/work/j/jpavezse/private/temp_data/sig_{0}_{1}.dat'.format(index_k,index_j))
+            pre_pdf[0][index_k][index_j] = f0pdfdist
+            pre_pdf[1][index_k][index_j] = f1pdfdist
+        else:
+          pre_pdf[0][index_k][index_j] = None
+          pre_pdf[1][index_k][index_j] = None
+        if true_dist == True:
+          f0 = w.pdf('f{0}'.format(index_k))
+          f1 = w.pdf('f{0}'.format(index_j))
+          if len(testdata.shape) > 1:
+            f0dist = np.array([self.evalDist(x,f0,xs) for xs in testdata])
+            f1dist = np.array([self.evalDist(x,f1,xs) for xs in testdata])
+          else:
+            f0dist = np.array([self.evalDist(x,f0,[xs]) for xs in testdata])
+            f1dist = np.array([self.evalDist(x,f1,[xs]) for xs in testdata])
+          pre_dist[0][index_k][index_j] = f0dist
+          pre_dist[1][index_k][index_j] = f1dist
+
+    indices = np.ones(testdata.shape[0], dtype=bool)
+    ratiosList = []
+    samples = []
+    # This is needed for calibration of full ratios
+    #for i,sample in enumerate(self.dataset_names):
+    #  samples.append(np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(self.dir,'mlp',self.c1_g,'data',sample)))
+    n_zeros = np.zeros(npoints)
+    target = self.F1_couplings[:]
+    for i,cs in enumerate(csarray):
+      target[c_eval] = cs
+      print '{0} '.format(i)
+      print target
+      c1s = all_couplings[i]
+      cross_section = all_cross_sections[i] 
+      c1s = np.multiply(c1s,cross_section)
+      c0_arr = c0[:]
+      c0_arr = np.multiply(c0_arr,cross_section)
+      c0_arr = np.zeros(15)
+      c0_arr[0] = 1.
+      c0_arr = c0_arr/c0_arr.sum()
+      n_eff = c1s.sum()
+      n_tot = np.abs(c1s).sum()
+      n_eff_r = n_eff / n_tot
+      print 'n_eff: {0}'.format(n_eff/n_tot)
+      c1s = c1s/c1s.sum()
+      completeRatios,trueRatios = evaluateRatio(w,testdata,x=x,
+      plotting=False,roc=False,c0arr=c0_arr,c1arr=c1s,true_dist=true_dist,
+      pre_dist=pre_dist,pre_evaluation=pre_pdf,cross_section=cross_section,
+      indexes=all_indexes)
+      completeRatios = 1./completeRatios
+
+      print completeRatios[completeRatios < 0.].shape
+      n_zeros[i] = completeRatios[completeRatios < 0.].shape[0]
+      ratiosList.append(completeRatios)
+      n_eff_ratio[i] = n_eff_r
+      print 'total eff: {0}'.format(n_eff_ratio[i])
+      if n_eff_ratio[i] > 0.4:
+        indices = np.logical_and(indices, completeRatios > 0.)
+      #print indices[indices==True].shape
+
+    for i,cs in enumerate(csarray):
+
+      completeRatios = ratiosList[i]
+      #completeRatios = completeRatios[completeRatios > 0.]
+      completeRatios = completeRatios[indices]
+      print completeRatios.shape
+
+      if use_log == False:
+          #decomposedRatios[decomposedRatios < 0.] = 0.9
+          norm = completeRatios[completeRatios <> 0.].shape[0] 
+          completeRatios[completeRatios < 0.] = 1.0
+          #decomposedRatios = decomposedRatios[self.findOutliers(decomposedRatios)]
+          #if max(n_eff_1,n_eff_2) < 0.35:
+          #if (cs < 0.82 and cs2 > 0.5) :
+          if n_eff_ratio[i] < 0.4:
+            #TODO: Harcoded number
+            decomposedLikelihood[i] = 20000
+          else:
+            decomposedLikelihood[i] = -np.log(completeRatios).sum() 
+            #decomposedLikelihood[i,j] = -np.log(completeRatios).sum()/np.sqrt(norm)
+          #print decomposedLikelihood[i,j]
+          #print '{0} {1} {2}'.format(i,j,decomposedLikelihood[i,j])
+      else:
+        decomposedLikelihood[i] = completeRatios.sum()
+        trueLikelihood[i] = trueRatios.sum()
+      #print '\n {0}'.format(i)
+    decomposedLikelihood[decomposedLikelihood == 20000] = decomposedLikelihood[decomposedLikelihood <> 20000].max()
+    decomposedLikelihood = decomposedLikelihood - decomposedLikelihood.min()
+
+    # print n_eff/n_zero relation
+    #saveFig(csarray,[n_eff_ratio, n_zeros/n_zeros.max()],makePlotName('eff_ratio','zeros',type=post+'plot_g2'),labels=['n_eff/n_tot','zeros/{0}'.format(n_zeros.max())],axis=['g2','values'],marker=True,dir=self.dir,marker_value=c1[0],title='#zeros and n_eff/n_tot given g2',print_pdf=True,model_g=self.model_g)
+    #saveFig(n_eff_ratio, [n_zeros/n_zeros.max()], makePlotName('eff_ratio','zeros',type='scat',
+    #dir=self.dir, model_g=self.model_g, c1_g=self.c1_g),scatter=True, axis=['n_eff/n_tot', 
+    #'#zeros/{0}'.format(n_zeros.max())], dir=self.dir, model_g=self.model_g,title='# zeros given n_eff/n_tot ratio')
+
+    print csarray[decomposedLikelihood.argmin()]
+
+    if true_dist == True:
+      trueLikelihood = trueLikelihood - trueLikelihood.min()
+      saveFig(csarray,[decomposedLikelihood,trueLikelihood],makePlotName('comp','train',type=post+'likelihood_{0}'.format(n_sample)),labels=['decomposed','true'],axis=['c1[0]','-ln(L)'],marker=True,dir=self.dir,marker_value=c1[0],title='c1[0] Fitting',print_pdf=True)
+      return (csarray[trueLikelihood.argmin()], csarray[decomposedLikelihood.argmin()])
+    else:
+      saveFig(csarray[1:],[decomposedLikelihood[1:]],makePlotName('comp','train',type='likelihood_g1'),labels=['decomposed'],axis=['Khzz','-ln(L)'],marker=True,dir=self.dir,marker_value=self.F1_couplings[c_eval],title='Khzz Fitting',print_pdf=True,model_g=self.model_g)
+      pdb.set_trace()
+      return (0.,csarray[decomposedLikelihood.argmin()])
+
+
 
   def evalMorphC1C2Likelihood(self,w,testdata,c0,c1,c_eval=0,c_min=0.01,c_max=0.2,use_log=False,true_dist=False, vars_g=None, npoints=50,samples_ids=None,weights_func=None):
 
@@ -956,8 +1756,8 @@ class DecomposedTest:
       evaluateRatio = self.evaluateDecomposedRatio
       post = ''
 
-    #if not os.path.isfile('indexes_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints)): 
-    if True:
+    if not os.path.isfile('hindexes_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints)): 
+    #if True:
       self.pre2DMorphedBasis(c_min=c_min,c_max=c_max,npoints=npoints)   
 
     csarray = np.linspace(c_min[0],c_max[0],npoints)
@@ -965,11 +1765,22 @@ class DecomposedTest:
     decomposedLikelihood = np.zeros((npoints,npoints))
     trueLikelihood = np.zeros((npoints,npoints))
 
-    all_indexes = np.loadtxt('indexes_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints)) 
+    all_indexes = np.loadtxt('3hindexes_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints)) 
     all_indexes = np.array([[int(x) for x in rows] for rows in all_indexes])
-    all_couplings = np.loadtxt('couplings_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints)) 
-    all_cross_sections = np.loadtxt('crosssection_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints))
-   
+    all_couplings = np.loadtxt('3hcouplings_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints)) 
+    all_cross_sections = np.loadtxt('3hcrosssection_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints))
+    #unique_indexes = [all_indexes[k] for k in range(all_indexes.shape[0])].unique()
+    unique_indexes = np.unique(all_indexes)
+    count_list = np.zeros(26)
+    for val1 in all_indexes:
+      for val in val1:
+        count_list[int(val)] = count_list[int(val)] + 1      
+    tuple_indexes = [tuple(l) for l in all_indexes]
+    tuple_set = list(set(tuple_indexes))
+    voronoi = [[tuple_set.index(tuple_indexes[i*npoints + j]) for j in range(npoints)] for i in range(npoints)]
+    saveFig(csarray,[csarray2,voronoi],makePlotName('comp','train',type='pixel_basis'),labels=['composed'],pixel=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(c1[0],c1[1]),print_pdf=True,contour=True,title='Likelihood fit for g1,g2')
+    pdb.set_trace()
+
     #Print loading dynamic basis, ensure that they exist before running
     pre_pdf = [[range(self.nsamples) for _ in range(self.nsamples)],[range(self.nsamples) for _ in range(self.nsamples)]]
     pre_dist = [[range(self.nsamples) for _ in range(self.nsamples)],[range(self.nsamples) for _ in range(self.nsamples)]]
@@ -982,20 +1793,34 @@ class DecomposedTest:
     for k in range(len(unique_indexes)):
       for j in range(len(unique_indexes)):
         index_k,index_j = (unique_indexes[k],unique_indexes[j])
-        #print 'Pre computing {0} {1}'.format(index_k,index_j)
+        print 'Pre computing {0} {1}'.format(index_k,index_j)
+        if index_k <> 3:
+          continue
+        #if index_k <> 3 and index_k <> 8 and index_k <> 17:
+        #  continue
         if k <> j:
-          f0pdf = w.function('bkghistpdf_{0}_{1}'.format(index_k,index_j))
-          f1pdf = w.function('sighistpdf_{0}_{1}'.format(index_k,index_j))
-          data = testdata
-          if self.preprocessing == True:
-            data = preProcessing(testdata,self.dataset_names[min(k,j)],
-            self.dataset_names[max(k,j)],self.scaler) 
-          #outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,
-          outputs = predict('/tmp/jpavezse/{0}_{1}_{2}.pkl'.format(self.model_file,index_k,index_j),data,model_g=self.model_g)
-          f0pdfdist = np.array([self.evalDist(score,f0pdf,[xs]) for xs in outputs])
-          f1pdfdist = np.array([self.evalDist(score,f1pdf,[xs]) for xs in outputs])
-          pre_pdf[0][index_k][index_j] = f0pdfdist
-          pre_pdf[1][index_k][index_j] = f1pdfdist
+          # saving dist to save time
+          if True:
+            f0pdf = w.function('bkghistpdf_{0}_{1}'.format(index_k,index_j))
+            f1pdf = w.function('sighistpdf_{0}_{1}'.format(index_k,index_j))
+            data = testdata
+            if self.preprocessing == True:
+              data = preProcessing(testdata,self.dataset_names[min(k,j)],
+              self.dataset_names[max(k,j)],self.scaler) 
+            #outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,
+            outputs = predict('/afs/cern.ch/work/j/jpavezse/private/{0}_{1}_{2}.pkl'.format(self.model_file,index_k,index_j),data,model_g=self.model_g)
+            f0pdfdist = np.array([self.evalDist(score,f0pdf,[xs]) for xs in outputs])
+            f1pdfdist = np.array([self.evalDist(score,f1pdf,[xs]) for xs in outputs])
+            np.savetxt('/afs/cern.ch/work/j/jpavezse/private/temp_data/bkg_{0}_{1}.dat'.format(index_k,index_j),f0pdfdist)
+            np.savetxt('/afs/cern.ch/work/j/jpavezse/private/temp_data/sig_{0}_{1}.dat'.format(index_k,index_j),f1pdfdist)
+            pre_pdf[0][index_k][index_j] = f0pdfdist
+            pre_pdf[1][index_k][index_j] = f1pdfdist
+          else:
+            print 'Loading data'
+            f0pdfdist = np.loadtxt('/afs/cern.ch/work/j/jpavezse/private/temp_data/bkg_{0}_{1}.dat'.format(index_k,index_j))
+            f1pdfdist = np.loadtxt('/afs/cern.ch/work/j/jpavezse/private/temp_data/sig_{0}_{1}.dat'.format(index_k,index_j))
+            pre_pdf[0][index_k][index_j] = f0pdfdist
+            pre_pdf[1][index_k][index_j] = f1pdfdist
         else:
           pre_pdf[0][index_k][index_j] = None
           pre_pdf[1][index_k][index_j] = None
@@ -1020,6 +1845,7 @@ class DecomposedTest:
     n_eff_ratio = np.zeros((csarray.shape[0], csarray2.shape[0]))
     n_zeros = np.zeros((npoints,npoints))
     target = self.F1_couplings[:]
+
     for i,cs in enumerate(csarray):
       ratiosList.append([])
       for j, cs2 in enumerate(csarray2):
@@ -1031,7 +1857,17 @@ class DecomposedTest:
         c1s = all_couplings[i*npoints + j]
         cross_section = all_cross_sections[i*npoints + j] 
         c1s = np.multiply(c1s,cross_section)
-        c0_arr = c0
+        c0_arr = np.zeros(15)
+        #c0_arr[np.where(all_indexes[i*npoints+j]==3)[0][0]] = cross_section[np.where(all_indexes[i*npoints+j]==3)[0][0]]
+        #c0_arr[np.where(all_indexes[i*npoints+j]==8)[0][0]] = cross_section[np.where(all_indexes[i*npoints+j]==8)[0][0]]
+        #c0_arr[np.where(all_indexes[i*npoints+j]==17)[0][0]] = cross_section[np.where(all_indexes[i*npoints+j]==17)[0][0]]
+        c0_arr[np.where(all_indexes[i*npoints+j]==3)[0][0]] = 1.
+        #c0_arr[np.where(all_indexes[i*npoints+j]==17)[0][0]] = 1.
+        #c0_arr[np.where(all_indexes[i*npoints+j]==8)[0][0]] = 1.
+        #c0_arr = np.ones(15)
+        #c0_arr = np.multiply(c0_arr,cross_section)
+        c0_arr = c0_arr/c0_arr.sum()
+        print c0_arr
         n_eff = c1s.sum()
         n_tot = np.abs(c1s).sum()
         n_eff_ratio[i,j] = n_eff/n_tot 
@@ -1047,13 +1883,22 @@ class DecomposedTest:
         print '{0} {1}'.format(i,j)
         print decomposedRatios[decomposedRatios < 0.].shape
         n_zeros[i,j] = decomposedRatios[decomposedRatios < 0.].shape[0]
-        ratiosList[i].append(decomposedRatios)
-
+        ratiosList[i].append(decomposedRatios[:])
+        print n_eff_ratio[i,j]
         #print('{0} {1} '.format(i,j)),
         #print decomposedRatios[decomposedRatios < 0.].shape 
         #print c1s
-        #indices = np.logical_and(indices, decomposedRatios > 0.)
+        if n_eff_ratio[i,j] > 0.4:
+          indices = np.logical_and(indices, decomposedRatios > 0.)
+
+    for i,cs in enumerate(csarray):
+      for j, cs2 in enumerate(csarray2):
+
         decomposedRatios = ratiosList[i][j]
+        decomposedRatios = decomposedRatios[indices]
+        #decomposedRatios = decomposedRatios[decomposedRatios > 0.]
+        print decomposedRatios.shape
+  
         if use_log == False:
           if samples_ids <> None:
             ratios = decomposedRatios
@@ -1061,14 +1906,16 @@ class DecomposedTest:
             decomposedLikelihood[i,j] = (np.dot(np.log(ratios),
                 np.array([c1[x] for x in ids]))).sum()
           else:
-            #decomposedRatios[decomposedRatios < 0.] = 0.9
             decomposedRatios[decomposedRatios < 0.] = 1.0
+            #decomposedRatios[decomposedRatios < 0.] = 1.0
             #decomposedRatios = decomposedRatios[self.findOutliers(decomposedRatios)]
-            if n_eff_ratio[i,j] <= 0.5:
+            if n_eff_ratio[i,j] <= 0.4:
               #TODO: Harcoded number
               decomposedLikelihood[i,j] = 20000
             else:
               decomposedLikelihood[i,j] = -np.log(decomposedRatios).sum()
+              #decomposedLikelihood[i,j] = -(1./(decomposedRatios.shape[0]**2))*\
+              #                          np.log(decomposedRatios).sum()
             #print decomposedLikelihood[i,j]
             #print '{0} {1} {2}'.format(i,j,decomposedLikelihood[i,j])
           trueLikelihood[i,j] = -np.log(trueRatios).sum()
@@ -1076,16 +1923,20 @@ class DecomposedTest:
           decomposedLikelihood[i,j] = decomposedRatios.sum()
           trueLikelihood[i,j] = trueRatios.sum()
       #print '\n {0}'.format(i)
-    pdb.set_trace()
+    decomposedLikelihood[decomposedLikelihood == 20000] = decomposedLikelihood[decomposedLikelihood <> 20000].max()
     decomposedLikelihood = decomposedLikelihood - decomposedLikelihood.min()
     decMin = np.unravel_index(decomposedLikelihood.argmin(), decomposedLikelihood.shape)
     # pixel plots
-    #saveFig(csarray,[csarray2,decomposedLikelihood],makePlotName('comp','train',type='likelihood_g1g2'),labels=['composed'],pixel=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(c1[0],c1[1]),print_pdf=True,contour=True,title='Likelihood fit for g1,g2')
+    saveFig(csarray,[csarray2,decomposedLikelihood],makePlotName('comp','train',type='pixel_g1g2'),labels=['composed'],pixel=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(c1[0],c1[1]),print_pdf=True,contour=True,title='Likelihood fit for g1,g2')
+
+    saveFig(csarray,[csarray2,n_eff_ratio],makePlotName('comp','train',type='n_eff'),labels=['composed'],pixel=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(c1[0],c1[1]),print_pdf=True,contour=True,title='n_eff/n_tot sum values for g1,g2')
+
+    saveFig(csarray,[csarray2,n_zeros],makePlotName('comp','train',type='n_zeros'),labels=['composed'],pixel=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(c1[0],c1[1]),print_pdf=True,contour=True,title='n_zeros values for g1,g2')
 
     #decMin = [np.sum(decomposedLikelihood,1).argmin(),np.sum(decomposedLikelihood,0).argmin()] 
     X,Y = np.meshgrid(csarray, csarray2)
 
-    saveFig(X,[Y,decomposedLikelihood],makePlotName('comp','train',type='multilikelihood'),labels=['composed'],contour=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(self.F1_couplings[0],self.F1_couplings[1]),print_pdf=True,min_value=(csarray[decMin[0]],csarray2[decMin[1]]))
+    saveFig(X,[Y,decomposedLikelihood],makePlotName('comp','train',type='multilikelihood'),labels=['composed'],contour=True,marker=True,dir=self.dir,model_g=self.model_g,marker_value=(self.F1_couplings[1],self.F1_couplings[2]),print_pdf=True,min_value=(csarray[decMin[0]],csarray2[decMin[1]]))
     #print decMin
     print [csarray[decMin[0]],csarray2[decMin[1]]]
     pdb.set_trace()
@@ -1097,8 +1948,6 @@ class DecomposedTest:
           [csarray2[decMin[0],csarray2[decMin[1]]]]]
     else:
       return [[0.,0.],[csarray[decMin[0]],csarray2[decMin[1]]]]
-
-
 
   def evalMorphC1Likelihood(self,w,testdata,c0,c1,c_eval=0,c_min=0.01,c_max=0.2,use_log=False,true_dist=False, vars_g=None, npoints=50,samples_ids=None,weights_func=None,coef_index=0):
 
@@ -1157,7 +2006,7 @@ class DecomposedTest:
             data = preProcessing(testdata,self.dataset_names[min(k,j)],
             self.dataset_names[max(k,j)],self.scaler) 
           #outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,
-          outputs = predict('/tmp/jpavezse/{0}_{1}_{2}.pkl'.format(self.model_file,index_k,index_j),data,model_g=self.model_g)
+          outputs = predict('/afs/cern.ch/work/j/jpavezse/private/{0}_{1}_{2}.pkl'.format(self.model_file,index_k,index_j),data,model_g=self.model_g)
           f0pdfdist = np.array([self.evalDist(score,f0pdf,[xs]) for xs in outputs])
           f1pdfdist = np.array([self.evalDist(score,f1pdf,[xs]) for xs in outputs])
           pre_pdf[0][index_k][index_j] = f0pdfdist
@@ -1702,9 +2551,9 @@ class DecomposedTest:
     c_min = [0.6,0.1]
     c_max = [1.5,0.9]
     #c_min = 0.6
-    #c_max = 1.5
+    #c_max = 1.4
 
-    f = ROOT.TFile('{0}/{1}'.format('/tmp/jpavezse/',self.workspace))
+    f = ROOT.TFile('{0}/{1}'.format('/afs/cern.ch/work/j/jpavezse/private/',self.workspace))
     w = f.Get('w')
     f.Close()
     assert w 
@@ -1725,17 +2574,20 @@ class DecomposedTest:
            if k < j:
             self.scaler[(k,j)] = joblib.load('{0}/model/{1}/{2}/{3}_{4}_{5}.dat'.format(self.dir,'mlp',self.c1_g,'scaler',self.dataset_names[k],self.dataset_names[j]))
   
-    testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(self.dir,'mlp',self.c1_g,data_file,self.F1_dist))
+    testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(self.dir,'mlp',self.c1_g,data_file,self.F1_dist))[:,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,24,25,26,27,28,29,30,31,36,40,42]]
+    #testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(self.dir,'mlp',self.c1_g,data_file,self.F1_dist))
+    print self.F1_dist
+    print testdata.shape
     #self.preMorphedBasis(c_eval=c_eval,c_min=c_min,c_max=c_max,npoints=npoints)   
 
     fil1 = open('{0}/fitting_values_c1.txt'.format(self.dir),'a')
     for i in range(n_hist):
       indexes = rng.choice(testdata.shape[0], num_pseudodata) 
       dataset = testdata[indexes]
-      #(c1_true_1, c1_dec_1) = self.evalMorphC1Likelihood(w,dataset, c0,c1,c_eval=c_eval,c_min=c_min,
+      #(c1_true_1, c1_dec_1) = self.evalSingleC1Likelihood(w,dataset, c0,c1,c_eval=c_eval,c_min=c_min,
       #c_max=c_max,true_dist=true_dist,vars_g=vars_g,weights_func=weights_func,
-      #              npoints=npoints,use_log=use_log,coef_index=c_eval)  
-      ((c1_true,c2_true),(c1_dec,c2_dec)) = self.evalMorphC1C2Likelihood(w,dataset, c0,c1,c_eval=c_eval,c_min=c_min,
+      #              npoints=npoints,use_log=use_log)  
+      ((c1_true,c2_true),(c1_dec,c2_dec)) = self.evalDoubleC1C2Likelihood(w,dataset, c0,c1,c_eval=c_eval,c_min=c_min,
       c_max=c_max,true_dist=true_dist,vars_g=vars_g,weights_func=weights_func,
                     npoints=npoints,use_log=use_log)  
       print '2: {0} {1} {2} {3}'.format(c1_true, c1_dec, c2_true, c2_dec)

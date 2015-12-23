@@ -201,22 +201,33 @@ def evalDist(x,f0,val):
     i = i+1
   return f0.getVal(x)
 
+def findOutliers(x):
+  q5, q95 = np.percentile(x, [5,95])  
+  iqr = 2.0*(q95 - q5)
+  outliers = (x <= q95 + iqr) & (x >= q5 - iqr)
+  return outliers
 
-def checkCrossSection(c1,cross_section,samples,target,dir,c1_g,model_g,feature=0):
+
+def checkCrossSection(c1,cross_section,samples,target,dir,c1_g,model_g,feature=0,testdata=None,samplesdata=None):
   w = ROOT.RooWorkspace('w')
   normalizer_abs = (np.abs(np.multiply(c1,cross_section))).sum()
   normalizer = (np.multiply(c1,cross_section)).sum()
   n_eff = normalizer / normalizer_abs
-  print 'n_eff: {0}'.format(n_eff)
+  print 'n_eff_ratio: {0}, n_tot: {0}'.format(n_eff,normalizer_abs)
   #normalizer = cross_section.sum()
 
   # load S(1,1.5) data
   data_file = 'data'
-  testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,data_file,target))
-  testdata = testdata[:,feature]
+  testdata = testdata[:2500,feature]
+  fulldata = testdata[:]
+  testdata = testdata[testdata <> -999.]
+  testdata = testdata[findOutliers(testdata)]
   bins = 300
-  low = 0.
-  high = 250.
+  minimum = testdata.min()
+  maximum = testdata.max()
+  low = minimum - ((maximum - minimum) / bins)*10
+  high = maximum + ((maximum - minimum) / bins)*10
+
   w.factory('score[{0},{1}]'.format(low,high))
   s = w.var('score')
   target_hist = ROOT.TH1F('targethist','targethist',bins,low,high)
@@ -229,8 +240,9 @@ def checkCrossSection(c1,cross_section,samples,target,dir,c1_g,model_g,feature=0
   sum_hist = ROOT.TH1F('sampleshistsum','sampleshistsum',bins,low,high)
   for i,sample in enumerate(samples):
     samples_hist = ROOT.TH1F('sampleshist{0}'.format(i),'sampleshist',bins,low,high)
-    testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,data_file,sample))
-    testdata = testdata[:,feature]
+    testdata = samplesdata[i]
+    testdata = testdata[:2500,feature]
+    testdata = testdata[testdata <> -999.]
     weight = np.abs((c1[i] * cross_section[i]))/normalizer
     weight = (c1[i] * cross_section[i])/normalizer
     for val in testdata:
@@ -253,8 +265,142 @@ def checkCrossSection(c1,cross_section,samples,target,dir,c1_g,model_g,feature=0
   samples_histpdf = ROOT.RooHistFunc('{0}histpdf'.format('samples'),'histsamples',
         ROOT.RooArgSet(s), samples_datahist, 0)
   
-  printFrame(w,['score'],[target_histpdf,samples_histpdf],'check_cross_section_{0}'.format(feature),['real','weighted'],
-    dir=dir, model_g=model_g,title='cross section check',x_text='x',y_text='dN')
+  #printFrame(w,['score'],[target_histpdf,samples_histpdf],'check_cross_section_{0}'.format(feature),['real','weighted'],
+  #  dir=dir, model_g=model_g,title='cross section check',x_text='x',y_text='dN')
+
+   
+  score = ROOT.RooArgSet(w.var('score'))
+  # Now compute likelihood
+  evalValues = np.array([evalDist(score,samples_histpdf,[xs]) for xs in fulldata])
+  n_zeros = evalValues[evalValues <= 0.].shape[0]
+  evalValues = evalValues[evalValues > 0.]
+  print evalValues.shape
+  #likelihood = -(1./evalValues.shape[0])*np.log(evalValues).sum()
+  likelihood = -np.log(evalValues).sum()
+  print likelihood
+  return likelihood,n_eff,n_zeros
+
+def fullCrossSectionCheck(dir,c1_g,model_g,data_files,f1_dist):
+
+  npoints = 10
+  c_eval = 2
+  #c_min = [0.6,0.1]
+  #c_max = [1.5,0.9]
+  c_min = 0.1
+  c_max = 0.9
+
+  csarray = np.linspace(c_min,c_max,npoints)
+
+  all_indexes = np.loadtxt('05indexes_{0:.2f}_{1:.2f}_{2}.dat'.format(c_min,c_max,npoints)) 
+  all_indexes = np.array([int(x) for x in all_indexes])
+  #all_indexes = np.array([[int(x) for x in rows] for rows in all_indexes])
+  all_couplings = np.loadtxt('05couplings_{0:.2f}_{1:.2f}_{2}.dat'.format(c_min,c_max,npoints)) 
+  all_cross_sections = np.loadtxt('05crosssection_{0:.2f}_{1:.2f}_{2}.dat'.format(c_min,c_max,npoints)) 
+  features = [i for i in range(51) if i not in [32,39,50]]
+  features = features
+
+  n_effs = np.zeros((len(features),all_couplings.shape[0]))
+  n_zeros = np.zeros((len(features),all_couplings.shape[0]))
+  likelihoods = []
+
+  data_file='data'
+
+  testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,data_file,f1_dist))
+  basis_files = [data_files[i] for i in all_indexes]
+  samplesdata = []
+  data_file='data'
+  for i,sample in enumerate(basis_files):
+    samplesdata.append(np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,data_file,sample)))
+
+
+
+  '''
+  c_min = [0.6,0.1]
+  c_max = [1.5,0.9]
+  npoints = 15
+  csarray = np.linspace(c_min[0],c_max[0],npoints)
+  csarray2 = np.linspace(c_min[1], c_max[1], npoints)
+
+  all_indexes = np.loadtxt('3indexes_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints)) 
+  all_indexes = np.array([int(x) for x in all_indexes])
+  all_couplings = np.loadtxt('3couplings_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints)) 
+  all_cross_sections = np.loadtxt('3crosssection_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(c_min[0],c_min[1],c_max[0],c_max[1],npoints))
+
+  basis_files = [data_files[i] for i in all_indexes]
+  samplesdata = []
+  data_file='data'
+  for i,sample in enumerate(basis_files):
+    samplesdata.append(np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,data_file,sample)))
+
+  print all_indexes
+  testdata = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,data_file,f1_dist))
+  #basis_files = [data_files[i] for i in all_indexes]
+  #for i,sample in enumerate(basis_files):
+  #  samplesdata.append(np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,data_file,sample)))
+ 
+  feature = 25
+  likelihoods = np.zeros((npoints,npoints))
+  n_effs = np.zeros((npoints,npoints))
+  n_zeros = np.zeros((npoints,npoints))
+
+  for k,cs in enumerate(csarray):
+    for j,cs2 in enumerate(csarray2):
+      likelihood,n_eff,n_zero = checkCrossSection(all_couplings[k*npoints+j],all_cross_sections[k*npoints + j],basis_files,f1_dist,
+              dir,c1_g,model_g,feature=feature,testdata=testdata,samplesdata=samplesdata)
+      likelihoods[k,j] = likelihood
+      n_effs[k,j] = n_eff
+      n_zeros[k,j] = n_zero
+  #print likelihoods
+  saveFig(csarray,[csarray2,likelihoods],makePlotName('feature{0}'.format(25),'train',type='pixel_g1g2'),labels=['composed'],pixel=True,marker=True,dir=dir,model_g=model_g,marker_value=(1.0,0.5),print_pdf=True,contour=True,title='Feature for g1,g2')
+  '''
+
+  for k,couplings in enumerate(all_couplings):
+    #samplesdata = []
+    likelihoods.append([])
+    #basis_files = [data_files[i] for i in all_indexes[k]]
+    #print all_indexes[k]
+    #for i,sample in enumerate(basis_files):
+    #  samplesdata.append(np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,'mlp',c1_g,data_file,sample)))
+    for i,f in enumerate(features):
+      likelihood,n_eff,n_zero = checkCrossSection(couplings,all_cross_sections[k],basis_files,f1_dist,
+              dir,c1_g,model_g,feature=f,testdata=testdata,samplesdata=samplesdata)
+      likelihoods[-1].append(likelihood)
+      n_effs[i,k] = n_eff
+      n_zeros[i,k] = n_zero
+  print likelihoods
+
+  likelihoods = np.array(likelihoods)
+  likelihoods = likelihoods - np.abs(likelihoods.min(axis=0))
+  likelihoods = likelihoods/likelihoods.max(axis=0)
+
+  n_zeros_max = n_zeros.max(axis=1)
+  n_zeros = n_zeros.transpose()/n_zeros.max(axis=1)
+  n_zeros = n_zeros.transpose()
+
+  #fig, ax1 = plt.subplots(1, 1, figsize=(8, 12), subplot_kw={'projection': '3d'})
+
+  for k,feat in enumerate(features):
+    fig, ax1 = plt.subplots(1, 1, figsize=(8, 12))
+    ax1.plot(csarray, likelihoods[:,k])
+    ax1.plot(csarray, n_effs[k])
+    ax1.plot(csarray, n_zeros[k])
+    plt.legend(['Likelihood','n_eff','n_zeros/{0}'.format(n_zeros_max[k])])
+    fig.savefig('{0}/plots/{1}/{2}.png'.format(dir,model_g,'features_likelihood_g2_{0}'.format(feat)))
+ 
+  '''
+  #ax1.view_init(30,90)
+  X,Y = np.meshgrid(csarray,features)
+  ax1.plot_wireframe(X, Y, likelihoods.transpose(), rstride=1, cstride=10)
+  ax1.set_title("Row stride 0")
+  plt.tight_layout()
+  ax1.set_xlabel('Khzz values')
+  ax1.set_ylabel('Feature')
+  #ax1.plot_wireframe(X, Y, likelihoods, rstride=10, cstride=0)
+  #ax1.set_title("Column stride 0")
+  '''
+  #fig.savefig('{0}/plots/{1}/{2}.png'.format(dir,model_g,'features_likelihood.png'))
+  pdb.set_trace()
+
 
 if __name__ == '__main__':
   # Setting the classifier to use
@@ -265,7 +411,7 @@ if __name__ == '__main__':
         max_depth=4, random_state=0),
         'mlp':'',
         'xgboost': XGBoostClassifier(missing=-999.,num_class=2, nthread=4, silent=0,
-          num_boost_round=50, eta=0.5, max_depth=8)}
+          num_boost_round=50, eta=0.5, max_depth=11)}
   clf = None
   if (len(sys.argv) > 1):
     model_g = sys.argv[1]
@@ -314,7 +460,20 @@ if __name__ == '__main__':
   #basis = [all_couplings[i] for i in basis_indexes] 
   #couplings = np.array(morph.getWeights())
   #cross_section = np.array(morph.getCrossSections())
-  #pdb.set_trace()
+  #pdb.set_trace()  
+
+  #basis_indexes = [ 1,  4,  5,  6,  8,  9, 10, 11, 14, 15, 17, 19, 21, 23, 24]
+  basis_indexes = [ 1,  2,  3,  7, 10, 11, 12, 13, 15, 16, 18, 20, 22, 24, 25]
+  basis_samples = [all_couplings[i] for i in basis_indexes]
+  morph = MorphingWrapper()    
+  morph.setSampleData(nsamples=15,ncouplings=3,types=['S','S','S'],morphed=morphed,samples=basis_samples)
+  basis_files = [data_files[i] for i in basis_indexes]
+  basis = [all_couplings[i] for i in basis_indexes] 
+  couplings = np.array(morph.getWeights())
+  cross_section = np.array(morph.getCrossSections())
+  #pdb.set_trace()  
+
+  '''
   basis_indexes = [15, 19, 6, 21, 20, 24, 15, 17, 23, 11, 12, 22, 16, 5, 9]
   basis_files = [basis_files[i] for i in basis_indexes]
   basis = [basis[i] for i in basis_indexes] 
@@ -326,20 +485,6 @@ if __name__ == '__main__':
          2.50304355,   3.68695864,   0.72753178,   0.21662377,
         10.33017995,  58.08554602,  35.75995451,   3.90910227,
          0.36000962,   1.13599184,  29.05239118])
-
-  '''
-  basis_indexes = [7, 16, 2, 1, 18, 5, 4, 0, 13, 22, 10, 20, 14, 11, 24]
-  basis_files = [basis_files[i] for i in basis_indexes]
-  basis = [basis[i] for i in basis_indexes] 
-  couplings = np.array([ 1.91366732e+00,   2.47283196e+00,   1.57382786e-02,
-        -4.58868742e-01,  -3.86966467e+00,   5.25740802e-01,
-         1.70577914e-02,   3.71695422e-02,   3.47625077e-01,
-        -4.52819690e-02,   9.70078185e-02,  -1.94446463e-02,
-        -2.68758778e-02,   5.68656178e-05,  -6.75892923e-03])
-  cross_section = np.array([0.48637711,   0.36000962,   4.21623804,   0.45986807,
-         0.19756027,   1.13599184,   5.05110374,   1.63185362,
-         0.55535416,   3.90910227,  35.75995451,   2.50304355,
-         0.72753178,  58.08554602,   3.68695864])
   '''
 
   #bkg_morphed = all_couplings[3]
@@ -349,16 +494,6 @@ if __name__ == '__main__':
   #bkg_cross_section = np.array(morph.getCrossSections())
   #pdb.set_trace()  
   ''' 
-  c0 = np.array([ -2.76157355e+00,   4.41163361e-01,  -1.00578892e+00,
-         6.01073429e-02,  -1.46776285e+01,   5.45841396e-01,
-        -5.05605750e-02,   1.32171893e+00,  -4.56396230e-02,
-         1.17458906e-02,   7.18578249e-02,   1.73555489e+01,
-        -1.70041263e-01,  -1.00364551e-01,   3.61182448e-03])
-  c0_cross_section = np.array([  0.52275165,   0.72753178,   0.45986807,   1.63185362,
-         0.21662377,   5.05110374,   7.69338217,   5.05110374,
-        35.75995451,   3.90910227,  29.05239118,   0.17189144,
-         0.55535416,  35.75995451,  10.33017995]) 
-  c0 = np.multiply(c0,c0_cross_section)
 
   # Considering background as 1,1,0
   c0 = np.array([  5.        ,  -0.33333349,  -4.39285707,  47.50322723,
@@ -379,8 +514,8 @@ if __name__ == '__main__':
   print f0_dist
   '''
   c1 = couplings
-  #c0 = np.ones(couplings.shape[0])
-  c0 = np.array([1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
+  c0 = np.ones(couplings.shape[0])
+  #c0 = np.array([1.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
   print f1_dist
   print f0_dist
   print c1
@@ -388,6 +523,9 @@ if __name__ == '__main__':
 
   # features
   vars_g = ["Z1_E","Z1_pt","Z1_eta","Z1_phi","Z1_m","Z2_E","Z2_pt","Z2_eta","Z2_phi","Z2_m","higgs_E","higgs_pt","higgs_eta","higgs_phi","higgs_m","DelPhi_Hjj","mH","pT_Hjj","DelEta_jj","EtaProd_jj","DelY_jj","DelPhi_jj","DelR_jj","Mjj","Mjets","njets","jet1_E","jet1_eta","jet1_y","jet1_phi","jet1_pt","jet1_m","jet1_isPU","jet2_E","jet2_phi","jet2_eta","jet2_y","jet2_pt","jet2_m","jet2_isPU","DelPt_jj","minDelR_jZ","DelPt_ZZ","Zeppetaj3","ZeppetaZZ","jet3_E","jet3_eta","jet3_phi","jet3_pt","jet3_m","jet3_isPU"]
+  null_list = [15,17,18,19,20,21,22,23,32,33,34,35,37,38,39,41,43,44,45,46,47,48,49,50]
+  accept_list = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,24,25,26,27,28,29,30,31,36,40,42]
+  #vars_g = [vars_g[i] for i,_ in enumerate(vars_g) if i in accept_list]
 
   ROOT.gROOT.SetBatch(ROOT.kTRUE)
   ROOT.RooAbsPdf.defaultIntegratorConfig().setEpsRel(1E-15)
@@ -400,11 +538,10 @@ if __name__ == '__main__':
     random_seed = int(sys.argv[3])
     ROOT.RooRandom.randomGenerator().SetSeed(random_seed) 
   # Checking correct cross section 
-  #for i in range(5):
-  #  checkCrossSection(couplings,cross_section,basis_files,f1_dist,dir,c1_g,model_g,feature=i)
-  #pdb.set_trace()
-
   set_size = np.zeros(len(data_files))
+
+  #fullCrossSectionCheck(dir,c1_g,model_g,data_files,f1_dist)
+  #pdb.set_trace()
 
   train_files = data_files
   train_n = len(train_files)
@@ -424,6 +561,7 @@ if __name__ == '__main__':
           basis_indexes=basis_indexes,F1_couplings=morphed,all_couplings=all_couplings)
   #test.fit(data_file='data',importance_sampling=False, true_dist=False,vars_g=vars_g)
   #test.computeRatios(data_file='data',true_dist=False,vars_g=vars_g,use_log=False) 
+  #pdb.set_trace()
 
   n_hist = 1050
   # compute likelihood for c0[0] and c0[1] values
