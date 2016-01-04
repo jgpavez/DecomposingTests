@@ -526,9 +526,9 @@ Initial fit results for some target samples are shown next.
 
 target=(1.,0.5)            | target=(1.,1.)
 :-------------------------:|:-------------------------:
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_1.00_0.50.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_multilikelihood_1.00_1.00.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_1.00_0.50.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_1.00_1.00.png" width="350" >
 target=(1.,-0.5)            | target=(1.,0.)
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_1.00_-0.50.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_multilikelihood_1.00_0.00.png" width="350" >
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_1.00_-0.50.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_1.00_0.00.png" width="350" >
 target=(2.,2.)            
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_2.00_2.00.png" width="350"> 
 
