@@ -512,7 +512,7 @@ Both values are pretty close to the real values (1.0 and 1.5), this shows the gr
 
 
 
-* Dynamic Morphing Method for VBF Higgs production with 2BSM couplings
+## Dynamic Morphing Method for VBF Higgs production with 2BSM couplings
 
 In the VBF Higgs production channel 15 samples are needed in order to morph any sample. Each sample is represented by 3 coupling constants. 
 
@@ -529,7 +529,7 @@ target=(1.,0.5)            | target=(1.,1.)
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_1.00_0.50.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_multilikelihood_1.00_1.00.png" width="350" >
 target=(1.,-0.5)            | target=(1.,0.)
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_1.00_-0.50.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_multilikelihood_1.00_0.00.png" width="350" >
-target=(2.,2.)            | target=(2.,1.)
+target=(2.,2.)            
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_2.00_2.00.png" width="350"> 
 
 It can be seen that fitting results are quite good for some of the samples, while for some others there is a bias. The reason of this bias is being investigated, possible reasons are the coose of trainig features, problems on the choose of basis, dependence on the choose of background, etc.
