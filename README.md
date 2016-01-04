@@ -13,7 +13,8 @@ The analysis is divided in the next sections:
 * N-dimensions Private Model
   * Identifying the signal coefficient by fitting (Private)
   * How training affect ratios
-* Morphing Data for VBF Higgs production with 1 BSM coupling
+* Morphing Data for ggF Higgs production with 1 BSM coupling
+* Dynamic Morphing Method for VBF Higgs production with 2BSM couplings
 
 
 ## Simple Case
@@ -440,14 +441,14 @@ Finally the ratio histograms for this model are shown next,
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/1000/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/10000/ratio_comparison_mlp_hist.png" width="350" >
 
 
-## Morphing Data for VBF Higgs production with 1 BSM coupling
+## Morphing Data for ggF Higgs production with 1 BSM coupling
 
 Using [Morphing Methods](https://cds.cern.ch/record/2065188) one can construct an arbitrary sample using a set of base samples related by a set of coupling constants. The morphed sampled can be written as 
 **S(g1,g2,...) = sum(Wi(g1,g2,...)Si(g1,g2,...))**, where g1,g2 are coupling constants, Si input samples and Wi its weights. The minimum number of input samples needed is related with the 
 number of shared coupling constants in production and decay and the number of coupling constants only in production or decay. The morphed sample it is a mixture model and the ratio between 
 two morphed samples **S(g1,g2,...)** and **S(g1',g2',...)** can be decomposed and approximated using discriminative classifiers as shown before. 
 
-We will use data from VBF Higgs production with 1 
+We will use data from ggF Higgs production with 1 
 BSM coupling. For this only 5 base samples are needed (a good selection of base samples is needed in order to minimize statistical uncertainty). The base samples used for morphing are **S(1,0),S(1,2), S(1,1), S(1,3), S(0,1)**. As validation sample we use **S(1.,1.5)**. We also know that the weights corresponding to the validation sample with the base samples mentioned before are *W = [-0.0625, 0.5625, 0.5625, -0.0625, 0.5625]* and the cross section values for each base sample is *[0.1149,8.469,1.635, 27.40, 0.1882]*.
  
 Some of the pairwise distributions are represented using scatter plots for a subset of features (indicated in the column and row of the grid of plots). 
@@ -483,7 +484,7 @@ In this case, the full trained classifier behave better than the pairwise, mainl
 since there is a lot of room for improvement of the training. Anyway, it should be noted that meanwhile the full trained classifier is only optimum for the sample *S(1.,1.5)* and must be retrained 
 for any new sample, the pairwise classifier is optimum for any combination of samples and there is no need of retraining (only a change of coupling constants in the formula is needed).
 
-By using the morphing and the decomposed trained classifiers we are able to identify the coupling constants of an arbitrary sample by using **Maximum Likeligood**. In this case we will fit the coefficients for the sample **S(1.,1.5)** keeping the background distribution **S(1,0)** constant. 
+By using the morphing and the decomposed trained classifiers we are able to identify the coupling constants of an arbitrary sample by using **Maximum Likelihood**. In this case we will fit the coefficients for the sample **S(1.,1.5)** keeping the background distribution **S(1,0)** constant. 
 
 We start by fitting *g1* and keeping *g2=1.5* constant and *g2* by keeping *g1=1.* constant. The plots for the fit are shown next
 
@@ -508,3 +509,29 @@ The mean values of the fit of both values for 450 pseudo samples of size 5000 ar
 ![hist c0](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/ggf/g1g2_train_mlp_hist_pix.png)
 
 Both values are pretty close to the real values (1.0 and 1.5), this shows the great capacity of the method to identify values of parameters on real data distributions by using Maximum Likelihood. 
+
+
+
+* Dynamic Morphing Method for VBF Higgs production with 2BSM couplings
+
+In the VBF Higgs production channel 15 samples are needed in order to morph any sample. Each sample is represented by 3 coupling constants. 
+
+A main issue when ussing when using the Morphing method to find the coupling constants is the coverture of the choosed base on the coulings space. Statstical fluctuations 
+of the morphed sample can increase a lot in some parts of the coupling space when using a wrong samples base. Due to this using a single basis on all the fitting space is not possible. A solution would to have more samples that the 15 needed and to choose different basis for all points in the couplings space minimizing the statistical fluctiations for each sample. The problem is that the transition between basis affect the fitting procedure.
+
+We propose to use the sum of two bases choosed to minimize the statistical fluctuations in all the fitting space (in this case this is equivalent to maximize the n_eff value which is *sum(cross_section x coupling)*). In order to minimize fitting problems due to the transition between bases, the sum is weighted with weight *sqrt(n_eff)* for each basis. Results have shown that this method allow a relatively good n_eff in all fitting space and also minimize problems due to transition between bases. 
+
+Initial fit results for some target samples are shown next.
+
+
+target=(1.,0.5)            | target=(1.,1.)
+:-------------------------:|:-------------------------:
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_1.00_0.50.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_multilikelihood_1.00_1.00.png" width="350" >
+target=(1.,-0.5)            | target=(1.,0.)
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_1.00_-0.50.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_multilikelihood_1.00_0.00.png" width="350" >
+target=(2.,2.)            | target=(2.,1.)
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_2.00_2.00.png" width="350"> 
+
+It can be seen that fitting results are quite good for some of the samples, while for some others there is a bias. The reason of this bias is being investigated, possible reasons are the coose of trainig features, problems on the choose of basis, dependence on the choose of background, etc.
+
+
