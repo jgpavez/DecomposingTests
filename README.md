@@ -534,7 +534,7 @@ target=(2.,2.)              | target=(0.33,0.2)
 target=(0.5,0.33)              | target=(0.33,0.14) 
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_0.50_0.33.png" width="350"> | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_0.33_0.14.png" width="350"> 
 target=(0.25,0.17)              | 
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_2.00_2.00.png" width="350"> | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_0.25_0.17.png" width="350"> 
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_0.25_0.17.png" width="350"> |
 
 
 
