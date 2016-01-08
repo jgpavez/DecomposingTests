@@ -521,6 +521,11 @@ of the morphed sample can increase a lot in some parts of the coupling space whe
 
 We propose to use the sum of two bases choosed to minimize the statistical fluctuations in all the fitting space (in this case this is equivalent to maximize the n_eff value which is *sum(cross_section x coupling)*). In order to minimize fitting problems due to the transition between bases, the sum is weighted with weight *sqrt(n_eff)* for each basis. Results have shown that this method allow a relatively good n_eff in all fitting space and also minimize problems due to transition between bases. 
 
+The position on the coupling space of the samples used are shown in the next image
+
+
+![samples](https://github.com/jgpavez/systematics/blob/master/plots/xgboost/couplings_space.png)
+
 Initial fit results for some target samples are shown next.
 
 
@@ -533,8 +538,11 @@ target=(2.,2.)              | target=(0.33,0.2)
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_2.00_2.00.png" width="350"> | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_0.33_0.20.png" width="350"> 
 target=(0.5,0.33)              | target=(0.33,0.14) 
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_0.50_0.33.png" width="350"> | <img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_0.33_0.14.png" width="350"> 
-target=(0.25,0.17)              | 
-<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_0.25_0.17.png" width="350"> |
+target=(0.25,0.17)              | target=(-0.5, -0.33)
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_0.25_0.17.png" width="350"> |<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_-0.50_-0.33.png" width="350">
+target=(-0.33,-0.20))              | target=(-0.33,-0.14))
+<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_-0.33_-0.20.png" width="350"> |<img src="https://github.com/jgpavez/systematics/blob/master/plots/xgboost/comp_train_mlp_multilikelihood_-0.33_-0.14.png" width="350">
+
 
 
 
