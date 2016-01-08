@@ -47,13 +47,20 @@ def loadData(type,k,j,folder=None,dir='',c1_g='',preprocessing=False,scaler=None
     fk = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,model_g,c1_g,type,k))
     fj = np.loadtxt('{0}/data/{1}/{2}/{3}_{4}.dat'.format(dir,model_g,c1_g,type,j))
   rng = np.random.RandomState(1111)
-  data_num = 10000
-  indices = rng.choice(fk.shape[0],data_num)
+  # HARCODED RIGHT NOW
+
+  data_num = 19900
+  #data_num = 5000
+  indices = rng.choice(fk.shape[0],data_num,replace=False)
   fk = fk[indices]
-  indices = rng.choice(fj.shape[0],data_num)
+  indices = rng.choice(fj.shape[0],data_num,replace=False)
   fj = fj[indices] 
-  num0 = fk.shape[0]
+
+  fk = fk[:,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,20,24,25,26,27,28,29,30,31,36,40,42]]
+  fj = fj[:,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,20,24,25,26,27,28,29,30,31,36,40,42]]
+
   num1 = fj.shape[0]
+  num0 = fk.shape[0]
   traindata = np.zeros((num0+num1,fk.shape[1])) if len(fk.shape) > 1 else \
                   np.zeros(num0+num1)
   targetdata = np.zeros(num0+num1)
@@ -253,7 +260,7 @@ def printFrame(w,obs,pdf,name,legends,
 
 def saveFig(x,y,file,labels=None,scatter=False,contour=False,axis=None, 
             dir='/afs/cern.ch/user/j/jpavezse/systematics',
-            model_g='mlp',marker=False, hist=False, marker_value=None, x_range=None,title='',multi=False,print_pdf=False,hist2D=False,pixel=True):
+            model_g='mlp',marker=False, hist=False, marker_value=None, x_range=None,title='',multi=False,print_pdf=False,hist2D=False,pixel=False,min_value=None):
   fig,ax = plt.subplots()
   colors = ['b-','r-','k-']
   colors_rgb = ['blue','red','black']
@@ -270,20 +277,24 @@ def saveFig(x,y,file,labels=None,scatter=False,contour=False,axis=None,
       ax.set_xlabel('g2',fontsize=11) 
       ax.set_ylabel('g1',fontsize=11)
     else:
-      levels = [0.8,0.85,0.90,0.91,0.92,0.93,0.94]
+      levels = [2.,10.,40.,60.,80.,100.,200.,400.,600.]
+      #levels = [-800.,-600.,-400.,-200.,0.,200,1000.,10000.,50000.]
       #im = plt.imshow(y[1], interpolation='bilinear', origin='lower',
       #            cmap=cm.gray, extent=(-3,3,-2,2))
       #cs1 = plt.contour(x,y[0],y[1],[0.,0.1,0.5,1.,5.,10.,50.,100.])
-      cs1 = plt.contour(x,y[0],y[1],levels)
+      cs1 = plt.contour(x,y[0],y[1].transpose(),levels,origin='lower',alpha=.5, colors=('#ff0000', '#ff9900', '#999900', 'w', '#009999', '#0099ff', '#0000ff','#00ffff'))
       #cs2 = plt.contour(x,y[0],y[2],[0.,0.1,0.5,1.,5.,10.,50.,100.],linestyles="dashed")
       plt.clabel(cs1, inline=1, fontsize=10)
       #CB = plt.colorbar(cs1, shrink=0.8, extend='both')
       #lines = [cs1.collections[0],cs2.collections[0]]
       lines = [cs1.collections[0]]
-      plt.legend(lines,labels,frameon=False,fontsize=11)
-      ax.set_title('Likelihood ratio values for c1[0]-c1[1]')
-      ax.set_xlabel('c1[0]',fontsize=11) 
-      ax.set_ylabel('c1[1]',fontsize=11)
+      #plt.legend(lines,labels,frameon=False,fontsize=11)
+      ax.set_title('Likelihood ratio values for Kazz,KHzz, target=({0:.2f},{1:.2f})'.
+          format(marker_value[0],marker_value[1]))
+      ax.set_xlabel('Kazz',fontsize=11) 
+      ax.set_ylabel('Khazz',fontsize=11)
+      ax.annotate('min=({0:.2f},{1:.2f})'.format(min_value[0],min_value[1]), xy=(min_value[0]+0.01
+      ,min_value[1]+0.01),xytext=(min_value[0]+0.03,min_value[1]+0.03),arrowprops=dict(facecolor='red'))
       if marker == True: 
         plt.axvline(marker_value[0], color='black')
         plt.axhline(marker_value[1], color='black')
@@ -304,7 +315,7 @@ def saveFig(x,y,file,labels=None,scatter=False,contour=False,axis=None,
     else:
       if hist == True:
         if hist2D == True:
-          H, xedges, yedges, img = plt.hist2d(y[0][:450], y[1][:450],bins=10)
+          H, xedges, yedges, img = plt.hist2d(y[0][:450], y[1][:450],bins=12)
           pdb.set_trace()
           extent = [xedges[0], xedges[-1], yedges[-1], yedges[0]]
           fig = plt.figure()
@@ -313,7 +324,7 @@ def saveFig(x,y,file,labels=None,scatter=False,contour=False,axis=None,
           ax = fig.add_subplot(1, 1, 1)
           ax.set_xlabel(axis[0])
           ax.set_ylabel(axis[1])
-          im = ax.imshow(H, cmap=plt.cm.jet,extent=extent)
+          im = ax.imshow(H, cmap=plt.cm.jet,interpolation='nearest',extent=extent)
           mean1,mean2 = (y[0][:450].mean(),y[1][:450].mean())
           std1, std2 = (y[0][:450].std(),y[1][:450].std())
           ax.annotate('mean=[{0:.2f},{1:.2f}]\nstd=[{2:.2f},{3:.2f}]'.format(mean1,mean2,std1,std2)
@@ -552,6 +563,49 @@ def makeSigBkg(all_outputs, targets, label,
   plt.close(fig)
   plt.clf()
 
+
+def plotCValues(c0,c1,dir='/afs/cern.ch/user/j/jpavezse/systematics',
+            c1_g='',model_g='mlp',true_dist=False,vars_g=None,
+            workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root',
+            use_log=False, n_hist=150,c_eval=0, range_min=-1.0,range_max=0.):
+
+  ''' 
+    Plot histogram of fitted values
+  '''
+  if use_log == True:
+    post = 'log'
+  else:
+    post = ''
+
+  keys = ['true','dec']
+  c1_ = dict((key,np.zeros(n_hist)) for key in keys)
+  c1_1 = np.loadtxt('{0}/fitting_values_c1.txt'.format(dir))  
+  c1_['true'] = c1_1[:,0]
+  c1_['dec'] = c1_1[:,1]
+  if true_dist == True:
+    vals = [c1_['true'],c1_['dec']]
+    labels = ['true','dec']
+  else:
+    vals = c1_['dec']
+    vals1 = c1_1[:,3]
+    labels = ['dec']
+
+  size = min(vals.shape[0],vals1.shape[0])
+  # 1D
+  #saveFig([],[vals1], 
+  #    makePlotName('g2','train',type='hist_g1g2'),hist=True, 
+  #    axis=['g2'],marker=True,marker_value=c1[c_eval],
+  #    labels=labels,x_range=[range_min,range_max],dir=dir,
+  #    model_g=model_g,title='Histogram for fitted g2', print_pdf=True)
+  # 2D
+  saveFig([],[vals,vals1], 
+      makePlotName('g1g2','train',type='hist'),hist=True,hist2D=True, 
+      axis=['g1','g2'],marker=True,marker_value=c1,
+      labels=labels,dir=dir,model_g=model_g,title='2D Histogram for fitted g1,g2', print_pdf=True,
+      x_range=[[0.5,1.4],[1.1,1.9]])
+
+
+
 def getWeights(g_1=1.,g_2=1.5):
   #Set the basis
   basis_g1 = np.array((1.,1.,1.,1.,0.))
@@ -589,27 +643,3 @@ def getWeights(g_1=1.,g_2=1.5):
 
   return weight
 
-def savitzky_golay(y, window_size, order, deriv=0, rate=1):
-
-  from math import factorial
-
-  try:
-      window_size = np.abs(np.int(window_size))
-      order = np.abs(np.int(order))
-  except ValueError, msg:
-      raise ValueError("window_size and order have to be of type int")
-  if window_size % 2 != 1 or window_size < 1:
-      raise TypeError("window_size size must be a positive odd number")
-  if window_size < order + 2:
-      raise TypeError("window_size is too small for the polynomials order")
-  order_range = range(order+1)
-  half_window = (window_size -1) // 2
-  # precompute coefficients
-  b = np.mat([[k**i for i in order_range] for k in range(-half_window, half_window+1)])
-  m = np.linalg.pinv(b).A[deriv] * rate**deriv * factorial(deriv)
-  # pad the signal at the extremes with
-  # values taken from the signal itself
-  firstvals = y[0] - np.abs( y[1:half_window+1][::-1] - y[0] )
-  lastvals = y[-1] + np.abs(y[-half_window-1:-1][::-1] - y[-1])
-  y = np.concatenate((firstvals, y, lastvals))
-  return np.convolve( m[::-1], y, mode='valid')
