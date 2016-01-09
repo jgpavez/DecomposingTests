@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 __author__ = "Pavez J. <juan.pavezs@alumnos.usm.cl>"
 
+'''
+  Main code for applying decomposed likelihood ratios on 
+  VBF Higgs samples with 2nBSM couplings
+'''
+
 
 import ROOT
 import numpy as np
@@ -27,6 +32,7 @@ from utils import printMultiFrame, printFrame, saveFig, loadData,\
 
 from train_classifiers import trainClassifiers, predict
 from decomposed_test import DecomposedTest
+from morphed_decomposed_test import MorphedDecomposedTest
 
 from xgboost_wrapper import XGBoostClassifier
 from pyMorphWrapper import MorphingWrapper
@@ -137,6 +143,8 @@ if __name__ == '__main__':
   train_files = data_files
   train_n = len(train_files)
   scaler = None
+  
+  # Main code for calibrate decomposed likelihood ratios
 
   # train the pairwise classifiers
 
@@ -147,7 +155,7 @@ if __name__ == '__main__':
   #pdb.set_trace()
 
   # class which implement the decomposed method
-  test = DecomposedTest(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,
+  test = MorphedDecomposedTest(c0,c1,dir=dir,c1_g=c1_g,model_g=model_g,
           input_workspace=workspace_file, verbose_printing = verbose_printing,
           model_file='model',preprocessing=False,scaler=scaler, dataset_names=data_files,
           seed=random_seed, F1_dist=f1_dist,F0_dist=f0_dist, cross_section=cross_section,
