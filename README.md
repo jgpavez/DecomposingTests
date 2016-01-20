@@ -13,7 +13,7 @@ The analysis is divided in the next sections:
 * N-dimensions Private Model
   * Identifying the signal coefficient by fitting (Private)
   * How training affect ratios
-* Morphing Data for ggF Higgs production with 1 BSM coupling
+* Morphing Data for VBF Higgs production with 1 BSM coupling
 * Dynamic Morphing Method for VBF Higgs production with 2BSM couplings
 
 
@@ -441,14 +441,14 @@ Finally the ratio histograms for this model are shown next,
 <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/1000/ratio_comparison_mlp_hist.png" width="350">  | <img src="https://github.com/jgpavez/systematics/blob/master/plots/mlp/training/easier/10000/ratio_comparison_mlp_hist.png" width="350" >
 
 
-## Morphing Data for ggF Higgs production with 1 BSM coupling
+## Morphing Data for VBF Higgs production with 1 BSM coupling
 
 Using [Morphing Methods](https://cds.cern.ch/record/2065188) one can construct an arbitrary sample using a set of base samples related by a set of coupling constants. The morphed sampled can be written as 
 **S(g1,g2,...) = sum(Wi(g1,g2,...)Si(g1,g2,...))**, where g1,g2 are coupling constants, Si input samples and Wi its weights. The minimum number of input samples needed is related with the 
 number of shared coupling constants in production and decay and the number of coupling constants only in production or decay. The morphed sample it is a mixture model and the ratio between 
 two morphed samples **S(g1,g2,...)** and **S(g1',g2',...)** can be decomposed and approximated using discriminative classifiers as shown before. 
 
-We will use data from ggF Higgs production with 1 
+We will use data from VBF Higgs production with 1 
 BSM coupling. For this only 5 base samples are needed (a good selection of base samples is needed in order to minimize statistical uncertainty). The base samples used for morphing are **S(1,0),S(1,2), S(1,1), S(1,3), S(0,1)**. As validation sample we use **S(1.,1.5)**. We also know that the weights corresponding to the validation sample with the base samples mentioned before are *W = [-0.0625, 0.5625, 0.5625, -0.0625, 0.5625]* and the cross section values for each base sample is *[0.1149,8.469,1.635, 27.40, 0.1882]*.
  
 Some of the pairwise distributions are represented using scatter plots for a subset of features (indicated in the column and row of the grid of plots). 
