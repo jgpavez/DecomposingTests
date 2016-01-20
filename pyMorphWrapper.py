@@ -19,6 +19,7 @@ class MorphingWrapper:
   def __init__(self):
     # Initialize the C object
     self.obj = lib.MorphingWrapperNew()
+    self.mem_values = dict()
 
   def setStringData(self,data):
     # Set samples data in the form of string: 
@@ -37,7 +38,7 @@ class MorphingWrapper:
     return string_data
 
   def setSampleData(self,nsamples,ncouplings,types,morphed,samples,ncomb=20):
-    lib.getWeights.restype = POINTER(c_float*nsamples)
+    lib.getWeights.restype = POINTER(c_float*(nsamples+2))
     self.nsamples = nsamples
     self.ncouplings = ncouplings
     self.types = types
@@ -53,11 +54,19 @@ class MorphingWrapper:
     string_data = self.getStringData()
     self.setStringData(string_data)
 
+  def resetTarget(self, target):
+    self.morphed = target
+    string_data = self.getStringData()
+    self.setStringData(string_data)
+
   def getWeights(self):
     # Return computed weights for each sample
-
     s = lib.getWeights(self.obj)
-    return [float(x) for x in s.contents]
+    results = [float(x) for x in s.contents]
+    weights = results[:-2]
+    self.det = results[-2]
+    self.cond = results[-1]
+    return weights
     #return [float(x) for x in s.split()]
 
   def getCrossSections(self):
@@ -98,49 +107,90 @@ class MorphingWrapper:
     n_eff = (np.multiply(weights,cross_sections)).sum()
     return np.abs(n_eff / n_tot)
 
+  def computeStats(self,basis,samples):
+    basis = [samples[b] for b in basis]
+    self.resetBasis(basis)
+    weights = np.array(self.getWeights())
+    #print weights
+    cross_sections = np.array(self.getCrossSections())
+    n_tot = (np.abs(np.multiply(weights,cross_sections))).sum()
+    n_eff = (np.multiply(weights,cross_sections)).sum()
+    return (np.abs(n_eff / n_tot),self.det,self.cond)
 
-  def dynamicMorphing(self):
-    # TODO: Have to check the condition number and det
+  def evalMaxPair(self,x,samples,cvalues_1,cvalues_2,verb=False):
+    val = 0.
+    target = self.morphed[:]
+    norm = len(cvalues_1) * len(cvalues_2)
+    result = 0.
+    for val1 in cvalues_1:
+      for val2 in cvalues_2:
+        target[1] = val1
+        target[2] = val2
+        self.resetTarget(target)
+        r1 = self.computeNeff(x[0],samples)
+        r2 = self.computeNeff(x[1],samples) 
+        result += np.max(r1, r2)
+        #result = (r1 + r2)/2.
+    r1,det1,cond1 = self.computeStats(x[0],samples)
+    r2,det2,cond2 = self.computeStats(x[1],samples)
+    val = result/norm
+    if cond1 > 100000. or cond2 > 100000.:
+      val = 0.
+    else:
+      print val
+    return val
+
+  def dynamicMorphing(self,target=None,cvalues_1=None,cvalues_2=None):
     # This function will work in case you have more samples that needed
+    rng = np.random.RandomState(1234)
     samples = self.samples[:]
-    #samples.sort(key=lambda x: np.sqrt(np.sum((np.array(x)-self.morphed)**2)))
-    indexes = sorted(range(len(samples)),  key=lambda x: np.sqrt(np.sum((np.array(samples[x])-self.morphed)**2)))
-    #print [np.sqrt(np.sum((np.array(samples[x])-self.morphed)**2)) for x in indexes]
-    #samples = samples[indexes][:self.ncomb]
-    comb = list(combinations(indexes[:self.ncomb],self.nsamples))
+    indexes = np.array([samples.index(x) for x in samples if x <> self.morphed])
+    # This is the sample to fit (not necessarily the morphed when fitting)
+    if target <> None:
+      indexes = np.array([samples.index(x) for x in samples if x <> target])
+
+    self.ncomb = 23
+    ncomb_indexes = indexes[rng.choice(len(indexes),self.ncomb,replace=False)]
+
+    #Considering condition number
+    comb = list(combinations(ncomb_indexes,self.nsamples))
+    comb = [comb[i] for i in rng.choice(len(comb),int(len(comb)/2),replace=False)] 
     start = time.time()
-    best = sorted(comb,key=lambda x: self.computeNeff(x,samples),reverse=True)[0]
+    comb = sorted(comb,key=lambda x: self.computeNeff(x,samples),reverse=True)[:int(len(comb)*0.3)]
     end = time.time()
     print 'elapsed time : {0}'.format(end-start)
-    print 'n_eff: {0}'.format(self.computeNeff(best,samples))
-    #print [self.computeNeff(x) for x in comb[:20]]
-    #pdb.set_trace()
-    self.resetBasis([samples[b] for b in best])
+    print len(comb)
+    pairs = []
+    for c in comb:
+      print 'eval'
+      l1 = [i for i in indexes if i not in c]
+      comb2_len = self.nsamples*2 - len(indexes)
+      comb2 = np.array(list(combinations(c,self.nsamples*2 - len(indexes))))[rng.choice(comb2_len,
+              int(comb2_len*0.5),replace=False)]
+      for c2 in comb2:
+        pairs.append([c,tuple(l1 + list(c2))])
+    pairs = [pairs[i] for i in rng.choice(len(pairs),int(len(pairs)*0.3),replace=False)]
+    print len(pairs)
+    start = time.time()
+
+    best_result = 0.
+    for p in pairs:
+      result = self.evalMaxPair(p,samples,cvalues_1,cvalues_2)
+      if result > best_result:
+        best_result = result
+        best = p
+      if result > 0.55:
+        best = p
+        break
+    end = time.time()
+
+    self.mem_values.clear()
+    self.resetTarget(self.morphed)
+    result,det,cond = self.computeStats(best[0],samples)
+    print 'Result: {0} ,Det: {1}, Cond: {2}'.format(result, det, cond)
+    result,det,cond = self.computeStats(best[1],samples)
+    print 'Result: {0} ,Det: {1}, Cond: {2}'.format(result, det, cond)
+    print 'Elapsed time : {0}'.format(end-start)
 
     return best
 
-
-'''
-ncouplings = 3
-nsamples = 15
-
-samples_values = [[1.,0.,17.],[1.,1./3.,19.],[1.,1./5.,23.],[1.,1./7.,29.],[1.,1./11.,31.],
-                 [1.,1./13.,37.],[1.,1./17.,41.],[1.,1./19.,43.],[1.,1./23.,47.],[1.,1./29.,73.],
-                 [1.,1./31.,53.],[1.,1./41.,57.],[1.,1./43.,59.],[1.,1./47.,67.],[1.,1./53.,71.]];
-
-#Test Cross Sections
-#nsamples = 5
-#samples_values = [[1.,-3./2.,-3./2.],[1.,-1.,-1./2.],[1.,-1.,0.],[1.,-1.,1./2.],[1.,0.,-1./2.],
-#              [1.,0.,1./2.]]
-
-types = ['S', 'S','S']
-morphed = [1.,0.5,-3.]
-
-morph = MorphingWrapper()
-morph.setSampleData(nsamples,ncouplings,types,morphed,samples_values)
-#s = morph.getWeights()
-cs = morph.getCrossSections()
-
-#print s
-print cs
-'''
