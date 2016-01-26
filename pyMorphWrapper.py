@@ -37,7 +37,7 @@ class MorphingWrapper:
     string_data = string_data + ' '.join(str(x) for sample in self.basis for x in sample)
     return string_data
 
-  def setSampleData(self,nsamples,ncouplings,types,morphed,samples,ncomb=20):
+  def setSampleData(self,nsamples,ncouplings,types,morphed=[1.,1.,1.],samples=None,ncomb=20):
     lib.getWeights.restype = POINTER(c_float*(nsamples+2))
     self.nsamples = nsamples
     self.ncouplings = ncouplings
@@ -98,6 +98,8 @@ class MorphingWrapper:
     return cross_sections
 
   def computeNeff(self,basis,samples):
+    # TODO : Harcoded!
+    self.resetTarget([1.,0.5,0.5])
     basis = [samples[b] for b in basis]
     self.resetBasis(basis)
     weights = np.array(self.getWeights())
@@ -106,6 +108,23 @@ class MorphingWrapper:
     n_tot = (np.abs(np.multiply(weights,cross_sections))).sum()
     n_eff = (np.multiply(weights,cross_sections)).sum()
     return np.abs(n_eff / n_tot)
+
+  def evalMean(self,x,samples,cvalues_1,cvalues_2,verb=False):
+    val = 0.
+    target = self.morphed[:]
+    norm = len(cvalues_1) * len(cvalues_2)
+    result = 0.
+    for val1 in cvalues_1:
+      for val2 in cvalues_2:
+        target[1] = val1
+        target[2] = val2
+        self.resetTarget(target)
+        res,det,cond = self.computeStats(x,samples)
+        result += res
+    val = result/norm
+    #if val <> 0.:
+    #  print val
+    return val
 
   def computeStats(self,basis,samples):
     basis = [samples[b] for b in basis]
@@ -136,8 +155,8 @@ class MorphingWrapper:
     val = result/norm
     if cond1 > 100000. or cond2 > 100000.:
       val = 0.
-    else:
-      print val
+    #else:
+    #  print val
     return val
 
   def dynamicMorphing(self,target=None,cvalues_1=None,cvalues_2=None):
@@ -149,30 +168,30 @@ class MorphingWrapper:
     if target <> None:
       indexes = np.array([samples.index(x) for x in samples if x <> target])
 
-    self.ncomb = 23
     ncomb_indexes = indexes[rng.choice(len(indexes),self.ncomb,replace=False)]
 
+    print 'Starting combinations'
     #Considering condition number
     comb = list(combinations(ncomb_indexes,self.nsamples))
     comb = [comb[i] for i in rng.choice(len(comb),int(len(comb)/2),replace=False)] 
     start = time.time()
+    print 'Start sorting'
     comb = sorted(comb,key=lambda x: self.computeNeff(x,samples),reverse=True)[:int(len(comb)*0.3)]
     end = time.time()
-    print 'elapsed time : {0}'.format(end-start)
-    print len(comb)
+    print 'Elapsed time combinations: {0}'.format(end-start)
+    print 'Number of combinations: {0}'.format(len(comb))
     pairs = []
     for c in comb:
-      print 'eval'
+      print '.',
       l1 = [i for i in indexes if i not in c]
       comb2_len = self.nsamples*2 - len(indexes)
       comb2 = np.array(list(combinations(c,self.nsamples*2 - len(indexes))))[rng.choice(comb2_len,
               int(comb2_len*0.5),replace=False)]
       for c2 in comb2:
         pairs.append([c,tuple(l1 + list(c2))])
+    print ''
     pairs = [pairs[i] for i in rng.choice(len(pairs),int(len(pairs)*0.3),replace=False)]
-    print len(pairs)
     start = time.time()
-
     best_result = 0.
     for p in pairs:
       result = self.evalMaxPair(p,samples,cvalues_1,cvalues_2)
@@ -183,14 +202,14 @@ class MorphingWrapper:
         best = p
         break
     end = time.time()
-
+    print 'Elapsed time 2nd basis: {0}'.format(end-start)
+    print 'Results on target for each basis: '
     self.mem_values.clear()
     self.resetTarget(self.morphed)
     result,det,cond = self.computeStats(best[0],samples)
     print 'Result: {0} ,Det: {1}, Cond: {2}'.format(result, det, cond)
     result,det,cond = self.computeStats(best[1],samples)
     print 'Result: {0} ,Det: {1}, Cond: {2}'.format(result, det, cond)
-    print 'Elapsed time : {0}'.format(end-start)
 
     return best
 

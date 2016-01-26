@@ -52,7 +52,7 @@ class MorphedDecomposedTest(DecomposedTest):
 
     morph.setSampleData(nsamples=15,ncouplings=3,types=['S','S','S'],morphed=self.F1_couplings,samples=self.all_couplings)
     # This compute the morphed bases
-    indexes = morph.dynamicMorphing2(self.F1_couplings,csarray,csarray2)
+    indexes = morph.dynamicMorphing(self.F1_couplings,csarray,csarray2,ncomb=21)
     target = self.F1_couplings[:]
     # Start computing couplings and cross sections
     for l,ind in enumerate(indexes): 
@@ -218,8 +218,8 @@ class MorphedDecomposedTest(DecomposedTest):
         # Compute weights for bases
         neff2 = 1./n_eff_2s[i,j]
         neff1 = 1./n_eff_1s[i,j] 
-        alpha1 = np.exp(-np.power(neff1,1./3.))
-        alpha2 = np.exp(-np.power(neff2,1./3.))
+        #alpha1 = np.exp(-np.power(neff1,1./3.))
+        #alpha2 = np.exp(-np.power(neff2,1./3.))
         alpha1 = np.exp(-np.sqrt(neff1))
         alpha2 = np.exp(-np.sqrt(neff2))
         #alpha1 = np.exp(n_eff_1s[i,j])
@@ -257,6 +257,7 @@ class MorphedDecomposedTest(DecomposedTest):
         print 'total eff: {0}'.format(n_eff_ratio[i,j])
         if n_eff_ratio[i,j] > 0.3:
           indices = np.logical_and(indices, completeRatios > 0.)
+    print indices[indices==True].shape[0]
     for i,cs in enumerate(csarray):
       for j, cs2 in enumerate(csarray2):
 
@@ -268,7 +269,7 @@ class MorphedDecomposedTest(DecomposedTest):
               #TODO: Harcoded number
               decomposedLikelihood[i,j] = 20000
             else:
-              decomposedLikelihood[i,j] = -np.log(completeRatios).sum() 
+              decomposedLikelihood[i,j] = -2.*np.log(completeRatios).sum() 
         else:
           decomposedLikelihood[i,j] = completeRatios.sum()
           trueLikelihood[i,j] = trueRatios.sum()
@@ -324,8 +325,8 @@ class MorphedDecomposedTest(DecomposedTest):
       post = ''
     npoints = 15
     c_eval = 1
-    c_min = [-1.1,-1.1]
-    c_max = [-0.1,-0.1]
+    c_min = [0.1,0.1]
+    c_max = [0.9,0.9]
 
     f = ROOT.TFile('{0}/{1}'.format('/afs/cern.ch/work/j/jpavezse/private/',self.workspace))
     w = f.Get('w')
