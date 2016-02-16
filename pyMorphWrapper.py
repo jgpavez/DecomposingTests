@@ -9,11 +9,14 @@ import numpy as np
 import pdb
 import time
 from itertools import combinations
+import copy
 
 from deap import base
 from deap import tools
 from deap import creator
 from deap import algorithms
+from scoop import futures
+import multiprocessing
 
 
 #reading C++ library
@@ -194,8 +197,8 @@ class MorphingWrapper:
     val = result/norm
     if cond1 > 100000.:
       val = 0.
-    else:
-      print val
+    #else:
+    #  print val
     return val
 
   def computeStats(self,basis,samples):
@@ -232,8 +235,8 @@ class MorphingWrapper:
     val = result/(norm)
     if cond1 > 100000. or cond2 > 100000.:
       val = 0.
-    else:
-      print val
+    #else:
+    #  print val
     return val
 
   def dynamicMorphing(self,target=None,cvalues_1=None,cvalues_2=None):
@@ -330,13 +333,11 @@ class MorphingWrapper:
     comb = [comb[i] for i in rng.choice(len(comb),int(len(comb)/2),replace=False)] 
     start = time.time()
     comb = sorted(comb,key=lambda x: self.computeNeff(x,samples),reverse=True)[:int(len(comb)*0.3)]
-    #comb = sorted(comb,key=lambda x: self.computeNeff(x,samples),reverse=True)[:int(len(comb)*0.3)]
     end = time.time()
     print 'elapsed time : {0}'.format(end-start)
     print len(comb)
     start = time.time()
     comb = [comb[i] for i in rng.choice(len(comb),int(len(comb)*0.1),replace=False)] 
-    #best = sorted(pairs,key=lambda x: self.evalPair(x,samples,cvalues_1,cvalues_2))[-1]
     best_result = 0.
     for p in comb:
       result = self.evalMean(p,samples,cvalues_1,cvalues_2) if cvalues_2 <> None else\
@@ -344,12 +345,6 @@ class MorphingWrapper:
       if result > best_result:
         best_result = result
         best = p
-      #if result > 0.70:
-      #  res,det,cond = self.computeStats(p,samples)
-      #  print 'COND: {0}'.format(cond)
-      #  if cond < 100000.:
-      #    break
-    #best = p
     end = time.time()
     self.resetTarget(self.morphed)
     result,det,cond = self.computeStats(best,samples)
@@ -371,6 +366,10 @@ class MorphingWrapper:
     result = self.evalMaxPair(p,self.samples,cvalues_1,cvalues_2)
     return result,
 
+  # Workaround for parallel processing
+  def __call__(self, individual, cvalues_1, cvalues_2):
+    return self.evaluateInd(individual, cvalues_1, cvalues_2) 
+    
   def evolMorphing(self,target=None,cvalues_1=None,cvalues_2=None,c_eval=0):
 
     res = initInd(np.array, 15, self.samples)
@@ -382,21 +381,38 @@ class MorphingWrapper:
     ind1 = toolbox.individual()
     ind2 = toolbox.individual()
       
-    toolbox.register('evaluate', self.evaluateInd, cvalues_1=cvalues_1, cvalues_2=cvalues_2)
+    #toolbox.register('evaluate', self.evaluateInd, cvalues_1=cvalues_1, cvalues_2=cvalues_2)
+    toolbox.register('evaluate', self, cvalues_1=cvalues_1, cvalues_2=cvalues_2)
 
     #mutateInd(ind)
     toolbox.register('mutate', mutateInd)
     
     toolbox.register('mate', cxOver, section=3, base_size=15)
     toolbox.register("select", tools.selTournament, tournsize=3)
+    #toolbox.register("select", tools.selRoulette)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-
+    #toolbox.register("map", futures.map)
+    pool = multiprocessing.Pool()
+    toolbox.register("map", pool.map)
+    
+    halloffame = tools.HallOfFame(maxsize=10)
+   
+    mu_es, lambda_es = 3,21
+    
+    pop_stats = tools.Statistics(key=lambda ind: ind.fitness.values)
+    #pop_stats.register('pop', copy.deepcopy)
+    pop_stats.register('avg',np.mean)
+    pop_stats.register('max',np.max)
     #toolbox.mate(ind1,ind2)
     pop = toolbox.population(n=50)
-    
-    pop, stat = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2, ngen=50)
-    
-    individual = pop[0]
+    start = time.time()
+    pop, logbook = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.5, ngen=500, stats=pop_stats, halloffame=halloffame)
+    #pop, logbook = algorithms.eaMuCommaLambda(pop, toolbox, mu=mu_es, lambda_=lambda_es, 
+    #    cxpb=0.6, mutpb=0.3, ngen=50, stats=pop_stats, halloffame=halloffame)
+    end = time.time()
+    halloffame.update(pop)
+
+    individual = halloffame[0]
     size = len(individual) / 2
     ind1,ind2 = np.array(individual[:size]),np.array(individual[size:])
     # Check that individual is a valid sample
@@ -413,6 +429,6 @@ class MorphingWrapper:
     print 'Result: {0} ,Det: {1}, Cond: {2}'.format(result, det, cond)
     result,det,cond = self.computeStats(best[1],self.samples)
     print 'Result: {0} ,Det: {1}, Cond: {2}'.format(result, det, cond)
-        
+    print 'elapsed time : {0}'.format(end-start)  
     return p
 
