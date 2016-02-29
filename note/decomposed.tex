@@ -1,7 +1,7 @@
 \documentclass[a4paper]{jpconf}
 \usepackage{graphicx}
 \usepackage{lineno}
-\linenumbers
+%\linenumbers
 \bibliographystyle{iopart-num}
 \usepackage{amssymb, amsmath}
 \usepackage{hyperref}
@@ -23,7 +23,7 @@ G Louppe$^1$\ and  W Brooks$^3$}
 
 
 \begin{abstract}
-Likelihood ratio test are a key tool in many fields of science. In order to evaluate the likelihood ratio the likelihood function is needed. However, it is common in fields like high energy physics to have complex simulations that describe the distribution while not having a description of the likelihood that can be directly evaluated. In this setting it is impossible or computationally expensive to evaluate the likelihood. It is possible to construct an equivalent version of the likelihood ratio that can be easily evaluated by using discriminative classifiers. We show how this can be used to approximate the likelihood ratio when the underlying distribution is a weighted sum of probability distributions (e.g. signal plus background model). We demonstrate how the results can be considerably improved by decomposing the test and use a set of classifiers in a pairwise manner on the components of the mixture model and in which way this can be used to estimate the unknown coefficients of the model, such as the signal contribution.
+Likelihood ratio tests are a key tool in many fields of science. In order to evaluate the likelihood ratio the likelihood function is needed. However, it is common in fields like high energy physics to have complex simulations that describe the distribution while not having a description of the likelihood that can be directly evaluated. In this setting it is impossible or computationally expensive to evaluate the likelihood. It is possible to construct an equivalent version of the likelihood ratio that can be easily evaluated by using discriminative classifiers. We show how this can be used to approximate the likelihood ratio when the underlying distribution is a weighted sum of probability distributions (e.g. signal plus background model). We demonstrate how the results can be considerably improved by decomposing the test and use a set of classifiers in a pairwise manner on the components of the mixture model and in which way this can be used to estimate the unknown coefficients of the model, such as the signal contribution.
 \end{abstract}
 \section{Introduction}
 
@@ -95,7 +95,7 @@ is equal to the composition of pairwise ratios for each one of the components wh
 \frac{p(x|\theta_0)}{p(x|\theta_1)} = \sum_{i=1}^k \left[ \sum_{j=1}^{k'} \frac{ w_{j}(\theta_1)}{w_i(\theta_0)} \frac{ p_{j}(x|\theta_1)}{  p_i(x| \theta_0)}  \right]^{-1} = \sum_{i=1}^k \left[ \sum_{j=1}^{k'} \frac{ w_{j}(\theta_1)}{w_i(\theta_0)} \frac{ p_{j}(s_{i,j}(x;\theta_0, \theta_1)|\theta_1)}{  p_i(s_{i,j}(x;\theta_0, \theta_1)| \theta_0)}  \right]^{-1}.
 \end{equation}
 In the case that the only free parameters of the mixture model are the coefficients $w_i(\theta)$, then each distribution $p_i(s_{i,j}(x;\theta_0, \theta_1)|\theta)$ is independent of $\theta$ and can be pre-computed and used after in the evaluation of the likelihood ratio. Moreover, when numerator and denominator correspond to the same distribution the values can be directed replaced by $1$ avoiding unnecessary computations. Also, for a two-class classifier the values of $s_{j,i}(x;\theta_0,\theta_1)$ for one of the classes can be replaced by the values of $s_{i,j}(x;\theta_0,\theta_1)$ for the opposing class, then it is only necessary to train the classifiers for $i < j$. This saves a lot of computation time and avoid possible variance that can be introduced by differences between $s_{i,j}(x;\theta_0, \theta_1)$ and $s_{j,i}(x;\theta_0, \theta_1)$ due to imperfect training.
-In the case of only background hypothesis versus signal plus background hypothesis it is common that the signal coefficient $w_{j}(\theta_1)$ is a very small number compared to the background coefficients under the alternate hypothesis. In this conditions a classifier trained on data from the full mixture model will have a lot of problems to identify the signal since most of the useful discriminative data will lay in a small region of the feature space while the decomposed model will not face this issues.
+In the case of only background versus signal plus background hypotheses it is common that the signal coefficient $w_{j}(\theta_1)$ is a very small number compared to the background coefficients. In this conditions a classifier trained on data from the full mixture model will have a lot of problems to identify the signal since most of the useful discriminative data will lay on a small region of the feature space while the decomposed model will not face this issues.
 %In the common case of only background null hypothesis versus signal plus background alternate hypothesis, the coefficient $w_{i}(\theta_0)$ corresponding to the signal component will be equal to zero under the null hypothesis, while the coefficients on the alternate hypothesis will be all bigger than zero. Additionally, it is common for the signal coefficient $w_{j}(\theta_1)$ to be a very small number compared to the background coefficients under the alternate hypothesis. In this conditions a classifier trained in data from the full mixture model will have a lot of problems to identify the signal since most of the useful discriminative data will lay in a small region of the feature space.
 
 It is possible to estimate the signal and background coefficients by using maximum likelihood on the ratios. This can be done by keeping the denominator fixed and estimate the parameters on the numerator using the maximum likelihood method.
@@ -174,8 +174,7 @@ First, we present a simple case in which each component is an univariate distrib
 \end{minipage}
 \end{figure}
 
-Three neural networks were trained on 200000 examples sampled from the pairs of single distributions and one on 200000 examples sampled from the full model (is important to use the same amount of training data in order to allow a fair comparison). The distribution of the score is estimated using histograms (the number of bins were carefully chosen in order to allow a good approximation while minimizing poisson fluctuations). The composed ratio using 
-eq.~(\ref{eq:decomp}), the ratio estimated using a classifier trained on data from the full model and the true density ratio are shown in Figure~\ref{fig:ratios1} and Figure~\ref{fig:ratios2} for different values of the signal contribution ($0.1$ and $0.05$) while keeping the ratio between the background contributions fixed. 
+Three neural networks were trained on examples sampled from the pairs of single distributions and one on examples sampled from the full model (is important to use the same amount of training data in order to allow a fair comparison). The distribution of the score is estimated using histograms on a different dataset (the number of bins were carefully chosen in order to allow a good approximation while minimizing poisson fluctuations). The configuration for both examples is shown in Table~1. The composed ratio using eq.~(\ref{eq:decomp}), the ratio estimated using a classifier trained on data from the full model and the true density ratio are shown in Figure~\ref{fig:ratios1} and Figure~\ref{fig:ratios2} for different values of the signal contribution ($0.1$ and $0.05$) while keeping the ratio between the background contributions fixed. 
 
 It can be seen that the ratios obtained by the composition method are better (closer to the true ratios) than the obtained using a model trained on data from the full mixture model and this become clearer when the signal contribution is smaller.
 
@@ -191,24 +190,24 @@ It can be seen that the ratios obtained by the composition method are better (cl
 \end{minipage}
 \end{figure}
 
-The same experiments are repeated but now considering a much harder mixture model consisting of three distributions, each one composed by the sum of three 10-dimensional multivariate gaussian distributions. In this case datasets of size 500000 were used to train all the models. This is more similar to what can be found in real physics experiments. To evaluate the estimated ratios the background rejection versus signal efficiency curves on data from $\theta_0$ and $\theta_1$ are used, employing the density ratio as discriminative variable. Again, the values for each one of the three cases (decomposed, full and true) are shown for a signal contribution of $0.1$ and $0.05$ in Figure~\ref{fig:roc1} and Figure~\ref{fig:roc2}.
+The same experiments are repeated but now considering a much harder mixture model consisting of three distributions, each one composed by the sum of three 10-dimensional multivariate gaussian distributions. This is more similar to what can be found in real physics experiments. To evaluate the estimated ratios the background rejection versus signal efficiency curves on data from $\theta_0$ and the signal distribution are used, employing the density ratio as discriminative variable. Again, the values for each one of the three cases (decomposed, full and true) are shown for a signal contribution of $0.1$ and $0.05$ in Figure~\ref{fig:roc1} and Figure~\ref{fig:roc2}.
 
+\begin{table}\caption{\label{label}Experiments setup.}\begin{center}\begin{tabular}{llll}\brExperiment& \# training data& \# histogram data& Classifier\\\mr1D&200000&100000&MLP (1 layer, 4 hidden units)\\10D&200000&100000&MLP (1 layer, 40 hidden units)\\\br\end{tabular}\end{center}\end{table}
 
-
-The values of each one of the coefficients of the mixture model can be estimated by using the method of maximum likelihood as explained in Section~\ref{S:DLR}. In Figure~\ref{fig:2dfit} the contour plot for the likelihood ratio values given the signal and one background weight, obtained using the estimated density ratios and the true density ratios is shown. Histogram for the fitted values (estimated and true) of each one of the coefficients on 80 different pseudo-datasets of size 1000 are shown in Figure~\ref{fig:hist1} and Figure~\ref{fig:hist2}. It can be seen on the histograms that the estimations are unbiased.
+The values of each one of the coefficients of the mixture model can be estimated by using the method of maximum likelihood as explained in Section~\ref{S:DLR}. In Figure~\ref{fig:2dfit} the contour plot for the likelihood ratio values given the signal and one background weight, obtained using the estimated density ratios and the true density ratios is shown. Histogram for the fitted values (estimated and true) of each one of the coefficients on 200 different pseudo-datasets of size 1000 are shown in Figure~\ref{fig:hist1} and Figure~\ref{fig:hist2}. It can be seen on the histograms that the estimations are unbiased.
 
 \begin{figure}[h]
 \begin{minipage}{11pc}
 \includegraphics[width=12pc]{comp_train_mlp_multilikelihood.pdf}
-\caption{\label{fig:2dfit} Likelihood ratio values given signal (c1[0]) and bkg. (c1[1]) weights.} %,$p_0(x)$, $p_1(x)$ and $p_2(x)$.}
+\caption{\label{fig:2dfit} Likelihood ratio values given signal and bkg. weights.} %,$p_0(x)$, $p_1(x)$ and $p_2(x)$.}
 \end{minipage}\hspace{2pc}%
 \begin{minipage}{11pc}
 \includegraphics[width=12pc]{c1c2_train_mlp_c1_hist.pdf}
-\caption{\label{fig:hist1} Histogram of fitted values for the signal weight (c1[0]).}
+\caption{\label{fig:hist1} Histogram of fitted values for the signal weight.}
 \end{minipage}\hspace{2pc}
 \begin{minipage}{11pc}
 \includegraphics[width=12pc]{c1c2_train_mlp_c2_hist.pdf}
-\caption{\label{fig:hist2}  Histogram of fitted values for the bkg. weight (c1[1]).}
+\caption{\label{fig:hist2}  Histogram of fitted values for the bkg. weight.}
 \end{minipage}
 \end{figure}
 
