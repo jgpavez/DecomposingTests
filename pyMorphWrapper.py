@@ -88,6 +88,7 @@ def cxOver(ind1, ind2, section, base_size):
 class MorphingWrapper:
   def __init__(self):
     # Initialize the C object
+    lib.MorphingWrapperNew.restype = POINTER(c_char)   
     self.obj = lib.MorphingWrapperNew()
     self.mem_values = dict()
 
@@ -315,6 +316,72 @@ class MorphingWrapper:
     print 'Result: {0} ,Det: {1}, Cond: {2}'.format(result, det, cond)
 
     return best
+
+  def dynamicMorphing_(self,target=None,cvalues_1=None,cvalues_2=None):
+    # This function will work in case you have more samples that needed
+    rng = np.random.RandomState(1234)
+    #rng = np.random.RandomState(1111)
+    samples = self.samples[:]
+    indexes = np.array([samples.index(x) for x in samples if x <> self.morphed])
+    # This is the sample to fit (not necessarily the morphed when fitting)
+    if target <> None:
+      indexes = np.array([samples.index(x) for x in samples if x <> target])
+
+    samples_indexes = indexes
+    print len(samples_indexes)
+    ncomb_indexes = samples_indexes[rng.choice(len(samples_indexes),self.ncomb,replace=False)]
+
+    print 'Starting combinations'
+    #Considering condition number
+    comb = list(combinations(ncomb_indexes,self.nsamples))
+    #comb = [comb[i] for i in rng.choice(len(comb),int(len(comb)/2),replace=False)] 
+    start = time.time()
+    print 'Start sorting'
+    comb = sorted(comb,key=lambda x: self.computeNeff(x,samples),reverse=True)[:int(len(comb)*0.1)]
+    #comb = sorted(comb,key=lambda x: self.computeNeff(x,samples),reverse=True)
+    end = time.time()
+    print 'Elapsed time combinations: {0}'.format(end-start)
+    print 'Number of combinations: {0}'.format(len(comb))
+    pairs = []
+    for c in comb:
+      print '.',
+      l1 = [i for i in samples_indexes if i not in c]
+      comb2_len = self.nsamples*2 - len(indexes)
+      comb2 = list(combinations(c,self.nsamples*2 - len(indexes)))
+      comb2 = np.array(comb2)[rng.choice(len(comb2),int(len(comb2)*0.05),replace=False)]
+      for c2 in comb2:
+        pairs.append([c,tuple(l1 + list(c2))])
+    print ''
+    pairs = [pairs[i] for i in rng.choice(len(pairs),int(len(pairs)*0.3),replace=False)]
+    print 'Number of pairs: {0}'.format(len(pairs)) 
+    start = time.time()
+    best_result = 0.
+    for p in pairs:
+      try: 
+        result = self.evalMaxPair(p,samples,cvalues_1,cvalues_2)
+        if result > best_result:
+          best_result = result
+          best = p
+        if result > 0.8:
+          best = p
+          best_result = result
+          break
+      except KeyboardInterrupt:
+        print 'KeyboardInterrupt caught'
+        break    
+    end = time.time()
+    print 'Elapsed time 2nd basis: {0}'.format(end-start)
+    print 'Best Result : {0}'.format(best_result)
+    print 'Results on target for each basis: '
+    self.mem_values.clear()
+    self.resetTarget(self.morphed)
+    result,det,cond = self.computeStats(best[0],samples)
+    print 'Result: {0} ,Det: {1}, Cond: {2}'.format(result, det, cond)
+    result,det,cond = self.computeStats(best[1],samples)
+    print 'Result: {0} ,Det: {1}, Cond: {2}'.format(result, det, cond)
+
+    return best
+
 
   def simpleMorphing(self,target=None,cvalues_1=None,cvalues_2=None,c_eval=0):
     # TODO: Have to check the condition number and det
