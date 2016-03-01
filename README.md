@@ -4,6 +4,10 @@ This work is based on the section **5.4 Decomposing tests between mixture models
 of the paper [Approximating Likelihood Ratios with Calibrated Discriminative Classifiers]
 (http://arxiv.org/abs/1506.02169) by Kyle Cranmer.
 
+In order to reproduce the results on the article **Experiments using machine learning to approximate likelihood ratios for mixture models**
+from ACAT 2016, you should run `python DecomposingTest_1D.py mlp 0.05 1234` for 1D examples, where 0.05 is the signal weight or 
+`python DecomposingTest_10D.py mlp 0.05 1234´ for 10D examples.
+
 The analysis is divided in the next sections:
 * Simple Case (1D)
   * Identifying the signal coefficient by fitting (1D)

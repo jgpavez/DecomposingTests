@@ -17,8 +17,6 @@ import pdb
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-from mlp import make_predictions, train_mlp
-
 from make_data import makeData, makeModelND
 from utils import printMultiFrame, printFrame, saveFig, loadData, printFrame, makePlotName,\
           loadData,makeSigBkg,makeROC, makeMultiROC,saveMultiFig,preProcessing
@@ -47,7 +45,8 @@ class DecomposedTest:
             cross_section=None,
             all_couplings=None,
             F1_couplings=None,
-            basis_indexes=None):
+            basis_indexes=None,
+            clf=None):
     self.input_workspace = input_workspace
     self.workspace = output_workspace
     self.c0 = c0
@@ -68,6 +67,7 @@ class DecomposedTest:
     self.F1_couplings=F1_couplings
     self.all_couplings=all_couplings
     self.nsamples = len(dataset_names)
+    self.clf = clf
 
 
   def fit(self, data_file='test',importance_sampling=False, true_dist=True,vars_g=None):
@@ -85,7 +85,9 @@ class DecomposedTest:
     high = 1.  
     
     if self.input_workspace <> None:
-      f = ROOT.TFile('{0}/{1}'.format('/afs/cern.ch/work/j/jpavezse/private',self.workspace))
+      #f = ROOT.TFile('{0}/{1}'.format('/afs/cern.ch/work/j/jpavezse/private',self.workspace))
+      f = ROOT.TFile('{0}/{1}'.format(self.dir,self.workspace))
+     
       w = f.Get('w')
       # TODO test this when workspace is present
       w = ROOT.RooWorkspace('w') if w == None else w
@@ -195,11 +197,13 @@ class DecomposedTest:
        
         numtrain = traindata.shape[0]       
         size2 = traindata.shape[1] if len(traindata.shape) > 1 else 1
-        output = [predict('/afs/cern.ch/work/j/jpavezse/private/{0}_{1}_{2}.pkl'.format(self.model_file,k,j),traindata[targetdata == 1],model_g=self.model_g),
-          predict('/afs/cern.ch/work/j/jpavezse/private/{0}_{1}_{2}.pkl'.format(self.model_file,k,j),traindata[targetdata == 0],model_g=self.model_g)]
-
+        #output = [predict('/afs/cern.ch/work/j/jpavezse/private/{0}_{1}_{2}.pkl'.format(self.model_file,k,j),traindata[targetdata == 1],model_g=self.model_g),
+        #  predict('/afs/cern.ch/work/j/jpavezse/private/{0}_{1}_{2}.pkl'.format(self.model_file,k,j),traindata[targetdata == 0],model_g=self.model_g)]
+        output = [predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file,k,j),traindata[targetdata==1],model_g=self.model_g,clf=self.clf),
+              predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file,k,j),traindata[targetdata==0],model_g=self.model_g,clf=self.clf)]
         saveHistos(w,output,s,bins,low,high,(k,j))
-        w.writeToFile('{0}/{1}'.format('/afs/cern.ch/work/j/jpavezse/private',self.workspace))
+        #w.writeToFile('{0}/{1}'.format('/afs/cern.ch/work/j/jpavezse/private',self.workspace))
+        w.writeToFile('{0}/{1}'.format(self.dir,self.workspace))
 
     if self.verbose_printing==True:
       for ind in range(1,(len(histos)/3+1)):
@@ -212,17 +216,19 @@ class DecomposedTest:
       preprocessing=self.preprocessing, scaler=self.scaler)
     numtrain = traindata.shape[0]       
     size2 = traindata.shape[1] if len(traindata.shape) > 1 else 1
-    #outputs = [predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),traindata[targetdata==1],model_g=self.model_g),
-    #          predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),traindata[targetdata==0],model_g=self.model_g)]
-    outputs = [predict('/afs/cern.ch/work/j/jpavezse/private/{0}_F0_F1.pkl'.format(self.model_file),traindata[targetdata==1],model_g=self.model_g),
-              predict('/afs/cern.ch/work/j/jpavezse/private/{0}_F0_F1.pkl'.format(self.model_file),traindata[targetdata==0],model_g=self.model_g)]
+    outputs = [predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),traindata[targetdata==1],model_g=self.model_g,clf=self.clf),
+              predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),traindata[targetdata==0],model_g=self.model_g,clf=self.clf)]
+    #outputs = [predict('/afs/cern.ch/work/j/jpavezse/private/{0}_F0_F1.pkl'.format(self.model_file),traindata[targetdata==1],model_g=self.model_g),
+    #          predict('/afs/cern.ch/work/j/jpavezse/private/{0}_F0_F1.pkl'.format(self.model_file),traindata[targetdata==0],model_g=self.model_g)]
 
     saveHistos(w,outputs,s_full, bins_full, low_full, high_full,importance_sampling=False)
     if self.verbose_printing == True:
       printFrame(w,['scoref'],[w.function('sighistpdf_F0_F1'),w.function('bkghistpdf_F0_F1')], makePlotName('full','all',type='hist',dir=self.dir,c1_g=self.c1_g,model_g=self.model_g),['signal','bkg'],
     dir=self.dir,model_g=self.model_g,y_text='score(x)',print_pdf=True,title='Pairwise score distributions')
    
-    w.writeToFile('{0}/{1}'.format('/afs/cern.ch/work/j/jpavezse/private',self.workspace))
+    #w.writeToFile('{0}/{1}'.format('/afs/cern.ch/work/j/jpavezse/private',self.workspace))
+    w.writeToFile('{0}/{1}'.format(self.dir,self.workspace))
+    
     w.Print()
 
   # To calculate the ratio between single functions
@@ -298,9 +304,9 @@ class DecomposedTest:
             if self.preprocessing == True:
               traindata = preProcessing(evalData,self.dataset_names[min(index_k,index_j)],
               self.dataset_names[max(index_k,index_j)],self.scaler) 
-            #outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file,k,j),traindata,model_g=self.model_g)
-            outputs = predict('/afs/cern.ch/work/j/jpavezse/private/{0}_{1}_{2}.pkl'.format(self.model_file,index_k,
-            index_j),traindata,model_g=self.model_g)
+            outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file,k,j),traindata,model_g=self.model_g,clf=self.clf)
+            #outputs = predict('/afs/cern.ch/work/j/jpavezse/private/{0}_{1}_{2}.pkl'.format(self.model_file,index_k,
+            #index_j),traindata,model_g=self.model_g)
             f0pdfdist = np.array([self.evalDist(score,f0pdf,[xs]) for xs in outputs])
             f1pdfdist = np.array([self.evalDist(score,f1pdf,[xs]) for xs in outputs])
           else:
@@ -341,8 +347,9 @@ class DecomposedTest:
           else:
             testdata = evalData
           size2 = testdata.shape[1] if len(testdata.shape) > 1 else 1
-          outputs = predict('/afs/cern.ch/work/j/jpavezse/private/{0}_{1}_{2}.pkl'.format(self.model_file,index_k,
-                    index_j),testdata.reshape(testdata.shape[0],size2),model_g=self.model_g)
+          outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file,k,j),testdata,model_g=self.model_g,clf=self.clf)
+          #outputs = predict('/afs/cern.ch/work/j/jpavezse/private/{0}_{1}_{2}.pkl'.format(self.model_file,index_k,
+          #          index_j),testdata.reshape(testdata.shape[0],size2),model_g=self.model_g)
           f0pdfdist = np.array([self.evalDist(score,f0pdf,[xs]) for xs in outputs])
           f1pdfdist = np.array([self.evalDist(score,f1pdf,[xs]) for xs in outputs])
           clfRatios = self.singleRatio(f0pdfdist,f1pdfdist)
@@ -414,11 +421,12 @@ class DecomposedTest:
     f = ROOT.TFile('{0}/{1}'.format(self.dir,self.workspace))
     w = f.Get('w')
     f.Close()
+
     
     #TODO: This are Harcoded for now
     c1 = self.c1
     c0 = self.c0
-    c1 = np.multiply(c1, self.cross_section)
+    #c1 = np.multiply(c1, self.cross_section)
     c1 = c1/c1.sum()
     c0 = c0/c0.sum()
 
@@ -461,7 +469,7 @@ class DecomposedTest:
     F1pdf = w.function('sighistpdf_F0_F1')
 
     # TODO Here assuming that signal is first dataset  
-    testdata, testtarget = loadData(data_file,self.F0_dist,self.F1_dist,dir=self.dir,c1_g=self.c1_g,preprocessing=False) 
+    testdata, testtarget = loadData(data_file,self.F0_dist,0,dir=self.dir,c1_g=self.c1_g,preprocessing=False) 
     if len(vars_g) == 1:
       xarray = np.linspace(0,5,npoints)
       fullRatios,_ = evaluateRatio(w,xarray,x=x,plotting=True,roc=False,true_dist=True)
@@ -471,13 +479,13 @@ class DecomposedTest:
       y2 = getRatio(F1dist, F0dist)
 
       # NN trained on complete model
-      outputs = predict('{0}/model/{1}/{2}/adaptive_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g),xarray.reshape(xarray.shape[0],1),model_g=self.model_g)
+      outputs = predict('{0}/model/{1}/{2}/adaptive_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g),xarray.reshape(xarray.shape[0],1),model_g=self.model_g,clf=self.clf)
       F1fulldist = np.array([self.evalDist(scoref,F1pdf,[xs]) for xs in outputs])
       F0fulldist = np.array([self.evalDist(scoref,F0pdf,[xs]) for xs in outputs])
 
       pdfratios = getRatio(F1fulldist, F0fulldist)
 
-      saveFig(xarray, [fullRatios, y2, pdfratios], makePlotName('all','train',type='ratio'+post),title='Likelihood Ratios',labels=['Composed trained', 'Truth', 'Full Trained'],print_pdf=True,dir=self.dir)
+      saveFig(xarray, [fullRatios, y2, pdfratios], makePlotName('all','train',type='ratio'+post),title='Likelihood Ratios',labels=['Composed trained', 'True', 'Full trained'],print_pdf=True,dir=self.dir)
       
     if true_dist == True:
       decomposedRatio,_ = evaluateRatio(w,testdata,x=x,plotting=False,roc=self.verbose_printing,true_dist=True)
@@ -485,11 +493,11 @@ class DecomposedTest:
       decomposedRatio,_ = evaluateRatio(w,testdata,c0arr=c0,c1arr=c1,plotting=True,
       roc=True,data_type=data_file)
     if len(testdata.shape) > 1:
-      #outputs = predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),testdata,model_g=self.model_g)
-      outputs = predict('/afs/cern.ch/work/j/jpavezse/private/{0}_F0_F1.pkl'.format(self.model_file),testdata,model_g=self.model_g)
+      outputs = predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),testdata,model_g=self.model_g,clf=self.clf)
+      #outputs = predict('/afs/cern.ch/work/j/jpavezse/private/{0}_F0_F1.pkl'.format(self.model_file),testdata,model_g=self.model_g)
 
     else:
-      outputs = predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),testdata.reshape(testdata.shape[0],1),model_g=self.model_g)
+      outputs = predict('{0}/model/{1}/{2}/{3}_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g,self.model_file),testdata.reshape(testdata.shape[0],1),model_g=self.model_g,clf=self.clf)
 
     F1fulldist = np.array([self.evalDist(scoref,F1pdf,[xs]) for xs in outputs])
     F0fulldist = np.array([self.evalDist(scoref,F0pdf,[xs]) for xs in outputs])
@@ -514,19 +522,19 @@ class DecomposedTest:
     numtest = decomposedRatio.shape[0] 
     #decomposedRatio[decomposedRatio < 0.] = completeRatio[decomposedRatio < 0.]
 
-    decomposed_outliers = np.zeros(numtest,dtype=bool)
-    complete_outliers = np.zeros(numtest,dtype=bool)
-    decomposed_outliers = self.findOutliers(decomposedRatio)
-    complete_outliers = self.findOutliers(completeRatio)
-    decomposed_target = testtarget[decomposed_outliers] 
-    complete_target = testtarget[complete_outliers] 
-    decomposedRatio = decomposedRatio[decomposed_outliers]
-    completeRatio = completeRatio[complete_outliers]
+    #decomposed_outliers = np.zeros(numtest,dtype=bool)
+    #complete_outliers = np.zeros(numtest,dtype=bool)
+    #decomposed_outliers = self.findOutliers(decomposedRatio)
+    #complete_outliers = self.findOutliers(completeRatio)
+    #decomposed_target = testtarget[decomposed_outliers] 
+    #complete_target = testtarget[complete_outliers] 
+    #decomposedRatio = decomposedRatio[decomposed_outliers]
+    #completeRatio = completeRatio[complete_outliers]
     if true_dist == True:
       real_outliers = np.zeros(numtest,dtype=bool)
       real_outliers = self.findOutliers(realRatio)
-      real_target = testtarget[real_outliers] 
-      realRatio = realRatio[real_outliers]
+      #real_target = testtarget[real_outliers] 
+      #realRatio = realRatio[real_outliers]
 
     all_ratios_plots = []
     all_names_plots = []
@@ -545,6 +553,8 @@ class DecomposedTest:
       if true_dist == True:
         ratios_names = ['truth','full','composed']
         ratios_vec = [realRatio, completeRatio, decomposedRatio]
+        target_vec = [real_target, complete_target, decomposed_target] 
+
         minimum = min([realRatio[real_target == 1-l].min(), 
               completeRatio[complete_target == 1-l].min(), 
               decomposedRatio[decomposed_target == 1-l].min()])
@@ -596,9 +606,9 @@ class DecomposedTest:
 
     # scatter plot true ratio - composed - full ratio
 
-    if self.verbose_printing == True and true_dist == True:
-      saveFig(completeRatio,[realRatio], makePlotName('full','train',type='scat'+post,dir=self.dir,model_g=self.model_g,c1_g=self.c1_g),scatter=True,axis=['full trained ratio','true ratio'],dir=self.dir,model_g=self.model_g)
-      saveFig(decomposedRatio,[realRatio], makePlotName('comp','train',type='scat'+post,dir=self.dir, model_g=self.model_g, c1_g=self.c1_g),scatter=True, axis=['composed trained ratio','true ratio'],dir=self.dir, model_g=self.model_g)
+    #if self.verbose_printing == True and true_dist == True:
+    #  saveFig(completeRatio,[realRatio], makePlotName('full','train',type='scat'+post,dir=self.dir,model_g=self.model_g,c1_g=self.c1_g),scatter=True,axis=['full trained ratio','true ratio'],dir=self.dir,model_g=self.model_g)
+    #  saveFig(decomposedRatio,[realRatio], makePlotName('comp','train',type='scat'+post,dir=self.dir, model_g=self.model_g, c1_g=self.c1_g),scatter=True, axis=['composed trained ratio','true ratio'],dir=self.dir, model_g=self.model_g)
     # signal - bkg rejection plots
     if use_log == True:
       decomposedRatio = np.exp(decomposedRatio)
@@ -606,6 +616,7 @@ class DecomposedTest:
       if true_dist == True:
         realRatio = np.exp(realRatio)
     if true_dist == True:
+
       ratios_list = [decomposedRatio/decomposedRatio.max(), 
                     completeRatio/completeRatio.max(),
                     realRatio/realRatio.max()]
@@ -613,17 +624,12 @@ class DecomposedTest:
       legends_list = ['composed', 'full', 'true']
     else:
 
-      #decomposedRatio = decomposedRatio + np.abs(decomposedRatio.min())
       indices = (decomposedRatio > 0.)
       decomposedRatio = decomposedRatio[indices] 
       decomposed_target = decomposed_target[indices]
       indices = (completeRatio > 0.)
-      #decomposedRatio = decomposedRatio[indices] 
-      #decomposed_target = decomposed_target[indices]
       completeRatio = completeRatio[indices]
       complete_target = complete_target[indices]
-      #decomposedRatio[decomposedRatio < 0.] = completeRatio[decomposedRatio < 0.] 
-      #decomposedRatio = 1./decomposedRatio
 
       completeRatio = np.log(completeRatio)
       decomposedRatio = np.log(decomposedRatio)
@@ -633,7 +639,8 @@ class DecomposedTest:
                     completeRatio/completeRatio.max()]
       targets_list = [decomposed_target, complete_target]
       legends_list = ['composed','full']
-    makeSigBkg(ratios_list,targets_list,makePlotName('comp','all',type='sigbkg'+post,dir=self.dir,model_g=self.model_g,c1_g=self.c1_g),dir=self.dir,model_g=self.model_g,print_pdf=True,legends=legends_list,title='Signal-Background rejection curves')
+    makeSigBkg(ratios_list,targets_list,makePlotName('comp','all',type='sigbkg'+post,dir=self.dir,
+          model_g=self.model_g,c1_g=self.c1_g),dir=self.dir,model_g=self.model_g,print_pdf=True,legends=legends_list,title='Signal-Background rejection curves')
 
     # Scatter plot to compare regression function and classifier score
     if self.verbose_printing == True and true_dist == True:
@@ -643,9 +650,9 @@ class DecomposedTest:
       else:
         reg = np.array([self.__regFunc(x,w.pdf('F0'),w.pdf('F1'),[xs]) for xs in testdata])
       if len(testdata.shape) > 1:
-        outputs = predict('{0}/model/{1}/{2}/adaptive_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g),testdata.reshape(testdata.shape[0],testdata.shape[1]),model_g=self.model_g)
+        outputs = predict('{0}/model/{1}/{2}/adaptive_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g),testdata.reshape(testdata.shape[0],testdata.shape[1]),model_g=self.model_g, clf=self.clf)
       else:
-        outputs = predict('{0}/model/{1}/{2}/adaptive_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g),testdata.reshape(testdata.shape[0],1),model_g=self.model_g)
+        outputs = predict('{0}/model/{1}/{2}/adaptive_F0_F1.pkl'.format(self.dir,self.model_g,self.c1_g),testdata.reshape(testdata.shape[0],1),model_g=self.model_g, clf=self.clf)
       #saveFig(outputs,[reg], makePlotName('full','train',type='scat',dir=self.dir,model_g=self.model_g,c1_g=self.c1_g),scatter=True,axis=['score','regression'],dir=self.dir,model_g=self.model_g)
 
 
@@ -692,7 +699,7 @@ class DecomposedTest:
             data = preProcessing(testdata,self.dataset_names[min(index_k,index_j)],
             self.dataset_names[max(index_k,index_j)],self.scaler) 
           outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,
-          self.c1_g,self.model_file,index_k,index_j),data,model_g=self.model_g)
+          self.c1_g,self.model_file,index_k,index_j),data,model_g=self.model_g, clf=self.clf)
           f0pdfdist = np.array([self.evalDist(score,f0pdf,[xs]) for xs in outputs])
           f1pdfdist = np.array([self.evalDist(score,f1pdf,[xs]) for xs in outputs])
           pre_pdf[0][k].append(f0pdfdist)
@@ -827,7 +834,7 @@ class DecomposedTest:
             data = preProcessing(testdata,self.dataset_names[min(index_k,index_j)],
             self.dataset_names[max(index_k,index_j)],self.scaler) 
           outputs = predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,
-          self.c1_g,self.model_file,index_k,index_j),data,model_g=self.model_g)
+          self.c1_g,self.model_file,index_k,index_j),data,model_g=self.model_g, clf=self.clf)
           f0pdfdist = np.array([self.evalDist(score,f0pdf,[xs]) for xs in outputs])
           f1pdfdist = np.array([self.evalDist(score,f1pdf,[xs]) for xs in outputs])
           pre_pdf[0][k].append(f0pdfdist)

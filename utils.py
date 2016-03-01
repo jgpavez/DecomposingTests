@@ -49,15 +49,15 @@ def loadData(type,k,j,folder=None,dir='',c1_g='',preprocessing=False,scaler=None
   rng = np.random.RandomState(1111)
   # HARCODED RIGHT NOW
 
-  data_num = 19900
+  #data_num = 19900
   #data_num = 5000
-  indices = rng.choice(fk.shape[0],data_num,replace=False)
-  fk = fk[indices]
-  indices = rng.choice(fj.shape[0],data_num,replace=False)
-  fj = fj[indices] 
+  #indices = rng.choice(fk.shape[0],data_num,replace=False)
+  #fk = fk[indices]
+  #indices = rng.choice(fj.shape[0],data_num,replace=False)
+  #fj = fj[indices] 
 
-  fk = fk[:,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,20,24,25,26,27,28,29,30,31,36,40,42]]
-  fj = fj[:,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,20,24,25,26,27,28,29,30,31,36,40,42]]
+  #fk = fk[:,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,20,24,25,26,27,28,29,30,31,36,40,42]]
+  #fj = fj[:,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,20,24,25,26,27,28,29,30,31,36,40,42]]
 
   num1 = fj.shape[0]
   num0 = fk.shape[0]
@@ -277,28 +277,42 @@ def saveFig(x,y,file,labels=None,scatter=False,contour=False,axis=None,
       ax.set_xlabel('g2',fontsize=11) 
       ax.set_ylabel('g1',fontsize=11)
     else:
-      levels = [2.,10.,40.,60.,80.,100.,200.,400.,600.]
+      print min_value
+      #levels = [2.,10.,40.,60.,80.,100.,200.,400.,600.]
+      #levels = [2.3,6.]
       #levels = [-800.,-600.,-400.,-200.,0.,200,1000.,10000.,50000.]
       #im = plt.imshow(y[1], interpolation='bilinear', origin='lower',
       #            cmap=cm.gray, extent=(-3,3,-2,2))
-      #cs1 = plt.contour(x,y[0],y[1],[0.,0.1,0.5,1.,5.,10.,50.,100.])
-      cs1 = plt.contour(x,y[0],y[1].transpose(),levels,origin='lower',alpha=.5, colors=('#ff0000', '#ff9900', '#999900', 'w', '#009999', '#0099ff', '#0000ff','#00ffff'))
-      #cs2 = plt.contour(x,y[0],y[2],[0.,0.1,0.5,1.,5.,10.,50.,100.],linestyles="dashed")
+      cs1 = plt.contour(x,y[0],y[1].transpose(),[0.,0.1,0.5,1.,5.,10.,50.,100.])
+      #cs1 = plt.contour(x,y[0],y[1].transpose(),levels,origin='lower',alpha=.5, colors=('#ff0000', '#ff9900', '#999900', 'w', '#009999', '#0099ff', '#0000ff','#00ffff'))
+      cs2 = plt.contour(x,y[0],y[2].transpose(),[0.,0.1,0.5,1.,5.,10.,50.,100.],linestyles="dashed")
       plt.clabel(cs1, inline=1, fontsize=10)
+      #plt.xlim(0.8,1.2)
+      #plt.ylim(0.3,0.7)
       #CB = plt.colorbar(cs1, shrink=0.8, extend='both')
-      #lines = [cs1.collections[0],cs2.collections[0]]
-      lines = [cs1.collections[0]]
-      #plt.legend(lines,labels,frameon=False,fontsize=11)
-      ax.set_title('Likelihood ratio values for Kazz,KHzz, target=({0:.2f},{1:.2f})'.
+      lines = [cs1.collections[0],cs2.collections[0]]
+      #lines = [cs1.collections[0]]
+      plt.legend(lines,labels,frameon=False,fontsize=11)
+      ax.set_title('-ln($\lambda$), target=({0:.2f},{1:.2f})'.
           format(marker_value[0],marker_value[1]))
-      ax.set_xlabel('Kazz',fontsize=11) 
-      ax.set_ylabel('Khazz',fontsize=11)
-      ax.annotate('min=({0:.2f},{1:.2f})'.format(min_value[0],min_value[1]), xy=(min_value[0]+0.01
-      ,min_value[1]+0.01),xytext=(min_value[0]+0.03,min_value[1]+0.03),arrowprops=dict(facecolor='red'))
+      #ax.set_title('-2ln(Q), target=({0:.2f},{1:.2f})'.
+      #    format(marker_value[0],marker_value[1]))
+      #ax.set_xlabel('Kazz',fontsize=11) 
+      #ax.set_ylabel('Khazz',fontsize=11)
+      ax.set_xlabel('signal weight',fontsize=11) 
+      ax.set_ylabel('background weight',fontsize=11)
+      ax.annotate('min=({0:.2f},{1:.2f})'.format(min_value[0],min_value[1]), xy=(min_value[0]+0.001
+      ,min_value[1]+0.001),xytext=(min_value[0]+0.03,min_value[1]+0.03),arrowprops=dict(facecolor='red'))
       if marker == True: 
         plt.axvline(marker_value[0], color='black')
         plt.axhline(marker_value[1], color='black')
-      #ax.plot([c1[0]],[c1[1]],'o')
+
+      #labels = ['95% C.L','68.27% C.L']
+      #for i in range(len(labels)):
+      # cs1.collections[i].set_label(labels[i])
+      #ax.plot([marker_value[0]],[marker_value[1]],'+',markersize=15,label='True')
+      #ax.plot([min_value[0]],[min_value[1]],'+',color='red',markersize=15,label='Fit')     
+      plt.legend(loc='upper left',frameon=False,numpoints=1)
       #ax.annotate('min',xy=(c1[0],c1[1]),xytext=(0.,0.))
   else:
     if scatter == True:
@@ -366,7 +380,8 @@ def saveFig(x,y,file,labels=None,scatter=False,contour=False,axis=None,
           linestyles=['--','--']
           markers = ['+','x']
           for k,ys in enumerate(y):
-            ax.plot(x,ys,colors[k],label=labels[k],linestyle=linestyles[k],marker=markers[k]) 
+            #ax.plot(x,ys,colors[k],label=labels[k],linestyle=linestyles[k],marker=markers[k]) 
+            ax.plot(x,ys,colors[k],label=labels[k]) 
           ax.legend(frameon=False,fontsize=11)
         if axis <> None:
           ax.set_ylabel(axis[1])
@@ -522,10 +537,10 @@ def makeROC(outputs, target, label,
   plt.ylabel('True Positive Rate')
   plt.title('{0}'.format(label))
   plt.legend(loc="lower right")
-  np.savetxt('{0}/plots/{1}/results/{2}.txt'.format(dir,model_g,label),np.column_stack((fpr,tpr)))
   plt.savefig('{0}/plots/{1}/{2}.png'.format(dir,model_g,label))
-  plt.close(fig)
-  plt.clf()
+  plt.plot()
+  #plt.close(fig)
+  #plt.clf()
 
 
 
@@ -536,6 +551,7 @@ def makeSigBkg(all_outputs, targets, label,
   make plots for ROC curve of classifier and
   test data.
   '''
+  print 'Signal-Background plots'
   tprs = []
   fnrs = []
   aucs = []
@@ -547,7 +563,7 @@ def makeSigBkg(all_outputs, targets, label,
     tprs.append(np.array([float(np.sum((outputs < tr) * (target == 1)))/float(np.sum(target == 1)) for tr in thresholds]))
     tprs[-1] = tprs[-1].ravel()
     aucs.append(auc(tprs[-1],fnrs[-1]))
-    plt.plot(tprs[-1], fnrs[-1], label='ROC {0} (area = {1:.2f})'.format(
+    plt.plot(tprs[-1], fnrs[-1], label='{0} (area = {1:.2f})'.format(
        legends[k],aucs[-1]))
   plt.xlim([0.0, 1.0])
   plt.ylim([0.0, 1.05])

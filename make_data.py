@@ -32,37 +32,36 @@ mu_g.append([2.,4.5,0.6,5.,6.,4.5,4.2,0.2,4.1,3.3])
 mu_g.append([1.,0.5,0.3,0.5,0.6,0.4,0.1,0.2,0.1,0.3])
 meansum = [[7.6,10.,-9.],[5.,-6.,7.5],[8.2,12.2,-4.3]]
 
-cov_g.append([[3.,0.,0.,0.,0.,0.,0.,0.,0.,0.],
+cov_g.append([[3.,0.,5.,0.,0.,0.,0.,1.,0.,5.],
          [0.,2.,0.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,14.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,0.,6.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,17.,0.,0.,0.,0.,0.],
+         [0.,0.,14.,0.,0.,0.,4.2,0.,5.,0.],
+         [0.,0.,0.,6.,0.,0.,0.,3.,0.,0.],
+         [0.,0.,0.,0.,17.,0.,0.,2.,0.,0.],
          [0.,0.,0.,0.,0.,10.,0.,0.,0.,0.],
          [0.,0.,0.,0.,0.,0.,5.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,1.3,0.,0.],
+         [0.,0.,0.,0.,0.,0.,0.,1.3,1.,0.],
          [0.,0.,0.,0.,0.,0.,0.,0.,1.,0.],
          [0.,0.,0.,0.,0.,0.,0.,0.,0.,9.3]])
-cov_g.append([[3.5,0.,0.,0.,0.,0.,0.,0.,0.,0.],
+cov_g.append([[3.5,0.,0.,4.,0.,0.,0.,0.,5.,0.],
          [0.,3.5,0.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,9.5,0.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,0.,7.2,0.,0.,0.,0.,0.,0.],
+         [0.,0.,9.5,0.,0.,2.,0.,0.5,0.,0.],
+         [0.,0.,0.,7.2,0.,0.,0.,0.,2.,0.],
          [0.,0.,0.,0.,4.5,0.,0.,0.,0.,0.],
          [0.,0.,0.,0.,0.,4.5,0.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,0.,8.2,0.,0.,0.],
+         [0.,0.,0.,0.,0.,0.,8.2,0.,0.,0.2],
          [0.,0.,0.,0.,0.,0.,0.,9.5,3.,0.],
          [0.,0.,0.,0.,0.,0.,0.,0.,3.5,0.],
          [0.,0.,0.,0.,0.,0.,0.,0.,0.,4.5]])
 cov_g.append([[13.,0.,0.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,12.,0.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,14.,0.,0.,0.,0.,0.,0.,0.],
+         [0.,12.,0.,0.,0.,0.2,0.,4.,0.,0.],
+         [0.,0.,14.,0.,0.5,0.,0.,0.,0.,3.],
          [0.,0.,0.,6.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,1.,0.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,10.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,0.,15.,0.,0.,0.],
+         [0.,0.,0.,0.,1.,2.,0.,0.,0.,0.],
+         [0.,0.,0.,0.,0.,10.,0.,3.,0.,0.],
+         [0.,0.,0.,0.,0.,0.,15.,0.,0.,4.],
          [0.,0.,0.,0.,0.,0.,0.,6.3,0.,0.],
          [0.,0.,0.,0.,0.,0.,0.,0.,11.,0.],
          [0.,0.,0.,0.,0.,0.,0.,0.,0.,1.3]])
-
 
 def makeModelPrivateND(vars_g,c0, c1, n_private=3, coeffs=coeffs_g,cov_l=cov_g, mu_l=mu_g, 
     workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root', 
@@ -97,7 +96,7 @@ def makeModelPrivateND(vars_g,c0, c1, n_private=3, coeffs=coeffs_g,cov_l=cov_g, 
         np.savetxt('{0}/covariance_{1}_{2}.txt'.format(dir,glob,priv),
             cov_i,fmt='%f')
       else:
-        cov_i = np.matrix(np.loadtxt('{0}/covariance_{1}_{2}.txt'.format(
+        cov_i = np.matrix(np.loadtxt('{0}/data/covariance_{1}_{2}.txt'.format(
                     dir,glob,priv)))
       print cov_i
       # generate covriance matrix
@@ -134,11 +133,11 @@ def makeModelPrivateND(vars_g,c0, c1, n_private=3, coeffs=coeffs_g,cov_l=cov_g, 
 
   w.writeToFile('{0}/{1}'.format(dir,workspace))
   if verbose_printing == True:
-    printFrame(w,['x0'],[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']
+    printFrame(w,['x0','x1','x2'],[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']
     ,dir=dir,model_g=model_g,range=[-15,20],title='Single distributions',x_text='x0',y_text='p(x)')
-    printFrame(w,['x0'],[w.pdf('F0'),w.pdf('F1')],'full_model',['Bkg+Signal','Bkg'],
+    printFrame(w,['x0','x1','x2'],[w.pdf('F0'),w.pdf('F1')],'full_model',['Bkg','Bkg+Signal'],
     dir=dir,model_g=model_g,range=[-15,20],title='Composed model',x_text='x0',y_text='p(x)')
-    printFrame(w,['x0'],[w.pdf('F1'),'f0'],'full_signal', ['Bkg','Signal'],
+    printFrame(w,['x0','x1','x2'],[w.pdf('F1'),'f0'],'full_signal', ['Bkg','Signal'],
     dir=dir,model_g=model_g,range=[-15,20],title='Background and signal',x_text='x0',y_text='p(x)')
 
   return w
@@ -193,12 +192,12 @@ def makeModelND(vars_g,c0,c1,cov_l=cov_g,mu_l=mu_g,
 
   w.writeToFile('{0}/{1}'.format(dir,workspace))
   if verbose_printing == True:
-    printFrame(w,['x0'],[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']
-    ,dir=dir,model_g=model_g,range=[-15,20],title='Single distributions',x_text='x0',y_text='p(x)')
-    printFrame(w,['x0'],[w.pdf('F0'),w.pdf('F1')],'full_model',['Bkg+Signal','Bkg'],
-    dir=dir,model_g=model_g,range=[-15,20],title='Composed model',x_text='x0',y_text='p(x)')
-    printFrame(w,['x0'],[w.pdf('F1'),'f0'],'full_signal', ['Bkg','Signal'],
-    dir=dir,model_g=model_g,range=[-15,20],title='Background and signal',x_text='x0',y_text='p(x)')
+    printFrame(w,['x0','x1','x2'],[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']
+    ,dir=dir,model_g=model_g,range=[-15,20],title='Single distributions',x_text='x0',y_text='p(x)',print_pdf=True)
+    printFrame(w,['x0','x1','x2'],[w.pdf('F0'),w.pdf('F1')],'full_model',['Bkg','Bkg+Signal'],
+    dir=dir,model_g=model_g,range=[-15,20],title='Composed model',x_text='x0',y_text='p(x)',print_pdf=True)
+    printFrame(w,['x0','x1','x2'],[w.pdf('F1'),'f0'],'full_signal', ['Bkg','Signal'],
+    dir=dir,model_g=model_g,range=[-15,20],title='Background and signal',x_text='x0',y_text='p(x)',print_pdf=True)
 
   return w
 
@@ -226,11 +225,13 @@ def makeModel(c0,c1,cov_l=cov_g,mu_l=mu_g,
   w.writeToFile('{0}/workspace_DecomposingTestOfMixtureModelsClassifiers.root'.format(dir))
   if verbose_printing == True:
     printFrame(w,['x'],[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']
-    ,dir=dir,model_g=model_g,range=[-15,20],title='Single distributions',x_text='x0',y_text='p(x)')
-    printFrame(w,['x'],[w.pdf('F0'),w.pdf('F1')],'full_model',['Bkg+Signal','Bkg'],
-    dir=dir,model_g=model_g,range=[-15,20],title='Composed model',x_text='x0',y_text='p(x)')
+    ,dir=dir,model_g=model_g,range=[-15,20],title='Single distributions',x_text='x0',y_text='p(x)',
+    print_pdf=True)
+    printFrame(w,['x'],[w.pdf('F0'),w.pdf('F1')],'full_model',['Bkg','Bkg+Signal'],
+    dir=dir,model_g=model_g,range=[-15,20],title='Composed model',x_text='x0',y_text='p(x)',print_pdf=True)
     printFrame(w,['x'],[w.pdf('F1'),'f0'],'full_signal', ['Bkg','Signal'],
-    dir=dir,model_g=model_g,range=[-15,20],title='Background and signal',x_text='x0',y_text='p(x)')
+    dir=dir,model_g=model_g,range=[-15,20],title='Background and signal',x_text='x0',y_text='p(x)',
+    print_pdf=True)
 
 
 def makeData(vars_g,c0,c1, num_train=500,num_test=100,no_train=False,
@@ -274,23 +275,23 @@ def makeData(vars_g,c0,c1, num_train=500,num_test=100,no_train=False,
     print 'Making {0}'.format(k)
     if not no_train:
       traindata = makeDataFi(x,w.pdf('f{0}'.format(k)), num_train)
-      np.savetxt('{0}/data/{1}/{2}/train_{3}.dat'.format(dir,'mlp',c1_g,k),
+      np.savetxt('{0}/data/{1}/{2}/train_{3}.dat'.format(dir,model_g,c1_g,k),
                         traindata,fmt='%f')
     testdata = makeDataFi(x, w.pdf('f{0}'.format(k)), num_test)
-    np.savetxt('{0}/data/{1}/{2}/test_{3}.dat'.format(dir,'mlp',c1_g,k),
+    np.savetxt('{0}/data/{1}/{2}/test_{3}.dat'.format(dir,model_g,c1_g,k),
                       testdata,fmt='%f')
   if not no_train:
     traindata = makeDataFi(x,w.pdf('F0'), num_train)
-    np.savetxt('{0}/data/{1}/{2}/train_F0.dat'.format(dir,'mlp',c1_g),
+    np.savetxt('{0}/data/{1}/{2}/train_F0.dat'.format(dir,model_g,c1_g),
                       traindata,fmt='%f')
     traindata = makeDataFi(x,w.pdf('F1'), num_train)
-    np.savetxt('{0}/data/{1}/{2}/train_F1.dat'.format(dir,'mlp',c1_g),
+    np.savetxt('{0}/data/{1}/{2}/train_F1.dat'.format(dir,model_g,c1_g),
                       traindata,fmt='%f')
   testdata = makeDataFi(x, w.pdf('F0'), num_test)
-  np.savetxt('{0}/data/{1}/{2}/test_F0.dat'.format(dir,'mlp',c1_g),
+  np.savetxt('{0}/data/{1}/{2}/test_F0.dat'.format(dir,model_g,c1_g),
                     testdata,fmt='%f')
   testdata = makeDataFi(x, w.pdf('F1'), num_test)
-  np.savetxt('{0}/data/{1}/{2}/test_F1.dat'.format(dir,'mlp',c1_g),
+  np.savetxt('{0}/data/{1}/{2}/test_F1.dat'.format(dir,model_g,c1_g),
                     testdata,fmt='%f')
 
 

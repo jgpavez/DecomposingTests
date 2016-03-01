@@ -207,8 +207,8 @@ def shared_dataset(data_xy, borrow=True):
     # lets ous get around this issue
     return shared_x, T.cast(shared_y, 'int32')
 
-def make_predictions(dataset, learning_rate=0.01, L1_reg=0.01, L2_reg=0.0001, n_epochs=10,
-              batch_size=20, n_hidden=50,in_size=1,out_size=2,
+def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=10,
+              batch_size=20, n_hidden=40,in_size=1,out_size=2,
               model_file='model/mlp/adaptive_0_1.pkl'):
 
     test_set_x = dataset
@@ -248,8 +248,8 @@ def make_predictions(dataset, learning_rate=0.01, L1_reg=0.01, L2_reg=0.0001, n_
 
     return probs
 
-def train_mlp(datasets,learning_rate=0.01, L1_reg=0.001, L2_reg=0.0001, n_epochs=40,
-             batch_size=50, n_hidden=50,in_size=1,out_size=2,
+def train_mlp(datasets,learning_rate=0.01, L1_reg=0.000, L2_reg=0.0001, n_epochs=100,
+             batch_size=50, n_hidden=40,in_size=1,out_size=2,
               save_file='model/mlp/adaptive_0_1.pkl'):
 
 
@@ -345,6 +345,18 @@ def train_mlp(datasets,learning_rate=0.01, L1_reg=0.001, L2_reg=0.0001, n_epochs
     best_params = copy.deepcopy(classifier.params)
     classifier.save_model(best_params, save_file)
 
-if __name__ == '__main__':
-    #train_mlp()
-    make_predictions() 
+
+# This is a wrapper in order to make use on decomposing test easier
+class MLPTrainer():
+    def __init__(self,n_hidden=40, L2_reg=0.001):
+        self.n_hidden = n_hidden
+        self.L2_reg = L2_reg
+
+    def fit(self, X, y,save_file=''):
+        train_mlp((X,y),
+                  save_file=save_file,
+                  n_hidden = self.n_hidden, L2_reg = self.L2_reg)
+    def predict_proba(self, X, model_file='model'):
+        return make_predictions(dataset=X, model_file=model_file, n_hidden = self.n_hidden)
+
+ 
