@@ -6,7 +6,7 @@ of the paper [Approximating Likelihood Ratios with Calibrated Discriminative Cla
 
 In order to reproduce the results on the article **Experiments using machine learning to approximate likelihood ratios for mixture models**
 from ACAT 2016, you should run `python DecomposingTest_1D.py mlp 0.05 1234` for 1D examples, where 0.05 is the signal weight or 
-`python DecomposingTest_10D.py mlp 0.05 1234` for 10D examples.
+`python DecomposingTest_10D.py mlp 0.05 1234` for 10D examples. Please be sure to have the directories *model/mlp*, *data/mlp* and *plots/mlp*.
 
 The analysis is divided in the next sections:
 * Simple Case (1D)
