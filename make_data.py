@@ -13,285 +13,449 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 from utils import printMultiFrame, printFrame, saveFig, loadData,\
-              makeROC, makeSigBkg, makePlotName
+    makeROC, makeSigBkg, makePlotName
 
 '''
-  Functions to make model and data for the decomposed training 
+  Functions to make model and data for the decomposed training
   method
 '''
 
 # Default model parameters
 # private coefficients
-coeffs_g = [[ 0.28174199,0.46707738,0.25118062],[0.18294893,0.33386682,0.48318425],[ 0.25763285,0.28015834,0.46220881]]
+coeffs_g = [[0.28174199, 0.46707738, 0.25118062], [0.18294893,
+                                                   0.33386682, 0.48318425], [0.25763285, 0.28015834, 0.46220881]]
 
 # gaussians parameters
 mu_g = []
 cov_g = []
-mu_g.append([5.,5.,4.,3.,5.,5.,4.5,2.5,4.,3.5])
-mu_g.append([2.,4.5,0.6,5.,6.,4.5,4.2,0.2,4.1,3.3])
-mu_g.append([1.,0.5,0.3,0.5,0.6,0.4,0.1,0.2,0.1,0.3])
-meansum = [[7.6,10.,-9.],[5.,-6.,7.5],[8.2,12.2,-4.3]]
+mu_g.append([5., 5., 4., 3., 5., 5., 4.5, 2.5, 4., 3.5])
+mu_g.append([2., 4.5, 0.6, 5., 6., 4.5, 4.2, 0.2, 4.1, 3.3])
+mu_g.append([1., 0.5, 0.3, 0.5, 0.6, 0.4, 0.1, 0.2, 0.1, 0.3])
+meansum = [[7.6, 10., -9.], [5., -6., 7.5], [8.2, 12.2, -4.3]]
 
-cov_g.append([[3.,0.,5.,0.,0.,0.,0.,1.,0.,5.],
-         [0.,2.,0.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,14.,0.,0.,0.,4.2,0.,5.,0.],
-         [0.,0.,0.,6.,0.,0.,0.,3.,0.,0.],
-         [0.,0.,0.,0.,17.,0.,0.,2.,0.,0.],
-         [0.,0.,0.,0.,0.,10.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,0.,5.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,1.3,1.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,0.,1.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,0.,0.,9.3]])
-cov_g.append([[3.5,0.,0.,4.,0.,0.,0.,0.,5.,0.],
-         [0.,3.5,0.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,9.5,0.,0.,2.,0.,0.5,0.,0.],
-         [0.,0.,0.,7.2,0.,0.,0.,0.,2.,0.],
-         [0.,0.,0.,0.,4.5,0.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,4.5,0.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,0.,8.2,0.,0.,0.2],
-         [0.,0.,0.,0.,0.,0.,0.,9.5,3.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,0.,3.5,0.],
-         [0.,0.,0.,0.,0.,0.,0.,0.,0.,4.5]])
-cov_g.append([[13.,0.,0.,0.,0.,0.,0.,0.,0.,0.],
-         [0.,12.,0.,0.,0.,0.2,0.,4.,0.,0.],
-         [0.,0.,14.,0.,0.5,0.,0.,0.,0.,3.],
-         [0.,0.,0.,6.,0.,0.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,1.,2.,0.,0.,0.,0.],
-         [0.,0.,0.,0.,0.,10.,0.,3.,0.,0.],
-         [0.,0.,0.,0.,0.,0.,15.,0.,0.,4.],
-         [0.,0.,0.,0.,0.,0.,0.,6.3,0.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,0.,11.,0.],
-         [0.,0.,0.,0.,0.,0.,0.,0.,0.,1.3]])
-
-def makeModelPrivateND(vars_g,c0, c1, n_private=3, coeffs=coeffs_g,cov_l=cov_g, mu_l=mu_g, 
-    workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root', 
-    dir='/afs/cern.ch/user/j/jpavezse/systematics',model_g='mlp',
-    c1_g='',verbose_printing=False,load_cov=False):
-  '''
-  RooFit statistical model for the data
-  
-  '''  
-  # Statistical model
-  w = ROOT.RooWorkspace('w')
-
-  print 'Generating initial distributions'
-  cov_m = []
-  mu_m = []
-  mu_str = []
-  cov_root = []
-  vec = []
-  argus = ROOT.RooArgList()     
-
-  # features
-  for i,var in enumerate(vars_g):
-    w.factory('{0}[{1},{2}]'.format(var,-25,30))
-    argus.add(w.var(var))
-  n = len(cov_l[0][0])
-  for glob in range(3):
-    for priv in range(n_private):
-      if load_cov == False: 
-        cov_i = np.random.random((n,n))
-        cov_i = cov_i + cov_i.transpose() 
-        cov_i = cov_i + n*np.eye(n)
-        np.savetxt('{0}/covariance_{1}_{2}.txt'.format(dir,glob,priv),
-            cov_i,fmt='%f')
-      else:
-        cov_i = np.matrix(np.loadtxt('{0}/data/covariance_{1}_{2}.txt'.format(
-                    dir,glob,priv)))
-      print cov_i
-      # generate covriance matrix
-      cov_m.append(cov_i)
-      cov_root.append(ROOT.TMatrixDSym(len(vars_g)))
-      for i,var1 in enumerate(vars_g):
-        for j,var2 in enumerate(vars_g):
-          if i <= j:
-            cov_root[-1][i][j] = cov_m[-1][i,j]
-          else:
-            cov_root[-1][i][j] = cov_m[-1][j,i]
-      getattr(w,'import')(cov_root[-1],'cov{0}'.format(glob*3 + priv))
-      # generate mu vectors
-      mu_m.append(np.array(mu_l[glob]) + meansum[glob][priv])
-      vec.append(ROOT.TVectorD(len(vars_g)))
-      for i, mu in enumerate(mu_m[-1]):
-        vec[-1][i] = mu
-      mu_str.append(','.join([str(mu) for mu in mu_m[-1]]))
-      # create multivariate gaussian
-      gaussian = ROOT.RooMultiVarGaussian('f{0}_{1}'.format(glob,priv),
-            'f{0}_{1}'.format(glob,priv),argus,vec[-1],cov_root[-1])
-      getattr(w,'import')(gaussian)
-    # create private mixture model
-    priv_coeffs = np.array(coeffs[glob])
-    #print 'priv coef {0} {1}'.format(priv_coeffs, priv_coeffs.sum())
-    sum_str = ','.join(['c_{0}_{1}[{2}]*f{0}_{1}'.format(glob,j,priv_coeffs[j]) for j in range(n_private)])
-    w.factory('SUM::f{0}({1})'.format(glob,sum_str))
-  #mixture model  
-  w.factory("SUM::F0(c00[{0}]*f0,c01[{1}]*f1,f2)".format(c0[0],c0[1]))
-  w.factory("SUM::F1(c10[{0}]*f0,c11[{1}]*f1,f2)".format(c1[0],c1[1]))
-  
-  # Check Model
-  w.Print()
-
-  w.writeToFile('{0}/{1}'.format(dir,workspace))
-  if verbose_printing == True:
-    printFrame(w,['x0','x1','x2'],[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']
-    ,dir=dir,model_g=model_g,range=[-15,20],title='Single distributions',x_text='x0',y_text='p(x)')
-    printFrame(w,['x0','x1','x2'],[w.pdf('F0'),w.pdf('F1')],'full_model',['Bkg','Bkg+Signal'],
-    dir=dir,model_g=model_g,range=[-15,20],title='Composed model',x_text='x0',y_text='p(x)')
-    printFrame(w,['x0','x1','x2'],[w.pdf('F1'),'f0'],'full_signal', ['Bkg','Signal'],
-    dir=dir,model_g=model_g,range=[-15,20],title='Background and signal',x_text='x0',y_text='p(x)')
-
-  return w
-
-def makeModelND(vars_g,c0,c1,cov_l=cov_g,mu_l=mu_g,
-    workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root', 
-    dir='/afs/cern.ch/user/j/jpavezse/systematics',model_g='mlp',
-    c1_g='',verbose_printing=False):
-  '''
-  RooFit statistical model for the data
-  
-  '''  
-  # Statistical model
-  w = ROOT.RooWorkspace('w')
-
-  print 'Generating initial distributions'
-  cov_m = []
-  mu_m = []
-  mu_str = []
-  cov_root = []
-  vec = []
-  argus = ROOT.RooArgList() 
-  #features
-  for i,var in enumerate(vars_g):
-    w.factory('{0}[{1},{2}]'.format(var,-25,30))
-    argus.add(w.var(var))
-
-  for glob in range(3):
-    # generate covariance matrix
-    cov_m.append(np.matrix(cov_l[glob]))
-    cov_root.append(ROOT.TMatrixDSym(len(vars_g)))
-    for i,var1 in enumerate(vars_g):
-      for j,var2 in enumerate(vars_g):
-        cov_root[-1][i][j] = cov_m[-1][i,j]
-    getattr(w,'import')(cov_root[-1],'cov{0}'.format(glob))
-    # generate mu vector
-    mu_m.append(np.array(mu_l[glob]))
-    vec.append(ROOT.TVectorD(len(vars_g)))
-    for i, mu in enumerate(mu_m[-1]):
-      vec[-1][i] = mu
-    mu_str.append(','.join([str(mu) for mu in mu_m[-1]]))
-    # multivariate gaussian
-    gaussian = ROOT.RooMultiVarGaussian('f{0}'.format(glob),
-          'f{0}'.format(glob),argus,vec[-1],cov_root[-1])
-    getattr(w,'import')(gaussian)
-  # mixture models
-  w.factory("SUM::F0(c00[{0}]*f0,c01[{1}]*f1,f2)".format(c0[0],c0[1]))
-  w.factory("SUM::F1(c10[{0}]*f0,c11[{1}]*f1,f2)".format(c1[0],c1[1]))
-  
-  # Check Model
-  w.Print()
-
-  w.writeToFile('{0}/{1}'.format(dir,workspace))
-  if verbose_printing == True:
-    printFrame(w,['x0','x1','x2'],[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']
-    ,dir=dir,model_g=model_g,range=[-15,20],title='Single distributions',x_text='x0',y_text='p(x)',print_pdf=True)
-    printFrame(w,['x0','x1','x2'],[w.pdf('F0'),w.pdf('F1')],'full_model',['Bkg','Bkg+Signal'],
-    dir=dir,model_g=model_g,range=[-15,20],title='Composed model',x_text='x0',y_text='p(x)',print_pdf=True)
-    printFrame(w,['x0','x1','x2'],[w.pdf('F1'),'f0'],'full_signal', ['Bkg','Signal'],
-    dir=dir,model_g=model_g,range=[-15,20],title='Background and signal',x_text='x0',y_text='p(x)',print_pdf=True)
-
-  return w
+cov_g.append([[3., 0., 5., 0., 0., 0., 0., 1., 0., 5.],
+              [0., 2., 0., 0., 0., 0., 0., 0., 0., 0.],
+              [0., 0., 14., 0., 0., 0., 4.2, 0., 5., 0.],
+              [0., 0., 0., 6., 0., 0., 0., 3., 0., 0.],
+              [0., 0., 0., 0., 17., 0., 0., 2., 0., 0.],
+              [0., 0., 0., 0., 0., 10., 0., 0., 0., 0.],
+              [0., 0., 0., 0., 0., 0., 5., 0., 0., 0.],
+              [0., 0., 0., 0., 0., 0., 0., 1.3, 1., 0.],
+              [0., 0., 0., 0., 0., 0., 0., 0., 1., 0.],
+              [0., 0., 0., 0., 0., 0., 0., 0., 0., 9.3]])
+cov_g.append([[3.5, 0., 0., 4., 0., 0., 0., 0., 5., 0.],
+              [0., 3.5, 0., 0., 0., 0., 0., 0., 0., 0.],
+              [0., 0., 9.5, 0., 0., 2., 0., 0.5, 0., 0.],
+              [0., 0., 0., 7.2, 0., 0., 0., 0., 2., 0.],
+              [0., 0., 0., 0., 4.5, 0., 0., 0., 0., 0.],
+              [0., 0., 0., 0., 0., 4.5, 0., 0., 0., 0.],
+              [0., 0., 0., 0., 0., 0., 8.2, 0., 0., 0.2],
+              [0., 0., 0., 0., 0., 0., 0., 9.5, 3., 0.],
+              [0., 0., 0., 0., 0., 0., 0., 0., 3.5, 0.],
+              [0., 0., 0., 0., 0., 0., 0., 0., 0., 4.5]])
+cov_g.append([[13., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+              [0., 12., 0., 0., 0., 0.2, 0., 4., 0., 0.],
+              [0., 0., 14., 0., 0.5, 0., 0., 0., 0., 3.],
+              [0., 0., 0., 6., 0., 0., 0., 0., 0., 0.],
+              [0., 0., 0., 0., 1., 2., 0., 0., 0., 0.],
+              [0., 0., 0., 0., 0., 10., 0., 3., 0., 0.],
+              [0., 0., 0., 0., 0., 0., 15., 0., 0., 4.],
+              [0., 0., 0., 0., 0., 0., 0., 6.3, 0., 0.],
+              [0., 0., 0., 0., 0., 0., 0., 0., 11., 0.],
+              [0., 0., 0., 0., 0., 0., 0., 0., 0., 1.3]])
 
 
-def makeModel(c0,c1,cov_l=cov_g,mu_l=mu_g,
-    workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root', 
-    dir='/afs/cern.ch/user/j/jpavezse/systematics',model_g='mlp',
-    c1_g='',verbose_printing=False):
-  '''
-  RooFit statistical model for the data
-  
-  '''  
-  # Statistical model
-  w = ROOT.RooWorkspace('w')
-  #w.factory("EXPR::f1('cos(x)**2 + .01',x)")
-  w.factory("EXPR::f2('exp(x*-1)',x[0,5])")
-  w.factory("EXPR::f1('0.3 + exp(-(x-5)**2/5.)',x)")
-  w.factory("EXPR::f0('exp(-(x-2.5)**2/1.)',x)")
-  #w.factory("EXPR::f2('exp(-(x-2)**2/2)',x)")
-  w.factory("SUM::F0(c00[{0}]*f0,c01[{1}]*f1,f2)".format(c0[0],c0[1]))
-  w.factory("SUM::F1(c10[{0}]*f0,c11[{1}]*f1,f2)".format(c1[0],c1[1]))
-  
-  # Check Model
-  w.Print()
-  w.writeToFile('{0}/workspace_DecomposingTestOfMixtureModelsClassifiers.root'.format(dir))
-  if verbose_printing == True:
-    printFrame(w,['x'],[w.pdf('f0'),w.pdf('f1'),w.pdf('f2')],'decomposed_model',['f0','f1','f2']
-    ,dir=dir,model_g=model_g,range=[-15,20],title='Single distributions',x_text='x0',y_text='p(x)',
-    print_pdf=True)
-    printFrame(w,['x'],[w.pdf('F0'),w.pdf('F1')],'full_model',['Bkg','Bkg+Signal'],
-    dir=dir,model_g=model_g,range=[-15,20],title='Composed model',x_text='x0',y_text='p(x)',print_pdf=True)
-    printFrame(w,['x'],[w.pdf('F1'),'f0'],'full_signal', ['Bkg','Signal'],
-    dir=dir,model_g=model_g,range=[-15,20],title='Background and signal',x_text='x0',y_text='p(x)',
-    print_pdf=True)
+def makeModelPrivateND(
+        vars_g,
+        c0,
+        c1,
+        n_private=3,
+        coeffs=coeffs_g,
+        cov_l=cov_g,
+        mu_l=mu_g,
+        workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root',
+        dir='/afs/cern.ch/user/j/jpavezse/systematics',
+        model_g='mlp',
+        c1_g='',
+        verbose_printing=False,
+        load_cov=False):
+    '''
+    RooFit statistical model for the data
+
+    '''
+    # Statistical model
+    w = ROOT.RooWorkspace('w')
+
+    print 'Generating initial distributions'
+    cov_m = []
+    mu_m = []
+    mu_str = []
+    cov_root = []
+    vec = []
+    argus = ROOT.RooArgList()
+
+    # features
+    for i, var in enumerate(vars_g):
+        w.factory('{0}[{1},{2}]'.format(var, -25, 30))
+        argus.add(w.var(var))
+    n = len(cov_l[0][0])
+    for glob in range(3):
+        for priv in range(n_private):
+            if not load_cov:
+                cov_i = np.random.random((n, n))
+                cov_i = cov_i + cov_i.transpose()
+                cov_i = cov_i + n * np.eye(n)
+                np.savetxt('{0}/covariance_{1}_{2}.txt'.format(dir,
+                                                               glob, priv), cov_i, fmt='%f')
+            else:
+                cov_i = np.matrix(np.loadtxt(
+                    '{0}/data/covariance_{1}_{2}.txt'.format(dir, glob, priv)))
+            print cov_i
+            # generate covriance matrix
+            cov_m.append(cov_i)
+            cov_root.append(ROOT.TMatrixDSym(len(vars_g)))
+            for i, var1 in enumerate(vars_g):
+                for j, var2 in enumerate(vars_g):
+                    if i <= j:
+                        cov_root[-1][i][j] = cov_m[-1][i, j]
+                    else:
+                        cov_root[-1][i][j] = cov_m[-1][j, i]
+            getattr(w, 'import')(cov_root[-1],
+                                 'cov{0}'.format(glob * 3 + priv))
+            # generate mu vectors
+            mu_m.append(np.array(mu_l[glob]) + meansum[glob][priv])
+            vec.append(ROOT.TVectorD(len(vars_g)))
+            for i, mu in enumerate(mu_m[-1]):
+                vec[-1][i] = mu
+            mu_str.append(','.join([str(mu) for mu in mu_m[-1]]))
+            # create multivariate gaussian
+            gaussian = ROOT.RooMultiVarGaussian('f{0}_{1}'.format(
+                glob, priv), 'f{0}_{1}'.format(glob, priv), argus, vec[-1], cov_root[-1])
+            getattr(w, 'import')(gaussian)
+        # create private mixture model
+        priv_coeffs = np.array(coeffs[glob])
+        # print 'priv coef {0} {1}'.format(priv_coeffs, priv_coeffs.sum())
+        sum_str = ','.join(
+            ['c_{0}_{1}[{2}]*f{0}_{1}'.format(glob, j, priv_coeffs[j]) for j in range(n_private)])
+        w.factory('SUM::f{0}({1})'.format(glob, sum_str))
+    # mixture model
+    w.factory("SUM::F0(c00[{0}]*f0,c01[{1}]*f1,f2)".format(c0[0], c0[1]))
+    w.factory("SUM::F1(c10[{0}]*f0,c11[{1}]*f1,f2)".format(c1[0], c1[1]))
+
+    # Check Model
+    w.Print()
+
+    w.writeToFile('{0}/{1}'.format(dir, workspace))
+    if verbose_printing:
+        printFrame(w,
+                   ['x0',
+                    'x1',
+                    'x2'],
+                   [w.pdf('f0'),
+                    w.pdf('f1'),
+                       w.pdf('f2')],
+                   'decomposed_model',
+                   ['f0',
+                       'f1',
+                       'f2'],
+                   dir=dir,
+                   model_g=model_g,
+                   range=[-15,
+                          20],
+                   title='Single distributions',
+                   x_text='x0',
+                   y_text='p(x)')
+        printFrame(w,
+                   ['x0',
+                    'x1',
+                    'x2'],
+                   [w.pdf('F0'),
+                    w.pdf('F1')],
+                   'full_model',
+                   ['Bkg',
+                       'Bkg+Signal'],
+                   dir=dir,
+                   model_g=model_g,
+                   range=[-15,
+                          20],
+                   title='Composed model',
+                   x_text='x0',
+                   y_text='p(x)')
+        printFrame(w,
+                   ['x0',
+                    'x1',
+                    'x2'],
+                   [w.pdf('F1'),
+                    'f0'],
+                   'full_signal',
+                   ['Bkg',
+                       'Signal'],
+                   dir=dir,
+                   model_g=model_g,
+                   range=[-15,
+                          20],
+                   title='Background and signal',
+                   x_text='x0',
+                   y_text='p(x)')
+
+    return w
 
 
-def makeData(vars_g,c0,c1, num_train=500,num_test=100,no_train=False,
-  workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root',
-  dir='/afs/cern.ch/user/j/jpavezse/systematics',
-  c1_g='',model_g='mlp'):
-  # Start generating data
-  ''' 
+def makeModelND(
+        vars_g,
+        c0,
+        c1,
+        cov_l=cov_g,
+        mu_l=mu_g,
+        workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root',
+        dir='/afs/cern.ch/user/j/jpavezse/systematics',
+        model_g='mlp',
+        c1_g='',
+        verbose_printing=False):
+    '''
+    RooFit statistical model for the data
+
+    '''
+    # Statistical model
+    w = ROOT.RooWorkspace('w')
+
+    print 'Generating initial distributions'
+    cov_m = []
+    mu_m = []
+    mu_str = []
+    cov_root = []
+    vec = []
+    argus = ROOT.RooArgList()
+    # features
+    for i, var in enumerate(vars_g):
+        w.factory('{0}[{1},{2}]'.format(var, -25, 30))
+        argus.add(w.var(var))
+
+    for glob in range(3):
+        # generate covariance matrix
+        cov_m.append(np.matrix(cov_l[glob]))
+        cov_root.append(ROOT.TMatrixDSym(len(vars_g)))
+        for i, var1 in enumerate(vars_g):
+            for j, var2 in enumerate(vars_g):
+                cov_root[-1][i][j] = cov_m[-1][i, j]
+        getattr(w, 'import')(cov_root[-1], 'cov{0}'.format(glob))
+        # generate mu vector
+        mu_m.append(np.array(mu_l[glob]))
+        vec.append(ROOT.TVectorD(len(vars_g)))
+        for i, mu in enumerate(mu_m[-1]):
+            vec[-1][i] = mu
+        mu_str.append(','.join([str(mu) for mu in mu_m[-1]]))
+        # multivariate gaussian
+        gaussian = ROOT.RooMultiVarGaussian('f{0}'.format(
+            glob), 'f{0}'.format(glob), argus, vec[-1], cov_root[-1])
+        getattr(w, 'import')(gaussian)
+    # mixture models
+    w.factory("SUM::F0(c00[{0}]*f0,c01[{1}]*f1,f2)".format(c0[0], c0[1]))
+    w.factory("SUM::F1(c10[{0}]*f0,c11[{1}]*f1,f2)".format(c1[0], c1[1]))
+
+    # Check Model
+    w.Print()
+
+    w.writeToFile('{0}/{1}'.format(dir, workspace))
+    if verbose_printing:
+        printFrame(w,
+                   ['x0',
+                    'x1',
+                    'x2'],
+                   [w.pdf('f0'),
+                    w.pdf('f1'),
+                       w.pdf('f2')],
+                   'decomposed_model',
+                   ['f0',
+                       'f1',
+                       'f2'],
+                   dir=dir,
+                   model_g=model_g,
+                   range=[-15,
+                          20],
+                   title='Single distributions',
+                   x_text='x0',
+                   y_text='p(x)',
+                   print_pdf=True)
+        printFrame(w,
+                   ['x0',
+                    'x1',
+                    'x2'],
+                   [w.pdf('F0'),
+                    w.pdf('F1')],
+                   'full_model',
+                   ['Bkg',
+                       'Bkg+Signal'],
+                   dir=dir,
+                   model_g=model_g,
+                   range=[-15,
+                          20],
+                   title='Composed model',
+                   x_text='x0',
+                   y_text='p(x)',
+                   print_pdf=True)
+        printFrame(w,
+                   ['x0',
+                    'x1',
+                    'x2'],
+                   [w.pdf('F1'),
+                    'f0'],
+                   'full_signal',
+                   ['Bkg',
+                       'Signal'],
+                   dir=dir,
+                   model_g=model_g,
+                   range=[-15,
+                          20],
+                   title='Background and signal',
+                   x_text='x0',
+                   y_text='p(x)',
+                   print_pdf=True)
+
+    return w
+
+
+def makeModel(
+        c0,
+        c1,
+        cov_l=cov_g,
+        mu_l=mu_g,
+        workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root',
+        dir='/afs/cern.ch/user/j/jpavezse/systematics',
+        model_g='mlp',
+        c1_g='',
+        verbose_printing=False):
+    '''
+    RooFit statistical model for the data
+
+    '''
+    # Statistical model
+    w = ROOT.RooWorkspace('w')
+    #w.factory("EXPR::f1('cos(x)**2 + .01',x)")
+    w.factory("EXPR::f2('exp(x*-1)',x[0,5])")
+    w.factory("EXPR::f1('0.3 + exp(-(x-5)**2/5.)',x)")
+    w.factory("EXPR::f0('exp(-(x-2.5)**2/1.)',x)")
+    # w.factory("EXPR::f2('exp(-(x-2)**2/2)',x)")
+    w.factory("SUM::F0(c00[{0}]*f0,c01[{1}]*f1,f2)".format(c0[0], c0[1]))
+    w.factory("SUM::F1(c10[{0}]*f0,c11[{1}]*f1,f2)".format(c1[0], c1[1]))
+
+    # Check Model
+    w.Print()
+    w.writeToFile(
+        '{0}/workspace_DecomposingTestOfMixtureModelsClassifiers.root'.format(dir))
+    if verbose_printing:
+        printFrame(w,
+                   ['x'],
+                   [w.pdf('f0'),
+                    w.pdf('f1'),
+                       w.pdf('f2')],
+                   'decomposed_model',
+                   ['f0',
+                       'f1',
+                       'f2'],
+                   dir=dir,
+                   model_g=model_g,
+                   range=[-15,
+                          20],
+                   title='Single distributions',
+                   x_text='x0',
+                   y_text='p(x)',
+                   print_pdf=True)
+        printFrame(w,
+                   ['x'],
+                   [w.pdf('F0'),
+                    w.pdf('F1')],
+                   'full_model',
+                   ['Bkg',
+                       'Bkg+Signal'],
+                   dir=dir,
+                   model_g=model_g,
+                   range=[-15,
+                          20],
+                   title='Composed model',
+                   x_text='x0',
+                   y_text='p(x)',
+                   print_pdf=True)
+        printFrame(w,
+                   ['x'],
+                   [w.pdf('F1'),
+                    'f0'],
+                   'full_signal',
+                   ['Bkg',
+                       'Signal'],
+                   dir=dir,
+                   model_g=model_g,
+                   range=[-15,
+                          20],
+                   title='Background and signal',
+                   x_text='x0',
+                   y_text='p(x)',
+                   print_pdf=True)
+
+
+def makeData(
+        vars_g,
+        c0,
+        c1,
+        num_train=500,
+        num_test=100,
+        no_train=False,
+        workspace='workspace_DecomposingTestOfMixtureModelsClassifiers.root',
+        dir='/afs/cern.ch/user/j/jpavezse/systematics',
+        c1_g='',
+        model_g='mlp'):
+    # Start generating data
+    '''
+      Each function will be discriminated pair-wise
+      so n*n datasets are needed (maybe they can be reused?)
+    '''
+
+    f = ROOT.TFile('{0}/{1}'.format(dir, workspace))
+    w = f.Get('w')
+    f.Close()
+
+    print 'Making Data'
+    # Start generating data
+    '''
     Each function will be discriminated pair-wise
     so n*n datasets are needed (maybe they can be reused?)
-  ''' 
+  '''
 
-  f = ROOT.TFile('{0}/{1}'.format(dir,workspace))
-  w = f.Get('w')
-  f.Close()
+    # make data from root pdf
+    def makeDataFi(x, pdf, num):
+        traindata = np.zeros((num, len(vars_g)))
+        data = pdf.generate(x, num)
+        traindata[:] = [[data.get(i).getRealValue(var) for var in vars_g]
+                        for i in range(num)]
+        return traindata
 
-  print 'Making Data'
-  # Start generating data
-  ''' 
-    Each function will be discriminated pair-wise
-    so n*n datasets are needed (maybe they can be reused?)
-  ''' 
-   
-  # make data from root pdf
-  def makeDataFi(x, pdf, num):
-    traindata = np.zeros((num,len(vars_g))) 
-    data = pdf.generate(x,num)
-    traindata[:] = [[data.get(i).getRealValue(var) for var in vars_g]
-        for i in range(num)]
-    return traindata
-  
-  # features
-  vars = ROOT.TList()
-  for var in vars_g:
-    vars.Add(w.var(var))
-  x = ROOT.RooArgSet(vars)
+    # features
+    vars = ROOT.TList()
+    for var in vars_g:
+        vars.Add(w.var(var))
+    x = ROOT.RooArgSet(vars)
 
-  # make data from pdf and save to .dat in folder 
-  # ./data/{model}/{c1}
-  for k,c in enumerate(c0):
-    print 'Making {0}'.format(k)
+    # make data from pdf and save to .dat in folder
+    # ./data/{model}/{c1}
+    for k, c in enumerate(c0):
+        print 'Making {0}'.format(k)
+        if not no_train:
+            traindata = makeDataFi(x, w.pdf('f{0}'.format(k)), num_train)
+            np.savetxt('{0}/data/{1}/{2}/train_{3}.dat'.format(dir,
+                                                               model_g, c1_g, k), traindata, fmt='%f')
+        testdata = makeDataFi(x, w.pdf('f{0}'.format(k)), num_test)
+        np.savetxt('{0}/data/{1}/{2}/test_{3}.dat'.format(dir,
+                                                          model_g, c1_g, k), testdata, fmt='%f')
     if not no_train:
-      traindata = makeDataFi(x,w.pdf('f{0}'.format(k)), num_train)
-      np.savetxt('{0}/data/{1}/{2}/train_{3}.dat'.format(dir,model_g,c1_g,k),
-                        traindata,fmt='%f')
-    testdata = makeDataFi(x, w.pdf('f{0}'.format(k)), num_test)
-    np.savetxt('{0}/data/{1}/{2}/test_{3}.dat'.format(dir,model_g,c1_g,k),
-                      testdata,fmt='%f')
-  if not no_train:
-    traindata = makeDataFi(x,w.pdf('F0'), num_train)
-    np.savetxt('{0}/data/{1}/{2}/train_F0.dat'.format(dir,model_g,c1_g),
-                      traindata,fmt='%f')
-    traindata = makeDataFi(x,w.pdf('F1'), num_train)
-    np.savetxt('{0}/data/{1}/{2}/train_F1.dat'.format(dir,model_g,c1_g),
-                      traindata,fmt='%f')
-  testdata = makeDataFi(x, w.pdf('F0'), num_test)
-  np.savetxt('{0}/data/{1}/{2}/test_F0.dat'.format(dir,model_g,c1_g),
-                    testdata,fmt='%f')
-  testdata = makeDataFi(x, w.pdf('F1'), num_test)
-  np.savetxt('{0}/data/{1}/{2}/test_F1.dat'.format(dir,model_g,c1_g),
-                    testdata,fmt='%f')
-
-
+        traindata = makeDataFi(x, w.pdf('F0'), num_train)
+        np.savetxt('{0}/data/{1}/{2}/train_F0.dat'.format(dir, model_g, c1_g),
+                   traindata, fmt='%f')
+        traindata = makeDataFi(x, w.pdf('F1'), num_train)
+        np.savetxt('{0}/data/{1}/{2}/train_F1.dat'.format(dir, model_g, c1_g),
+                   traindata, fmt='%f')
+    testdata = makeDataFi(x, w.pdf('F0'), num_test)
+    np.savetxt('{0}/data/{1}/{2}/test_F0.dat'.format(dir, model_g, c1_g),
+               testdata, fmt='%f')
+    testdata = makeDataFi(x, w.pdf('F1'), num_test)
+    np.savetxt('{0}/data/{1}/{2}/test_F1.dat'.format(dir, model_g, c1_g),
+               testdata, fmt='%f')

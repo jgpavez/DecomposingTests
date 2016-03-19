@@ -17,7 +17,9 @@ from utils import loadData
 
 from logistic_sgd import LogisticRegression
 
+
 class HiddenLayer(object):
+
     def __init__(self, rng, input, n_in, n_out, W=None, b=None,
                  activation=T.tanh):
         """
@@ -61,9 +63,9 @@ class HiddenLayer(object):
         #        tanh.
         if W is None:
             W_values = numpy.asarray(rng.uniform(
-                    low=-numpy.sqrt(6. / (n_in + n_out)),
-                    high=numpy.sqrt(6. / (n_in + n_out)),
-                    size=(n_in, n_out)), dtype=theano.config.floatX)
+                low=-numpy.sqrt(6. / (n_in + n_out)),
+                high=numpy.sqrt(6. / (n_in + n_out)),
+                size=(n_in, n_out)), dtype=theano.config.floatX)
             if activation == theano.tensor.nnet.sigmoid:
                 W_values *= 4
 
@@ -135,12 +137,12 @@ class MLP(object):
         # L1 norm ; one regularization option is to enforce L1 norm to
         # be small
         self.L1 = abs(self.hiddenLayer.W).sum() \
-                + abs(self.logRegressionLayer.W).sum()
+            + abs(self.logRegressionLayer.W).sum()
 
         # square of L2 norm ; one regularization option is to enforce
         # square of L2 norm to be small
         self.L2_sqr = (self.hiddenLayer.W ** 2).sum() \
-                    + (self.logRegressionLayer.W ** 2).sum()
+            + (self.logRegressionLayer.W ** 2).sum()
 
         # negative log likelihood of the MLP is given by the negative
         # log likelihood of the output of the model, computed in the
@@ -161,26 +163,27 @@ class MLP(object):
         ''' Save parameters of the model '''
 
         print '...saving model'
-        #if not os.path.isdir(save_dir):
+        # if not os.path.isdir(save_dir):
         #    os.makedirs(save_dir)
         #save_file= open(os.path.join(save_dir, filename),'wb')
-        save_file= open(filename,'wb')
+        save_file = open(filename, 'wb')
         cPickle.dump(best_params, save_file, protocol=cPickle.HIGHEST_PROTOCOL)
         save_file.close()
 
     def load_model(self, filename="params.pkl"):
         ''' Save parameters of the model '''
 
-        #print '...loading model'
+        # print '...loading model'
 
         save_file = open(filename, 'r')
         params = cPickle.load(save_file)
         save_file.close()
-            
+
         self.hiddenLayer.W.set_value(params[0].get_value(), borrow=True)
         self.hiddenLayer.b.set_value(params[1].get_value(), borrow=True)
         self.logRegressionLayer.W.set_value(params[2].get_value(), borrow=True)
         self.logRegressionLayer.b.set_value(params[3].get_value(), borrow=True)
+
 
 def shared_dataset(data_xy, borrow=True):
     """ Function that loads the dataset into shared variables
@@ -193,7 +196,7 @@ def shared_dataset(data_xy, borrow=True):
     """
     data_x, data_y = data_xy
     shared_x = theano.shared(numpy.asmatrix(data_x,
-                                           dtype=theano.config.floatX),
+                                            dtype=theano.config.floatX),
                              borrow=borrow)
     shared_y = theano.shared(numpy.asarray(data_y,
                                            dtype=theano.config.floatX),
@@ -207,31 +210,39 @@ def shared_dataset(data_xy, borrow=True):
     # lets ous get around this issue
     return shared_x, T.cast(shared_y, 'int32')
 
-def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=10,
-              batch_size=20, n_hidden=40,in_size=1,out_size=2,
-              model_file='model/mlp/adaptive_0_1.pkl'):
+
+def make_predictions(
+        dataset,
+        learning_rate=0.01,
+        L1_reg=0.00,
+        L2_reg=0.0001,
+        n_epochs=10,
+        batch_size=20,
+        n_hidden=40,
+        in_size=1,
+        out_size=2,
+        model_file='model/mlp/adaptive_0_1.pkl'):
 
     test_set_x = dataset
     in_size = test_set_x.shape[1] if len(test_set_x.shape) > 1 else 1
     if in_size == 1:
-      test_set_x = test_set_x.reshape(test_set_x.shape[0],1)
+        test_set_x = test_set_x.reshape(test_set_x.shape[0], 1)
     else:
-      test_set_x = test_set_x.reshape(test_set_x.shape[0],in_size)
+        test_set_x = test_set_x.reshape(test_set_x.shape[0], in_size)
     # quick fix to avoid more change of code, have to change it
     test_set_y = numpy.ones(test_set_x.shape[0])
     test_set_x, test_set_y = shared_dataset((test_set_x, test_set_y))
-
 
     ######################
     # BUILD ACTUAL MODEL #
     ######################
 
-    #print '... building the model'
+    # print '... building the model'
 
     # allocate symbolic variables for the data
     x = T.matrix('x')  # the data is presented as rasterized images
     y = T.ivector('y')  # the labels are presented as 1D vector of
-                        # [int] labels
+    # [int] labels
 
     rng = numpy.random.RandomState(1234)
 
@@ -239,19 +250,28 @@ def make_predictions(dataset, learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_
     classifier = MLP(rng=rng, input=x, n_in=in_size,
                      n_hidden=n_hidden, n_out=out_size)
 
-
     classifier.load_model(filename=model_file)
-    test_model = theano.function([], [classifier.predictions,classifier.y_out],
-                            givens={x: test_set_x})
+    test_model = theano.function(
+        [], [
+            classifier.predictions, classifier.y_out], givens={
+            x: test_set_x})
 
     predictions, probs = test_model()
 
     return probs
 
-def train_mlp(datasets,learning_rate=0.01, L1_reg=0.000, L2_reg=0.0001, n_epochs=100,
-             batch_size=50, n_hidden=40,in_size=1,out_size=2,
-              save_file='model/mlp/adaptive_0_1.pkl'):
 
+def train_mlp(
+        datasets,
+        learning_rate=0.01,
+        L1_reg=0.000,
+        L2_reg=0.0001,
+        n_epochs=100,
+        batch_size=50,
+        n_hidden=40,
+        in_size=1,
+        out_size=2,
+        save_file='model/mlp/adaptive_0_1.pkl'):
 
     train_set_x, train_set_y = datasets
     in_size = train_set_x.shape[1] if len(train_set_x.shape) > 1 else 1
@@ -260,10 +280,10 @@ def train_mlp(datasets,learning_rate=0.01, L1_reg=0.000, L2_reg=0.0001, n_epochs
     train_set_x = train_set_x[indices]
     train_set_y = train_set_y[indices]
     if in_size == 1:
-      train_set_x = train_set_x.reshape(train_set_x.shape[0],1)
+        train_set_x = train_set_x.reshape(train_set_x.shape[0], 1)
     else:
-      train_set_x = train_set_x.reshape(train_set_x.shape[0],in_size)
-    train_set_x , train_set_y = shared_dataset((train_set_x, train_set_y))
+        train_set_x = train_set_x.reshape(train_set_x.shape[0], in_size)
+    train_set_x, train_set_y = shared_dataset((train_set_x, train_set_y))
 
     # compute number of minibatches for training, validation and testing
     n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
@@ -277,8 +297,7 @@ def train_mlp(datasets,learning_rate=0.01, L1_reg=0.000, L2_reg=0.0001, n_epochs
     index = T.lscalar()  # index to a [mini]batch
     x = T.matrix('x')  # the data is presented as rasterized images
     y = T.ivector('y')  # the labels are presented as 1D vector of
-                        # [int] labels
-
+    # [int] labels
 
     # construct the MLP class
     classifier = MLP(rng=rng, input=x, n_in=in_size,
@@ -288,8 +307,8 @@ def train_mlp(datasets,learning_rate=0.01, L1_reg=0.000, L2_reg=0.0001, n_epochs
     # the model plus the regularization terms (L1 and L2); cost is expressed
     # here symbolically
     cost = classifier.negative_log_likelihood(y) \
-         + L1_reg * classifier.L1 \
-         + L2_reg * classifier.L2_sqr
+        + L1_reg * classifier.L1 \
+        + L2_reg * classifier.L2_sqr
 
     # compute the gradient of cost with respect to theta (sotred in params)
     # the resulting gradients will be stored in a list gparams
@@ -312,10 +331,10 @@ def train_mlp(datasets,learning_rate=0.01, L1_reg=0.000, L2_reg=0.0001, n_epochs
     # in the same time updates the parameter of the model based on the rules
     # defined in `updates`
     train_model = theano.function(inputs=[index], outputs=cost,
-            updates=updates,
-            givens={
-                x: train_set_x[index * batch_size:(index + 1) * batch_size],
-                y: train_set_y[index * batch_size:(index + 1) * batch_size]})
+                                  updates=updates,
+                                  givens={
+        x: train_set_x[index * batch_size:(index + 1) * batch_size],
+        y: train_set_y[index * batch_size:(index + 1) * batch_size]})
 
     ###############
     # TRAIN MODEL #
@@ -330,17 +349,17 @@ def train_mlp(datasets,learning_rate=0.01, L1_reg=0.000, L2_reg=0.0001, n_epochs
 
     epoch = 0
     done_looping = False
-  
+
     while (epoch < n_epochs) and (not done_looping):
         minibatch_avg_cost = 0.
         epoch = epoch + 1
         for minibatch_index in xrange(n_train_batches):
 
-            minibatch_avg_cost += train_model(minibatch_index)/batch_size
+            minibatch_avg_cost += train_model(minibatch_index) / batch_size
             # iteration number
             iter = (epoch - 1) * n_train_batches + minibatch_index
         print 'Epoch: {0}, cost: {1}'.format(
-             epoch, minibatch_avg_cost)  
+            epoch, minibatch_avg_cost)
 
     best_params = copy.deepcopy(classifier.params)
     classifier.save_model(best_params, save_file)
@@ -348,15 +367,18 @@ def train_mlp(datasets,learning_rate=0.01, L1_reg=0.000, L2_reg=0.0001, n_epochs
 
 # This is a wrapper in order to make use on decomposing test easier
 class MLPTrainer():
-    def __init__(self,n_hidden=40, L2_reg=0.001):
+
+    def __init__(self, n_hidden=40, L2_reg=0.001):
         self.n_hidden = n_hidden
         self.L2_reg = L2_reg
 
-    def fit(self, X, y,save_file=''):
-        train_mlp((X,y),
+    def fit(self, X, y, save_file=''):
+        train_mlp((X, y),
                   save_file=save_file,
-                  n_hidden = self.n_hidden, L2_reg = self.L2_reg)
-    def predict_proba(self, X, model_file='model'):
-        return make_predictions(dataset=X, model_file=model_file, n_hidden = self.n_hidden)
+                  n_hidden=self.n_hidden, L2_reg=self.L2_reg)
 
- 
+    def predict_proba(self, X, model_file='model'):
+        return make_predictions(
+            dataset=X,
+            model_file=model_file,
+            n_hidden=self.n_hidden)

@@ -46,6 +46,7 @@ import numpy
 import theano
 import theano.tensor as T
 
+
 class LogisticRegression(object):
     """Multi-class Logistic Regression Class
 
@@ -54,7 +55,6 @@ class LogisticRegression(object):
     points onto a set of hyperplanes, the distance to which is used to
     determine a class membership probability.
     """
-
 
     def __init__(self, input, n_in, n_out):
         """ Initialize the parameters of the logistic regression
@@ -76,12 +76,11 @@ class LogisticRegression(object):
         # initialize with 0 the weights W as a matrix of shape (n_in, n_out)
         self.W = theano.shared(value=numpy.zeros((n_in, n_out),
                                                  dtype=theano.config.floatX),
-                                name='W', borrow=True)
+                               name='W', borrow=True)
         # initialize the baises b as a vector of n_out 0s
         self.b = theano.shared(value=numpy.zeros((n_out,),
                                                  dtype=theano.config.floatX),
                                name='b', borrow=True)
-
 
         out = T.dot(input, self.W) + self.b
         # compute vector of class-membership probabilities in symbolic form
@@ -122,8 +121,8 @@ class LogisticRegression(object):
         # LP[n-1,y[n-1]]] and T.mean(LP[T.arange(y.shape[0]),y]) is
         # the mean (across minibatch examples) of the elements in v,
         # i.e., the mean log-likelihood across the minibatch.
-        #return -(T.mean(T.log(self.p_y_given_x[y==1])) + T.mean(T.log(1.-self.p_y_given_x[y==0])))
-        #return T.mean(T.nnet.binary_crossentropy(self.p_y_given_x, y)) 
+        # return -(T.mean(T.log(self.p_y_given_x[y==1])) + T.mean(T.log(1.-self.p_y_given_x[y==0])))
+        # return T.mean(T.nnet.binary_crossentropy(self.p_y_given_x, y))
         return -T.mean(T.log(self.p_y_given_x)[T.arange(y.shape[0]), y])
 
     def errors(self, y):
@@ -139,7 +138,7 @@ class LogisticRegression(object):
         # check if y has same dimension of y_pred
         if y.ndim != self.y_pred.ndim:
             raise TypeError('y should have the same shape as self.y_pred',
-                ('y', target.type, 'y_pred', self.y_pred.type))
+                            ('y', target.type, 'y_pred', self.y_pred.type))
         # check if y is of the correct datatype
         if y.dtype.startswith('int'):
             # the T.neq operator returns a vector of 0s and 1s, where 1
@@ -164,7 +163,8 @@ def load_data(dataset):
     data_dir, data_file = os.path.split(dataset)
     if data_dir == "" and not os.path.isfile(dataset):
         # Check if dataset is in the data directory.
-        new_path = os.path.join(os.path.split(__file__)[0], "..", "data", dataset)
+        new_path = os.path.join(
+            os.path.split(__file__)[0], "..", "data", dataset)
         if os.path.isfile(new_path) or data_file == 'mnist.pkl.gz':
             dataset = new_path
 
@@ -180,12 +180,12 @@ def load_data(dataset):
     f = gzip.open(dataset, 'rb')
     train_set, valid_set, test_set = cPickle.load(f)
     f.close()
-    #train_set, valid_set, test_set format: tuple(input, target)
-    #input is an numpy.ndarray of 2 dimensions (a matrix)
-    #witch row's correspond to an example. target is a
-    #numpy.ndarray of 1 dimensions (vector)) that have the same length as
-    #the number of rows in the input. It should give the target
-    #target to the example with the same index in the input.
+    # train_set, valid_set, test_set format: tuple(input, target)
+    # input is an numpy.ndarray of 2 dimensions (a matrix)
+    # witch row's correspond to an example. target is a
+    # numpy.ndarray of 1 dimensions (vector)) that have the same length as
+    # the number of rows in the input. It should give the target
+    # target to the example with the same index in the input.
 
     def shared_dataset(data_xy, borrow=True):
         """ Function that loads the dataset into shared variables
@@ -221,9 +221,11 @@ def load_data(dataset):
     return rval
 
 
-def sgd_optimization_mnist(learning_rate=0.13, n_epochs=1000,
-                           dataset='/user/j/jgpavez/dbnTheano/code/mnist.pkl.gz',
-                           batch_size=600):
+def sgd_optimization_mnist(
+        learning_rate=0.13,
+        n_epochs=1000,
+        dataset='/user/j/jgpavez/dbnTheano/code/mnist.pkl.gz',
+        batch_size=600):
     """
     Demonstrate stochastic gradient descent optimization of a log-linear
     model
@@ -262,7 +264,7 @@ def sgd_optimization_mnist(learning_rate=0.13, n_epochs=1000,
     index = T.lscalar()  # index to a [mini]batch
     x = T.matrix('x')  # the data is presented as rasterized images
     y = T.ivector('y')  # the labels are presented as 1D vector of
-                           # [int] labels
+    # [int] labels
 
     # construct the logistic regression class
     # Each MNIST image has size 28*28
@@ -275,16 +277,16 @@ def sgd_optimization_mnist(learning_rate=0.13, n_epochs=1000,
     # compiling a Theano function that computes the mistakes that are made by
     # the model on a minibatch
     test_model = theano.function(inputs=[index],
-            outputs=classifier.errors(y),
-            givens={
-                x: test_set_x[index * batch_size: (index + 1) * batch_size],
-                y: test_set_y[index * batch_size: (index + 1) * batch_size]})
+                                 outputs=classifier.errors(y),
+                                 givens={
+        x: test_set_x[index * batch_size: (index + 1) * batch_size],
+        y: test_set_y[index * batch_size: (index + 1) * batch_size]})
 
     validate_model = theano.function(inputs=[index],
-            outputs=classifier.errors(y),
-            givens={
-                x: valid_set_x[index * batch_size:(index + 1) * batch_size],
-                y: valid_set_y[index * batch_size:(index + 1) * batch_size]})
+                                     outputs=classifier.errors(y),
+                                     givens={
+        x: valid_set_x[index * batch_size:(index + 1) * batch_size],
+        y: valid_set_y[index * batch_size:(index + 1) * batch_size]})
 
     # compute the gradient of cost with respect to theta = (W,b)
     g_W = T.grad(cost=cost, wrt=classifier.W)
@@ -299,11 +301,11 @@ def sgd_optimization_mnist(learning_rate=0.13, n_epochs=1000,
     # the same time updates the parameter of the model based on the rules
     # defined in `updates`
     train_model = theano.function(inputs=[index],
-            outputs=cost,
-            updates=updates,
-            givens={
-                x: train_set_x[index * batch_size:(index + 1) * batch_size],
-                y: train_set_y[index * batch_size:(index + 1) * batch_size]})
+                                  outputs=cost,
+                                  updates=updates,
+                                  givens={
+        x: train_set_x[index * batch_size:(index + 1) * batch_size],
+        y: train_set_y[index * batch_size:(index + 1) * batch_size]})
 
     ###############
     # TRAIN MODEL #
@@ -312,14 +314,14 @@ def sgd_optimization_mnist(learning_rate=0.13, n_epochs=1000,
     # early-stopping parameters
     patience = 5000  # look as this many examples regardless
     patience_increase = 2  # wait this much longer when a new best is
-                                  # found
+    # found
     improvement_threshold = 0.995  # a relative improvement of this much is
-                                  # considered significant
+    # considered significant
     validation_frequency = min(n_train_batches, patience / 2)
-                                  # go through this many
-                                  # minibatche before checking the network
-                                  # on the validation set; in this case we
-                                  # check every epoch
+    # go through this many
+    # minibatche before checking the network
+    # on the validation set; in this case we
+    # check every epoch
 
     best_params = None
     best_validation_loss = numpy.inf
@@ -342,13 +344,13 @@ def sgd_optimization_mnist(learning_rate=0.13, n_epochs=1000,
                                      for i in xrange(n_valid_batches)]
                 this_validation_loss = numpy.mean(validation_losses)
 
-                print('epoch %i, minibatch %i/%i, validation error %f %%' % \
-                    (epoch, minibatch_index + 1, n_train_batches,
-                    this_validation_loss * 100.))
+                print('epoch %i, minibatch %i/%i, validation error %f %%' %
+                      (epoch, minibatch_index + 1, n_train_batches,
+                       this_validation_loss * 100.))
 
                 # if we got the best validation score until now
                 if this_validation_loss < best_validation_loss:
-                    #improve patience if loss improvement is good enough
+                    # improve patience if loss improvement is good enough
                     if this_validation_loss < best_validation_loss *  \
                        improvement_threshold:
                         patience = max(patience, iter * patience_increase)
@@ -361,9 +363,9 @@ def sgd_optimization_mnist(learning_rate=0.13, n_epochs=1000,
                     test_score = numpy.mean(test_losses)
 
                     print(('     epoch %i, minibatch %i/%i, test error of best'
-                       ' model %f %%') %
-                        (epoch, minibatch_index + 1, n_train_batches,
-                         test_score * 100.))
+                           ' model %f %%') %
+                          (epoch, minibatch_index + 1, n_train_batches,
+                           test_score * 100.))
 
             if patience <= iter:
                 done_looping = True
@@ -372,7 +374,7 @@ def sgd_optimization_mnist(learning_rate=0.13, n_epochs=1000,
     end_time = time.clock()
     print(('Optimization complete with best validation score of %f %%,'
            'with test performance %f %%') %
-                 (best_validation_loss * 100., test_score * 100.))
+          (best_validation_loss * 100., test_score * 100.))
     print 'The code run for %d epochs, with %f epochs/sec' % (
         epoch, 1. * epoch / (end_time - start_time))
     print >> sys.stderr, ('The code for file ' +
