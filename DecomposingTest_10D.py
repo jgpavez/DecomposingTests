@@ -120,7 +120,7 @@ if __name__ == '__main__':
     c1 = c1 / c1.sum()
 
     verbose_printing = True
-    dir = '/afs/cern.ch/user/j/jpavezse/systematics'
+    dir = '.'
     workspace_file = 'workspace_DecomposingTestOfMixtureModelsClassifiers.root'
 
     # features
