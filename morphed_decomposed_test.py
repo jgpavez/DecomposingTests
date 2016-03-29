@@ -29,6 +29,8 @@ from pyMorphWrapper import MorphingWrapper
 
 from decomposed_test import DecomposedTest
 
+from GPyOpt.methods import BayesianOptimization
+
 
 class MorphedDecomposedTest(DecomposedTest):
     '''
@@ -585,6 +587,240 @@ class MorphedDecomposedTest(DecomposedTest):
         else:
             return [[0., 0.], [csarray[decMin[0]], csarray2[decMin[1]]]]
 
+        
+        
+    def evalBOLikelihood(
+            self,
+            w,
+            testdata,
+            c0,
+            c1,
+            c_eval=0,
+            c_min=0.01,
+            c_max=0.2,
+            use_log=False,
+            true_dist=False,
+            vars_g=None,
+            npoints=50,
+            samples_ids=None,
+            weights_func=None):
+        '''
+          Find minimum of likelihood on testdata using decomposed
+          ratios and the weighted orthogonal morphing method to find the bases
+        '''
+
+        if true_dist:
+            vars = ROOT.TList()
+            for var in vars_g:
+                vars.Add(w.var(var))
+            x = ROOT.RooArgSet(vars)
+        else:
+            x = None
+
+        score = ROOT.RooArgSet(w.var('score'))
+        if use_log:
+            evaluateRatio = self.evaluateLogDecomposedRatio
+            post = 'log'
+        else:
+            evaluateRatio = self.evaluateDecomposedRatio
+            post = ''
+
+        # Compute bases if they don't exist for this range
+        if not os.path.isfile(
+            '3doubleindexes_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(
+                c_min[0],
+                c_min[1],
+                c_max[0],
+                c_max[1],
+                npoints)):
+            self.pre2DDoubleBasis(c_min=c_min, c_max=c_max, npoints=npoints)
+
+
+        all_indexes = np.loadtxt(
+            '3doubleindexes_{0:.2f}_{1:.2f}_{2:.2f}_{3:.2f}_{4}.dat'.format(
+                c_min[0], c_min[1], c_max[0], c_max[1], npoints))
+        all_indexes = np.array([[int(x) for x in rows]
+                                for rows in all_indexes])
+
+        # Bkg used in the fit
+        # TODO: Harcoded this have to be changed
+        basis_value = 1
+
+        # Pre evaluate the values for each distribution
+        pre_pdf = [[range(self.nsamples) for _ in range(self.nsamples)], [
+            range(self.nsamples) for _ in range(self.nsamples)]]
+        pre_dist = [[range(self.nsamples) for _ in range(self.nsamples)], [
+            range(self.nsamples) for _ in range(self.nsamples)]]
+        # Only precompute distributions that will be used
+        unique_indexes = set()
+        for indexes in all_indexes:
+            unique_indexes |= set(indexes)
+        # change this enumerates
+        unique_indexes = list(unique_indexes)
+        for k in range(len(unique_indexes)):
+            for j in range(len(unique_indexes)):
+                index_k, index_j = (unique_indexes[k], unique_indexes[j])
+                # This save some time by only evaluating the needed samples
+                if index_k != basis_value:
+                    continue
+                print 'Pre computing {0} {1}'.format(index_k, index_j)
+                if k != j:
+                    f0pdf = w.function(
+                        'bkghistpdf_{0}_{1}'.format(
+                            index_k, index_j))
+                    f1pdf = w.function(
+                        'sighistpdf_{0}_{1}'.format(
+                            index_k, index_j))
+                    data = testdata
+                    if self.preprocessing:
+                        data = preProcessing(testdata, self.dataset_names[min(
+                            k, j)], self.dataset_names[max(k, j)], self.scaler)
+                    # outputs =
+                    # predict('{0}/model/{1}/{2}/{3}_{4}_{5}.pkl'.format(self.dir,self.model_g,
+                    outputs = predict(
+                        '/afs/cern.ch/work/j/jpavezse/private/{0}_{1}_{2}.pkl'.format(
+                            self.model_file, index_k, index_j), data, model_g=self.model_g)
+                    f0pdfdist = np.array(
+                        [self.evalDist(score, f0pdf, [xs]) for xs in outputs])
+                    f1pdfdist = np.array(
+                        [self.evalDist(score, f1pdf, [xs]) for xs in outputs])
+                    pre_pdf[0][index_k][index_j] = f0pdfdist
+                    pre_pdf[1][index_k][index_j] = f1pdfdist
+                else:
+                    pre_pdf[0][index_k][index_j] = None
+                    pre_pdf[1][index_k][index_j] = None
+                if true_dist:
+                    f0 = w.pdf('f{0}'.format(index_k))
+                    f1 = w.pdf('f{0}'.format(index_j))
+                    if len(testdata.shape) > 1:
+                        f0dist = np.array([self.evalDist(x, f0, xs)
+                                           for xs in testdata])
+                        f1dist = np.array([self.evalDist(x, f1, xs)
+                                           for xs in testdata])
+                    else:
+                        f0dist = np.array([self.evalDist(x, f0, [xs])
+                                           for xs in testdata])
+                        f1dist = np.array([self.evalDist(x, f1, [xs])
+                                           for xs in testdata])
+                    pre_dist[0][index_k][index_j] = f0dist
+                    pre_dist[1][index_k][index_j] = f1dist
+
+        indices = np.ones(testdata.shape[0], dtype=bool)
+        samples = []
+        # Usefull values to inspect after the training
+        target = self.F1_couplings[:]
+
+        def compute_one_alpha_part(weights, xs):
+            c1s_1 = np.multiply(weights,xs)
+            c1s_1 = np.multiply(weights,c1s_1)
+            alpha1 = c1s_1.sum()
+            return alpha1
+        
+        exp_basis_weights = True
+        
+        def vectorize(func):
+            def wrapper(X):
+                v = np.zeros(len(X))
+
+                for i, x_i in enumerate(X):
+                    v[i] = func(x_i)
+
+                return v.reshape(-1, 1)
+
+            return wrapper
+        
+        morph = MorphingWrapper()
+
+        morph.setSampleData(
+            nsamples=15,
+            ncouplings=3,
+            types=[
+                'S',
+                'S',
+                'S'],
+            ncomb=19,
+            morphed=self.F1_couplings,
+            samples=self.all_couplings)
+        
+        def objective(theta):
+            n_effs = np.zeros(2)
+            alpha = np.zeros(2)
+            cs = []
+            cross_section_list = []
+            couplings_list = []
+            for ix,ind in enumerate(all_indexes):
+                target[1] = theta[0]
+                target[2] = theta[1]
+                print target
+                morph.resetTarget(target)          
+                ind = np.array(ind)
+                morph.resetBasis([self.all_couplings[int(k)] for k in ind])
+                couplings = np.array(morph.getWeights())
+                cross_section = np.array(morph.getCrossSections())
+                cross_section_list.append(cross_section)
+                couplings_list.append(couplings)
+                # Compute F1 couplings and cross sections
+                c1_ = np.multiply(couplings, cross_section)
+                n_eff = c1_.sum()
+                n_tot = np.abs(c1_).sum()
+                n_effs[ix] = n_eff / n_tot
+                cs.append(c1_ / c1_.sum())
+                if exp_basis_weights == False:
+                    alpha[ind] = compute_one_alpha_part(couplings,
+                                                cross_section)
+    
+            if exp_basis_weights == True:
+                neff2 = 1./n_effs[1]
+                neff1 = 1./n_effs[0]
+                alpha1 = np.exp(-neff1**(1./3.))
+                alpha2 = np.exp(-neff2**(1./3.))
+                alpha[0] = alpha1/(alpha1 + alpha2)
+                alpha[1] = alpha2/(alpha1 + alpha2)
+            else:
+                alpha[0] = (1/2.)*(alpha2/(alpha1+alpha2))
+                alpha[1] = (1/2.)*(alpha1/(alpha1+alpha2))
+
+            # Compute Bkg weights
+            c0_arr_1 = np.zeros(15)
+            c0_arr_2 = np.zeros(15)
+            c0_arr_1[np.where(all_indexes[0] == basis_value)[0][0]] = 1.
+            c0_arr_2[np.where(all_indexes[1] == basis_value)[0][0]] = 1.
+
+            c0_arr_1 = c0_arr_1 / c0_arr_1.sum()
+            c0_arr_2 = c0_arr_2 / c0_arr_2.sum()
+
+            c1s = np.append(alpha[0] * cs[0], alpha[1] * cs[1])
+            c0_arr = np.append(0.5 * c0_arr_1, 0.5 * c0_arr_2)
+            
+            n_eff_ratio = (alpha[0] * n_effs[0] +
+                    alpha[1] * n_effs[1])
+
+            cross_section = np.append(cross_section_list[0], cross_section_list[1])
+            indexes = np.append(all_indexes[0], all_indexes[1])
+            completeRatios, trueRatios = evaluateRatio(w, testdata, x=x,
+                                                           plotting=False, roc=False, c0arr=c0_arr, c1arr=c1s, true_dist=true_dist,
+                                                           pre_dist=pre_dist, pre_evaluation=pre_pdf, cross_section=cross_section,
+                                                           indexes=indexes)
+            completeRatios = 1. / completeRatios
+
+            if not use_log:
+                if n_eff_ratio < 0.3:
+                    # TODO: Harcoded number
+                    decomposedLikelihood = 20000
+                else:
+                    decomposedLikelihood = -2.*np.mean(np.log(completeRatios))
+            else:
+                decomposedLikelihood = -np.mean(completeRatios.mean())
+            print completeRatios[completeRatios < 0.].shape
+            return decomposedLikelihood
+  
+        bounds = [(c_min[0],c_max[0]),(c_min[1],c_max[1])]
+        solver = BayesianOptimization(vectorize(objective), bounds)
+        solver.run_optimization(max_iter=150, true_gradients=False)
+        approx_MLE = solver.x_opt
+        print("Approx. MLE =", approx_MLE)
+        return ((0.,0.),approx_MLE)
+        
     def fitCValues(
             self,
             c0,
@@ -627,10 +863,7 @@ class MorphedDecomposedTest(DecomposedTest):
         for i in range(n_hist):
             indexes = rng.choice(testdata.shape[0], num_pseudodata)
             dataset = testdata[indexes]
-            ((c1_true,
-              c2_true),
-             (c1_dec,
-              c2_dec)) = self.evalDoubleC1C2Likelihood(w,
+            ((c1_true,c2_true),(c1_dec,c2_dec)) = self.evalBOLikelihood(w,
                                                        dataset,
                                                        c0,
                                                        c1,
@@ -641,7 +874,19 @@ class MorphedDecomposedTest(DecomposedTest):
                                                        vars_g=vars_g,
                                                        weights_func=weights_func,
                                                        npoints=npoints,
-                                                       use_log=use_log)
+                                                       use_log=use_log)            
+            #((c1_true,c2_true),(c1_dec,c2_dec)) = self.evalDoubleC1C2Likelihood(w,
+            #                                           dataset,
+            #                                           c0,
+            #                                           c1,
+            #                                           c_eval=c_eval,
+            #                                           c_min=c_min,
+            #                                           c_max=c_max,
+            #                                           true_dist=true_dist,
+            #                                           vars_g=vars_g,
+            #                                           weights_func=weights_func,
+            #                                           npoints=npoints,
+            #                                           use_log=use_log)
             print '2: {0} {1} {2} {3}'.format(c1_true, c1_dec, c2_true, c2_dec)
             fil1.write(
                 '{0} {1} {2} {3}\n'.format(
