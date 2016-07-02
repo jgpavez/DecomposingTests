@@ -330,13 +330,13 @@ class DecomposedTest:
                 continue
             for j, c_ in enumerate(c1arr):
                 index_k, index_j = (indexes[k], indexes[j])
-                f0pdf = w.function(
+                if index_k != index_j:
+                    f0pdf = w.function(
                     'bkghistpdf_{0}_{1}'.format(
                         index_k, index_j))
-                f1pdf = w.function(
+                    f1pdf = w.function(
                     'sighistpdf_{0}_{1}'.format(
                         index_k, index_j))
-                if index_k != index_j:
                     if pre_evaluation is None:
                         traindata = evalData
                         outputs = predict(
