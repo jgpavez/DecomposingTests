@@ -1,5 +1,5 @@
 '''
-Simple python Wrapper for EFT Morphing code
+Python Wrapper for EFT Morphing code and Morphing Strategies
 author: jpavezse
 '''
 
@@ -24,8 +24,15 @@ lib = cdll.LoadLibrary('./RandomEFT/RandomEFT/libcMorphWrapper.so')
 #lib.getWeights.restype = c_char_p
 lib.getCrossSections.restype = c_char_p
 
-
+''' 
+    Evolutionary algorithm functions
+'''
+ 
 def initInd(icls, size, samples):
+    '''
+        Random initialization of a pair of bases on the ea algorithm
+        representation
+    '''
     pop1 = np.zeros(len(samples))
     idx1 = np.random.choice(len(samples), size, replace=False)
     pop1[idx1] = 1
@@ -37,7 +44,13 @@ def initInd(icls, size, samples):
 
 
 def mutateInd(individual):
-    # External mutation
+    '''
+        Mutation operator, it has two phases:
+        Internal mutation: Randomly change a choosed sample by an unused one (1<->0) 
+            inside a base
+        External mutation: Randomly swap used samples between the bases 
+    '''
+    # Internal mutation
     size = len(individual) / 2
     ind_arr = np.array(individual)
     i = np.random.choice(np.where(
@@ -48,7 +61,7 @@ def mutateInd(individual):
             np.array(individual)[base * size:(
             base +1) *size] == 1)[0]) + base * size] = 0
     individual[i + size * base] = 1
-    # Internal Mutation
+    # External Mutation
     ind_arr = np.array(individual)
     i = np.random.choice(
         np.where(np.logical_and(ind_arr[
@@ -62,6 +75,11 @@ def mutateInd(individual):
 
 
 def cxOver(ind1, ind2, section, base_size):
+    '''
+        Crossover operator: Swap two randomly choosed slices between the 
+        solutions ind1 and ind2 for each base, afterwards it fix the problems 
+        introduced by that creating feasible solutions
+    '''
     size = len(ind1) / 2
     assert size > section
     base = np.random.choice((0, 1))
@@ -72,6 +90,7 @@ def cxOver(ind1, ind2, section, base_size):
     ind1_base = list()
     ind2_base = list()
 
+    # Swap randomly choosed slices between two solutions (ind1, ind2) for each base
     for base in (0, 1):
         ind1_base.append(np.array(ind1[base * size:(base + 1) * size]))
         ind2_base.append(np.array(ind2[base * size:(base + 1) * size]))
@@ -79,6 +98,7 @@ def cxOver(ind1, ind2, section, base_size):
         ind2_base[-1][mask] = ind1_base[-1][mask]
         ind1_base[-1][mask] = tmp
 
+    # Fix problems introduced when swapping the slices
     for inds in (ind1_base, ind2_base):
         for ind in inds:
             if sum(ind) > base_size:  # Case in which we add 1s
@@ -93,6 +113,9 @@ def cxOver(ind1, ind2, section, base_size):
 
     return ind1, ind2
 
+'''
+    Morphing Class
+'''
 
 class MorphingWrapper:
 
@@ -115,7 +138,7 @@ class MorphingWrapper:
         string_data = '{0} {1} '.format(self.nsamples, self.ncouplings)
         string_data = string_data + ' '.join(str(x) for x in self.types) + ' '
         string_data = string_data + \
-            ' '.join(str(x) for x in self. morphed) + ' '
+            ' '.join(str(x) for x in self.morphed) + ' '
         string_data = string_data + \
             ' '.join(str(x) for sample in self.basis for x in sample)
         return string_data
@@ -125,24 +148,23 @@ class MorphingWrapper:
             nsamples,
             ncouplings,
             types,
-            morphed=[
-                1.,
-                1.,
-                1.],
+            morphed=[1.,1.,1.],
             samples=None,
             ncomb=20,
-            used_samples=30):
+            used_samples=30,
+            use_alpha=False):
         lib.getWeights.restype = POINTER(c_float * (nsamples + 2))
-        self.nsamples = nsamples
-        self.ncouplings = ncouplings
+        self.nsamples = nsamples # total number of samples to use
+        self.ncouplings = ncouplings # number of couplings in each sample
         self.types = types
-        self.morphed = morphed
-        self.samples = samples
+        self.morphed = morphed # target sample
+        self.samples = samples # available samples
         self.basis = samples[:self.nsamples]
-        self.ncomb = ncomb
+        self.ncomb = ncomb # used in dynamic morphing, subset of samples to make permutations
         string_data = self.getStringData()
         self.setStringData(string_data)
         self.used_samples = used_samples
+        self.use_alpha = use_alpha
 
     def resetBasis(self, sample):
         self.basis = sample
@@ -199,6 +221,7 @@ class MorphingWrapper:
             cross_sections.append(formula(ksm, khzz, kazz))
 
         return cross_sections
+    
     def compute_one_alpha_part(self, weights, xs):
         c1s_1 = np.multiply(weights,xs)
         c1s_1 = np.multiply(weights,c1s_1)
@@ -206,8 +229,6 @@ class MorphingWrapper:
         return alpha1
     
     def computeWeighted(self, bases, samples):
-        # TODO : Harcoded!
-        # self.resetTarget(self.morphed)
         n_effs = np.zeros(2)
         alpha = np.zeros(2)
         for i,basis in enumerate(bases):
@@ -215,7 +236,6 @@ class MorphingWrapper:
             basis = [samples[b] for b in basis]
             self.resetBasis(basis)
             weights = np.array(self.getWeights())
-            # print weights
             cross_sections = np.array(self.getCrossSections())
             n_tot = (np.abs(np.multiply(weights, cross_sections))).sum()
             n_eff = (np.multiply(weights, cross_sections)).sum()
@@ -226,54 +246,42 @@ class MorphingWrapper:
         return alpha[0]*n_effs[0] + alpha[1]*n_effs[1]
  
 
+    def computeStats(self, basis, samples):
+        # Compute n_eff, condition number and matrix determinant of solution
+        basis = [samples[b] for b in basis]
+        self.resetBasis(basis)
+        weights = np.array(self.getWeights())
+        cross_sections = np.array(self.getCrossSections())
+        n_tot = (np.abs(np.multiply(weights, cross_sections))).sum()
+        n_eff = (np.multiply(weights, cross_sections)).sum()
+        
+        return (np.abs(n_eff / n_tot), self.det, self.cond)
+
+    
     def computeNeff(self, basis, samples):
-        # TODO : Harcoded!
-        # self.resetTarget(self.morphed)
+        '''
+            N_eff computation
+        '''
         self.resetTarget(self.morphed)
         basis = [samples[b] for b in basis]
         self.resetBasis(basis)
         weights = np.array(self.getWeights())
-        # print weights
         cross_sections = np.array(self.getCrossSections())
-        n_tot = (np.abs(np.multiply(weights, cross_sections))).sum()
+        
         n_eff = (np.multiply(weights, cross_sections)).sum()
+        n_tot = (np.abs(np.multiply(weights, cross_sections))).sum()
+        
         return np.abs(n_eff / n_tot)
-
-    def evalMean(self, x, samples, cvalues_1, cvalues_2, verb=False):
-        val = 0.
-        target = self.morphed[:]
-        norm = len(cvalues_1) * len(cvalues_2)
-        result = 0.
-        for val1 in cvalues_1:
-            for val2 in cvalues_2:
-                target[1] = val1
-                target[2] = val2
-                self.resetTarget(target)
-                res, det, cond = self.computeStats(x, samples)
-                result += (1. / (val1**2 + val2**2)) * res
-        r1, det1, cond1 = self.computeStats(x, samples)
-        val = result / norm
-        if cond1 > 100000.:
-            val = 0.
-        # else:
-        #  print val
-        return val
-
-    def computeStats(self, basis, samples):
-        basis = [samples[b] for b in basis]
-        self.resetBasis(basis)
-        weights = np.array(self.getWeights())
-        # print weights
-        cross_sections = np.array(self.getCrossSections())
-        n_tot = (np.abs(np.multiply(weights, cross_sections))).sum()
-        n_eff = (np.multiply(weights, cross_sections)).sum()
-        return (np.abs(n_eff / n_tot), self.det, self.cond)
-
+    
     def evalMaxPair(self, x, samples, cvalues_1, cvalues_2, verb=False, alpha = False):
+        '''
+            Loss function
+        '''
         val = 0.
         target = self.morphed[:]
         norm = len(cvalues_1) * len(cvalues_2)
         result = 0.
+        # Sum of n_eff for each pair of samples in grid (cvalues_1 x cvalues_2)
         for val1 in cvalues_1:
             for val2 in cvalues_2:
                 target[1] = val1
@@ -282,268 +290,36 @@ class MorphingWrapper:
                 if alpha == False:
                     r1 = self.computeNeff(x[0], samples)
                     r2 = self.computeNeff(x[1], samples)
-                    #result += np.max((r1, r2))
                     result += r1 + r2
                 else:
                     result += self.computeWeighted(x,samples)
         r1, det1, cond1 = self.computeStats(x[0], samples)
         r2, det2, cond2 = self.computeStats(x[1], samples)
-        # self.resetTarget(self.morphed)
-        #r1 = self.computeNeff(x[0],samples)
-        #r2 = self.computeNeff(x[1],samples)
-        #result += 2.*(r1 + r2)
         val = result / (norm)
+        # Check that condition number of the solution is not too bad
         if cond1 > 100000. or cond2 > 100000.:
             val = 0.
         else:
             print val
         return val
-
-    def dynamicMorphing(self, target=None, cvalues_1=None, cvalues_2=None):
-        # This function will work in case you have more samples that needed
-        rng = np.random.RandomState(1234)
-        #rng = np.random.RandomState(1111)
-        samples = self.samples[:]
-        indexes = np.array([samples.index(x)
-                            for x in samples if x != self.morphed])
-        # This is the sample to fit (not necessarily the morphed when fitting)
-        if target is not None:
-            indexes = np.array([samples.index(x)
-                                for x in samples if x != target])
-
-        samples_indexes = indexes
-        #samples_indexes = indexes[rng.choice(len(indexes), self.used_samples, replace=False)]
-        #samples_indexes = sorted(indexes,key=lambda x: np.sqrt(np.sum((np.array(samples[x])-self.morphed)**2)))
-        #samples_indexes = np.array((samples_indexes[:self.used_samples]))
-        print len(samples_indexes)
-        ncomb_indexes = samples_indexes[
-            rng.choice(
-                len(samples_indexes),
-                self.ncomb,
-                replace=False)]
-
-        print 'Starting combinations'
-        # Considering condition number
-        comb = list(combinations(ncomb_indexes, self.nsamples))
-        #comb = [comb[i] for i in rng.choice(len(comb),int(len(comb)/2),replace=False)]
-        start = time.time()
-        print 'Start sorting'
-        comb = sorted(
-            comb, key=lambda x: self.computeNeff(
-                x, samples), reverse=True)[
-            :int(
-                len(comb) * 0.1)]
-        #comb = sorted(comb,key=lambda x: self.computeNeff(x,samples),reverse=True)
-        end = time.time()
-        print 'Elapsed time combinations: {0}'.format(end - start)
-        print 'Number of combinations: {0}'.format(len(comb))
-        pairs = []
-        for c in comb:
-            print '.',
-            #l1 = [i for i in samples_indexes if i not in c]
-            l1 = np.array(list(set(samples_indexes) - set(c)))
-            l1 = l1[rng.choice(len(l1), self.ncomb, replace=False)]
-            #comb2_len = self.nsamples*2 - len(indexes)
-            #comb2 = list(combinations(c,self.nsamples*2 - len(indexes)))
-            #comb2 = np.array(comb2)[rng.choice(len(comb2),int(len(comb2)*0.05),replace=False)]
-            # for c2 in comb2:
-            #  pairs.append([c,tuple(l1 + list(c2))])
-            if len(l1) != self.nsamples:
-                comb2 = list(combinations(l1, self.nsamples))
-                comb2 = np.array(comb2)[
-                    rng.choice(
-                        len(comb2), int(
-                            len(comb2) * 0.03), replace=False)]
-                for c2 in comb2:
-                    pairs.append([c, tuple(list(c2))])
-            else:
-                pairs.append([c, tuple(l1)])
-        print ''
-        pairs = [
-            pairs[i] for i in rng.choice(
-                len(pairs), int(
-                    len(pairs) * 0.3), replace=False)]
-        print 'Number of pairs: {0}'.format(len(pairs))
-        start = time.time()
-        best_result = 0.
-        for p in pairs:
-            try:
-                result = self.evalMaxPair(p, samples, cvalues_1, cvalues_2)
-                if result > best_result:
-                    best_result = result
-                    best = p
-                if result > 0.8:
-                    best = p
-                    best_result = result
-                    break
-            except KeyboardInterrupt:
-                print 'KeyboardInterrupt caught'
-                break
-        end = time.time()
-        print 'Elapsed time 2nd basis: {0}'.format(end - start)
-        print 'Best Result : {0}'.format(best_result)
-        print 'Results on target for each basis: '
-        self.mem_values.clear()
-        self.resetTarget(self.morphed)
-        result, det, cond = self.computeStats(best[0], samples)
-        print 'Result: {0} ,Det: {1}, Cond: {2}'.format(result, det, cond)
-        result, det, cond = self.computeStats(best[1], samples)
-        print 'Result: {0} ,Det: {1}, Cond: {2}'.format(result, det, cond)
-
-        return best
-
-    def dynamicMorphing_(self, target=None, cvalues_1=None, cvalues_2=None,alpha=False):
-        # This function will work in case you have more samples that needed
-        rng = np.random.RandomState(1234)
-        #rng = np.random.RandomState(1111)
-        samples = self.samples[:]
-        indexes = np.array([samples.index(x)
-                            for x in samples if x != self.morphed])
-        # This is the sample to fit (not necessarily the morphed when fitting)
-        if target is not None:
-            indexes = np.array([samples.index(x)
-                                for x in samples if x != target])
-
-        samples_indexes = indexes
-        print len(samples_indexes)
-        ncomb_indexes = samples_indexes[
-            rng.choice(
-                len(samples_indexes),
-                self.ncomb,
-                replace=False)]
-
-        print 'Starting combinations'
-        # Considering condition number
-        comb = list(combinations(ncomb_indexes, self.nsamples))
-        #comb = [comb[i] for i in rng.choice(len(comb),int(len(comb)/2),replace=False)]
-        start = time.time()
-        print 'Start sorting'
-        comb = sorted(
-            comb, key=lambda x: self.computeNeff(
-                x, samples), reverse=True)[:int(
-                len(comb) * 0.1)]
-        #comb = sorted(comb,key=lambda x: self.computeNeff(x,samples),reverse=True)
-        end = time.time()
-        print 'Elapsed time combinations: {0}'.format(end - start)
-        print 'Number of combinations: {0}'.format(len(comb))
-        pairs = []
-        for c in comb:
-            print '.',
-            l1 = [i for i in samples_indexes if i not in c]
-            comb2_len = self.nsamples * 2 - len(indexes)
-            comb2 = list(combinations(c, self.nsamples * 2 - len(indexes)))
-            comb2 = np.array(comb2)[
-                rng.choice(len(comb2), int(len(comb2) * 0.05), replace=False)]
-            for c2 in comb2:
-                pairs.append([c, tuple(l1 + list(c2))])
-        print ''
-        pairs = [pairs[i] for i in rng.choice(
-                len(pairs), int(len(pairs) * 0.3), replace=False)]
-        print 'Number of pairs: {0}'.format(len(pairs))
-        start = time.time()
-        best_result = 0.
-        for p in pairs:
-            try:
-                result = self.evalMaxPair(p, samples, cvalues_1, cvalues_2,alpha=alpha)
-                if result > best_result:
-                    best_result = result
-                    best = p
-                if result > 0.8:
-                    best = p
-                    best_result = result
-                    break
-            except KeyboardInterrupt:
-                print 'KeyboardInterrupt caught'
-                break
-        end = time.time()
-        print 'Elapsed time 2nd basis: {0}'.format(end - start)
-        print 'Best Result : {0}'.format(best_result)
-        print 'Results on target for each basis: '
-        self.mem_values.clear()
-        self.resetTarget(self.morphed)
-        result, det, cond = self.computeStats(best[0], samples)
-        print 'Result: {0} ,Det: {1}, Cond: {2}'.format(result, det, cond)
-        result, det, cond = self.computeStats(best[1], samples)
-        print 'Result: {0} ,Det: {1}, Cond: {2}'.format(result, det, cond)
-
-        return best
-
-    def simpleMorphing(
-            self,
-            target=None,
-            cvalues_1=None,
-            cvalues_2=None,
-            c_eval=0):
-        # TODO: Have to check the condition number and det
-        # This function will work in case you have more samples that needed
-        rng = np.random.RandomState(1234)
-        samples = self.samples[:]
-        indexes = np.array([samples.index(x)
-                            for x in samples if x != self.morphed])
-        # This is the sample to fit (not necessarily the morphed when fitting)
-        if target is not None:
-            indexes = np.array([samples.index(x)
-                                for x in samples if x != target])
-        #indexes = sorted(indexes,key=lambda x: np.sqrt(np.sum((np.array(samples[x])-self.morphed)**2)))
-        #ncomb_indexes = indexes[:self.ncomb]
-        ncomb_indexes = indexes[
-            rng.choice(
-                len(indexes),
-                self.ncomb,
-                replace=False)]
-        # Considering condition number
-        comb = list(combinations(ncomb_indexes, self.nsamples))
-        comb = [
-            comb[i] for i in rng.choice(
-                len(comb), int(
-                    len(comb) / 2), replace=False)]
-        start = time.time()
-        comb = sorted(
-            comb, key=lambda x: self.computeNeff(
-                x, samples), reverse=True)[
-            :int(
-                len(comb) * 0.3)]
-        end = time.time()
-        print 'elapsed time : {0}'.format(end - start)
-        print len(comb)
-        start = time.time()
-        comb = [
-            comb[i] for i in rng.choice(
-                len(comb), int(
-                    len(comb) * 0.1), replace=False)]
-        best_result = 0.
-        for p in comb:
-            result = self.evalMean(
-                p,
-                samples,
-                cvalues_1,
-                cvalues_2) if cvalues_2 is not None else self.evalMeanSingle(
-                p,
-                samples,
-                cvalues_1,
-                c_eval)
-            if result > best_result:
-                best_result = result
-                best = p
-        end = time.time()
-        self.resetTarget(self.morphed)
-        result, det, cond = self.computeStats(best, samples)
-        print 'Result: {0} ,Det: {1}, Cond: {2}'.format(result, det, cond)
-        print 'elapsed time : {0}'.format(end - start)
-        # print 'n_eff: {0}'.format(self.computeNeff(best,samples))
-        #self.resetBasis([samples[b] for b in best])
-
-        return best
-
+    
     def evaluateInd(self, individual, cvalues_1, cvalues_2):
+        '''
+            Loss function for evo algorithm
+        '''
         size = len(individual) / 2
         ind1, ind2 = np.array(individual[:size]), np.array(individual[size:])
+        
         # Check that individual is a valid sample
         assert sum(ind1) == 15
         assert sum(ind2) == 15
         assert sum(np.logical_and(ind1, ind2)) == 0
+        
+        # Convert from evolutionary alg representation ([0 1 0 1 ...]) to 
+        # list of bases ([1,3,..],[12,15,..])
         p = map(list, (np.where(ind1 == 1)[0], np.where(ind2 == 1)[0]))
-        result = self.evalMaxPair(p, self.samples, cvalues_1, cvalues_2)
+        # Evaluate Loss
+        result = self.evalMaxPair(p, self.samples, cvalues_1, cvalues_2, alpha = self.use_alpha)
         return result,
 
     # Workaround for parallel processing
@@ -556,8 +332,9 @@ class MorphingWrapper:
             cvalues_1=None,
             cvalues_2=None,
             c_eval=0):
-
-        res = initInd(np.array, 15, self.samples)
+        ''' 
+            Evolutionary morphing. 
+        '''
 
         toolbox = base.Toolbox()
         creator.create(
@@ -567,53 +344,54 @@ class MorphingWrapper:
                 1.0,
             ),
             typecode='d')
+        
         creator.create("Individual", list, fitness=creator.FitnessMax)
+        
         toolbox.register(
             "individual",
             initInd,
             creator.Individual,
             size=15,
             samples=self.samples)
-        ind1 = toolbox.individual()
-        ind2 = toolbox.individual()
 
         #toolbox.register('evaluate', self.evaluateInd, cvalues_1=cvalues_1, cvalues_2=cvalues_2)
+        # Here I define self as the fitness function ... then __call__ will be called and then self.evaluateInd
         toolbox.register(
             'evaluate',
             self,
             cvalues_1=cvalues_1,
             cvalues_2=cvalues_2)
 
-        # mutateInd(ind)
+        # Defining algorithm operators
         toolbox.register('mutate', mutateInd)
-
         toolbox.register('mate', cxOver, section=3, base_size=15)
         toolbox.register("select", tools.selTournament, tournsize=3)
+        
         #toolbox.register("select", tools.selRoulette)
         toolbox.register(
             "population",
             tools.initRepeat,
             list,
             toolbox.individual)
-        #toolbox.register("map", futures.map)
+        
+        # Parallel processing
         pool = multiprocessing.Pool()
-        toolbox.register("map", pool.map)
+        #toolbox.register("map", pool.map)
 
         halloffame = tools.HallOfFame(maxsize=10)
 
         mu_es, lambda_es = 3, 21
 
         pop_stats = tools.Statistics(key=lambda ind: ind.fitness.values)
-        #pop_stats.register('pop', copy.deepcopy)
         pop_stats.register('avg', np.mean)
         pop_stats.register('max', np.max)
-        # toolbox.mate(ind1,ind2)
         pop = toolbox.population(n=50)
         start = time.time()
+        
+        # Running the evolutionary algorithm
         pop, logbook = algorithms.eaSimple(
             pop, toolbox, cxpb=0.5, mutpb=0.5, ngen=500, stats=pop_stats, halloffame=halloffame)
-        # pop, logbook = algorithms.eaMuCommaLambda(pop, toolbox, mu=mu_es, lambda_=lambda_es,
-        # cxpb=0.6, mutpb=0.3, ngen=50, stats=pop_stats, halloffame=halloffame)
+
         end = time.time()
         halloffame.update(pop)
 
@@ -624,8 +402,9 @@ class MorphingWrapper:
         assert sum(ind1) == 15
         assert sum(ind2) == 15
         assert sum(np.logical_and(ind1, ind2)) == 0
+        
         p = map(list, (np.where(ind1 == 1)[0], np.where(ind2 == 1)[0]))
-        print self.evalMaxPair(p, self.samples, cvalues_1, cvalues_2)
+        print self.evalMaxPair(p, self.samples, cvalues_1, cvalues_2, alpha=self.use_alpha)
 
         best = p
         self.mem_values.clear()
